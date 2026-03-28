@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { getAccountColor } from "../App";
 
-export default function RestaurantPanel({ restaurant, accounts, onClose, onHide, apiBase }) {
+export default function RestaurantPanel({ restaurant, accounts, onClose, onHide, apiBase, sidebarWidth = 280 }) {
   const r = restaurant;
   const [adResult, setAdResult] = useState(null);
   const [adLoading, setAdLoading] = useState(false);
@@ -23,7 +23,6 @@ export default function RestaurantPanel({ restaurant, accounts, onClose, onHide,
     }
   }, [r, apiBase]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // 패널 열리면 자동으로 광고 분석 실행
   useEffect(() => {
     if (!r) return;
     setAdResult(null);
@@ -40,8 +39,10 @@ export default function RestaurantPanel({ restaurant, accounts, onClose, onHide,
 
   return (
     <div style={{
-      position: "absolute",
-      bottom: 0, left: 280, right: 0,
+      position: "fixed",
+      bottom: 0,
+      left: sidebarWidth,
+      right: 0,
       background: "white",
       borderRadius: "16px 16px 0 0",
       boxShadow: "0 -4px 20px rgba(0,0,0,0.12)",
@@ -49,6 +50,7 @@ export default function RestaurantPanel({ restaurant, accounts, onClose, onHide,
       zIndex: 20,
       maxHeight: "50vh",
       overflowY: "auto",
+      transition: "left 0.3s ease",
     }}>
       {/* 헤더 */}
       <div style={{ display: "flex", alignItems: "flex-start", marginBottom: 12 }}>
@@ -72,7 +74,6 @@ export default function RestaurantPanel({ restaurant, accounts, onClose, onHide,
         </div>
 
         <div style={{ display: "flex", gap: 6 }}>
-          {/* 지도에서 숨기기 */}
           <button
             onClick={() => onHide(r.id, isSearchResult)}
             title="지도에서 숨기기"
@@ -84,7 +85,6 @@ export default function RestaurantPanel({ restaurant, accounts, onClose, onHide,
             }}
           >🗑</button>
 
-          {/* 닫기 */}
           <button
             onClick={onClose}
             style={{
@@ -96,7 +96,6 @@ export default function RestaurantPanel({ restaurant, accounts, onClose, onHide,
         </div>
       </div>
 
-      {/* 네이버 지도 버튼 */}
       {r.naver_place_url && (
         <a href={r.naver_place_url} target="_blank" rel="noreferrer" style={{
           display: "inline-block", marginBottom: 16,
@@ -108,7 +107,7 @@ export default function RestaurantPanel({ restaurant, accounts, onClose, onHide,
         </a>
       )}
 
-      {/* 광고 분석 결과 — 자동 실행 */}
+      {/* 광고 분석 */}
       <div style={{ marginBottom: 16 }}>
         <p style={{ fontSize: 12, color: "#888", margin: "0 0 8px", fontWeight: 600 }}>
           광고 분석
@@ -121,15 +120,12 @@ export default function RestaurantPanel({ restaurant, accounts, onClose, onHide,
             display: "flex", alignItems: "center", gap: 8,
           }}>
             <span style={{ fontSize: 16 }}>⏳</span>
-            블로그 100개 분석 중... (잠시 기다려주세요)
+            블로그 분석 중... (잠시 기다려주세요)
           </div>
         )}
 
         {!adLoading && adResult && verdictInfo && (
-          <div style={{
-            background: verdictInfo.bg, borderRadius: 12,
-            padding: "14px 16px",
-          }}>
+          <div style={{ background: verdictInfo.bg, borderRadius: 12, padding: "14px 16px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
               <span style={{ fontSize: 14, fontWeight: 700, color: verdictInfo.color }}>
                 {verdictInfo.label}
@@ -144,7 +140,6 @@ export default function RestaurantPanel({ restaurant, accounts, onClose, onHide,
               </span>
             </div>
 
-            {/* 비율 바 */}
             <div style={{ display: "flex", gap: 2, height: 8, borderRadius: 4, overflow: "hidden", marginBottom: 8 }}>
               {adResult.ad_count > 0 && (
                 <div style={{ flex: adResult.ad_count, background: "#E24B4A" }} />
@@ -163,7 +158,6 @@ export default function RestaurantPanel({ restaurant, accounts, onClose, onHide,
               <span>🟢 순수 {adResult.genuine_count}개</span>
             </div>
 
-            {/* 광고/의심 게시물 목록 */}
             {adResult.posts.filter(p => p.is_ad || p.is_suspicious).length > 0 && (
               <div style={{ marginTop: 12 }}>
                 <p style={{ fontSize: 11, fontWeight: 600, color: "#555", margin: "0 0 6px" }}>
