@@ -6,7 +6,7 @@ import Sidebar from "./components/Sidebar";
 import RestaurantPanel from "./components/RestaurantPanel";
 import "./App.css";
 
-const API_BASE = "https://restaurantmap-production.up.railway.app";
+const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8000";
 
 export const ACCOUNT_COLORS = [
   "#E8593C", "#3B8BD4", "#1D9E75", "#BA7517",
