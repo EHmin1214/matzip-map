@@ -1,14 +1,21 @@
 // src/components/NotificationTab.jsx
+// 디자인: desktop_3.html (Notifications) 기반
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useUser, API_BASE } from "../context/UserContext";
 
-const TYPE_INFO = {
-  follow:          { emoji: "👤", label: "님이 팔로우하기 시작했어요" },
-  follow_request:  { emoji: "🔔", label: "님이 팔로우를 요청했어요" },
-  follow_accepted: { emoji: "✅", label: "님이 팔로우 요청을 수락했어요" },
-  like:            { emoji: "❤️", label: "님이 회원님의 맛집을 좋아해요" },
-  comment:         { emoji: "💬", label: "님이 댓글을 남겼어요" },
+const FH = "'Noto Serif', Georgia, serif";
+const FL = "'Manrope', -apple-system, sans-serif";
+const C = {
+  primary:    "#655d54",
+  primaryDim: "#595149",
+  primaryContainer: "#ede0d5",
+  bg:         "#faf9f6",
+  container:  "#edeeea",
+  containerLowest: "#ffffff",
+  containerLow: "#f4f4f0",
+  onSurface:  "#2f3430",
+  tertiary:   "#685f39",
 };
 
 const isMobile = () => window.innerWidth <= 768;
@@ -63,134 +70,260 @@ export default function NotificationTab({ embedded = false, onUnreadChange }) {
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
-  const containerStyle = embedded
-    ? { height: "100%", overflowY: "auto", background: "white" }
-    : {
-        position: "fixed", inset: 0, background: "#f8f8f8",
-        overflowY: "auto", paddingBottom: mobile ? 80 : 0, zIndex: 20,
-        WebkitOverflowScrolling: "touch",
-      };
+  const getTypeIcon = (type) => {
+    const icons = { follow: "person", follow_request: "person_add", follow_accepted: "check", like: "favorite", comment: "chat_bubble" };
+    const colors = { follow: C.container, follow_request: C.primary, follow_accepted: C.primary, like: C.primaryContainer, comment: C.tertiary };
+    return { icon: icons[type] || "notifications", bg: colors[type] || C.container };
+  };
 
-  return (
-    <div style={containerStyle}>
-      {!embedded ? (
-        <div style={{
-          background: "white", padding: "16px 20px",
-          borderBottom: "1px solid #f0f0f0",
-          position: "sticky", top: 0, zIndex: 10,
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#222" }}>알림</h2>
-            {unreadCount > 0 && (
-              <span style={{ background: "#E8593C", color: "white", borderRadius: 10, padding: "2px 8px", fontSize: 13, fontWeight: 700 }}>{unreadCount}</span>
-            )}
-          </div>
+  const getTypeLabel = (type) => ({
+    follow: "님이 팔로우하기 시작했어요",
+    follow_request: "님이 팔로우를 요청했어요",
+    follow_accepted: "님이 팔로우 요청을 수락했어요",
+    like: "님이 맛집을 좋아해요",
+    comment: "님이 댓글을 남겼어요",
+  }[type] || "새 알림");
+
+  if (embedded) {
+    return (
+      <div style={{ height: "100%", overflowY: "auto", background: C.bg }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 12px 8px" }}>
+          <span style={{ fontFamily: FL, fontSize: 9, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.15em", color: "#a8a29e" }}>알림</span>
           {unreadCount > 0 && (
-            <button onClick={markAllRead} style={{ background: "none", border: "none", fontSize: 14, color: "#E8593C", cursor: "pointer", fontWeight: 600, padding: "8px", minHeight: 44 }}>
+            <button onClick={markAllRead} style={{ background: "none", border: "none", fontFamily: FL, fontSize: 10, color: C.primary, cursor: "pointer", fontWeight: 600 }}>
               모두 읽음
             </button>
           )}
         </div>
-      ) : (
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 12px 8px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: "#555" }}>알림</span>
-            {unreadCount > 0 && <span style={{ background: "#E8593C", color: "white", borderRadius: 8, padding: "1px 6px", fontSize: 11, fontWeight: 700 }}>{unreadCount}</span>}
-          </div>
-          {unreadCount > 0 && <button onClick={markAllRead} style={{ background: "none", border: "none", fontSize: 11, color: "#E8593C", cursor: "pointer", fontWeight: 600 }}>모두 읽음</button>}
-        </div>
+        {loading ? (
+          <p style={{ fontFamily: FL, fontSize: 12, color: "#a8a29e", padding: "8px 12px" }}>...</p>
+        ) : notifications.slice(0, 5).map((n) => {
+          const { icon, bg } = getTypeIcon(n.type);
+          return (
+            <div key={n.id} style={{
+              padding: "10px 12px",
+              background: n.is_read ? "transparent" : `${C.primaryContainer}60`,
+              borderLeft: n.is_read ? "2px solid transparent" : `2px solid ${C.primary}`,
+              borderBottom: `1px solid ${C.container}`,
+            }}>
+              <p style={{ margin: 0, fontFamily: FH, fontSize: 12, color: C.onSurface, lineHeight: 1.5 }}>
+                <b>{n.actor_nickname}</b>{getTypeLabel(n.type)}
+                {n.target_place_name && <span style={{ fontStyle: "italic", color: C.primary }}> — {n.target_place_name}</span>}
+              </p>
+              <p style={{ margin: "2px 0 0", fontFamily: FL, fontSize: 9, color: "#a8a29e" }}>{formatTime(n.created_at)}</p>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+
+  // 풀스크린 — desktop_3.html 레이아웃
+  return (
+    <div style={{
+      flex: 1, minHeight: "100vh", background: C.bg, overflowY: "auto",
+      paddingBottom: mobile ? 80 : 48,
+    }}>
+      {/* 상단 헤더 (PC) */}
+      {!mobile && (
+        <header style={{
+          position: "sticky", top: 0, zIndex: 10,
+          background: "rgba(250,249,246,0.85)", backdropFilter: "blur(12px)",
+          borderBottom: `1px solid ${C.container}`,
+          padding: "14px 40px",
+          display: "flex", justifyContent: "space-between", alignItems: "center",
+        }}>
+          <h1 style={{ fontFamily: FH, fontStyle: "italic", fontSize: 22, color: C.primary, margin: 0 }}>My Space</h1>
+          {unreadCount > 0 && (
+            <button onClick={markAllRead} style={{
+              background: "none", border: "none", fontFamily: FL, fontSize: 11, fontWeight: 700,
+              textTransform: "uppercase", letterSpacing: "0.1em",
+              color: C.primary, cursor: "pointer",
+            }}>모두 읽음으로</button>
+          )}
+        </header>
       )}
 
-      {loading ? (
-        <div style={{ textAlign: "center", padding: 40, color: "#ccc" }}>불러오는 중...</div>
-      ) : (
-        <div>
-          {/* 팔로우 요청 */}
-          {requests.length > 0 && (
-            <div style={{ marginBottom: 8 }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: "#888", padding: embedded ? "8px 4px 4px" : "12px 20px 4px" }}>
-                팔로우 요청 {requests.length}개
-              </p>
-              {requests.map((req) => (
-                <div key={req.from_user_id} style={{
-                  display: "flex", alignItems: "center", gap: 12,
-                  padding: embedded ? "12px 8px" : mobile ? "14px 20px" : "12px 20px",
-                  background: "#fff8f6", borderBottom: "1px solid #f5f5f5",
-                  minHeight: 60,
-                }}>
+      <div style={{ maxWidth: 800, margin: "0 auto", padding: mobile ? "20px 16px" : "48px 40px" }}>
+        {/* 에디토리얼 헤더 */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 56, flexWrap: "wrap", gap: 16 }}>
+          <div>
+            <h2 style={{
+              fontFamily: FH, fontSize: mobile ? 36 : 52,
+              fontWeight: 400, color: C.onSurface,
+              margin: "0 0 8px", letterSpacing: "-0.02em",
+            }}>
+              Notifications
+            </h2>
+            <div style={{ width: 40, height: 3, background: C.primaryContainer }} />
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <p style={{ fontFamily: FL, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.2em", color: "#a8a29e", fontWeight: 700, margin: "0 0 3px" }}>Updated</p>
+            <p style={{ fontFamily: FL, fontSize: 12, color: "#78716c", margin: 0 }}>
+              {new Date().toLocaleDateString("ko-KR")}
+            </p>
+          </div>
+        </div>
+
+        {loading ? (
+          <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 16, color: "#a8a29e", textAlign: "center", padding: "60px 0" }}>불러오는 중...</p>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+            {/* 팔로우 요청 (unread 스타일) */}
+            {requests.map((req) => (
+              <div key={req.from_user_id} style={{
+                display: "flex", alignItems: "flex-start", gap: 20,
+                padding: mobile ? "16px" : "24px",
+                borderRadius: 12,
+                background: C.containerLowest,
+                borderLeft: `4px solid ${C.primary}`,
+                transition: "background 0.2s",
+              }}
+                onMouseEnter={(e) => e.currentTarget.style.background = C.bg}
+                onMouseLeave={(e) => e.currentTarget.style.background = C.containerLowest}
+              >
+                <div style={{ position: "relative", flexShrink: 0 }}>
                   <div style={{
-                    width: mobile ? 46 : 40, height: mobile ? 46 : 40, borderRadius: "50%",
-                    background: "linear-gradient(135deg, #E8593C, #ff8a65)",
+                    width: 48, height: 48, borderRadius: "50%",
+                    background: `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`,
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: mobile ? 18 : 16, color: "white", fontWeight: 700, flexShrink: 0,
+                    fontFamily: FH, fontStyle: "italic", fontSize: 18, color: "#fff6ef",
                   }}>
                     {req.from_nickname?.[0]?.toUpperCase()}
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ margin: 0, fontSize: mobile ? 15 : 13, fontWeight: 700, color: "#333" }}>{req.from_nickname}</p>
-                    <p style={{ margin: "2px 0 0", fontSize: 12, color: "#aaa" }}>팔로우를 요청했어요</p>
+                  <div style={{
+                    position: "absolute", bottom: -4, right: -4,
+                    width: 22, height: 22, borderRadius: "50%",
+                    background: C.primary, border: "2px solid white",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 12, color: "white", fontVariationSettings: "'FILL' 1" }}>person_add</span>
                   </div>
-                  <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                    <p style={{ margin: "0 0 14px", fontFamily: FH, fontSize: mobile ? 15 : 17, color: C.onSurface, lineHeight: 1.5 }}>
+                      <b>{req.from_nickname}</b>님이 팔로우를 요청했어요
+                    </p>
+                    <span style={{ fontFamily: FL, fontSize: 10, color: "#a8a29e", whiteSpace: "nowrap" }}>방금</span>
+                  </div>
+                  <div style={{ display: "flex", gap: 10 }}>
                     <button onClick={() => handleAccept(req.from_user_id)} disabled={processingId === req.from_user_id}
                       style={{
-                        padding: mobile ? "10px 16px" : "8px 14px", minHeight: 40,
-                        background: "#E8593C", color: "white", border: "none",
-                        borderRadius: 10, fontSize: mobile ? 14 : 13, fontWeight: 700, cursor: "pointer",
-                        WebkitTapHighlightColor: "transparent",
-                      }}>수락</button>
+                        padding: "8px 20px", background: C.primary, color: "#fff6ef",
+                        border: "none", borderRadius: 6,
+                        fontFamily: FL, fontSize: 10, fontWeight: 700,
+                        textTransform: "uppercase", letterSpacing: "0.1em", cursor: "pointer",
+                        transition: "background 0.15s",
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = C.primaryDim}
+                      onMouseLeave={(e) => e.currentTarget.style.background = C.primary}
+                    >수락</button>
                     <button onClick={() => handleReject(req.from_user_id)} disabled={processingId === req.from_user_id}
                       style={{
-                        padding: mobile ? "10px 14px" : "8px 12px", minHeight: 40,
-                        background: "white", color: "#888", border: "1px solid #ddd",
-                        borderRadius: 10, fontSize: mobile ? 14 : 13, fontWeight: 600, cursor: "pointer",
-                        WebkitTapHighlightColor: "transparent",
-                      }}>거절</button>
+                        padding: "8px 20px", background: "none",
+                        border: "1px solid rgba(175,179,174,0.3)", borderRadius: 6,
+                        fontFamily: FL, fontSize: 10, fontWeight: 700,
+                        textTransform: "uppercase", letterSpacing: "0.1em",
+                        color: "#78716c", cursor: "pointer",
+                      }}
+                    >거절</button>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+              </div>
+            ))}
 
-          {notifications.length === 0 && requests.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "60px 20px", color: "#bbb" }}>
-              <div style={{ fontSize: 40, marginBottom: 12 }}>🔔</div>
-              <p style={{ fontSize: 15 }}>아직 알림이 없어요</p>
-            </div>
-          ) : (
-            notifications.map((n) => {
-              const info = TYPE_INFO[n.type] || { emoji: "📢", label: "새 알림이 있어요" };
-              return (
-                <div key={n.id} style={{
-                  display: "flex", alignItems: "flex-start", gap: 12,
-                  padding: embedded ? "12px 8px" : mobile ? "16px 20px" : "14px 20px",
-                  background: n.is_read ? "transparent" : "#fff8f6",
-                  borderLeft: n.is_read ? "3px solid transparent" : "3px solid #E8593C",
-                  borderBottom: "1px solid #f5f5f5",
-                  minHeight: 56,
-                }}>
-                  <div style={{
-                    width: mobile ? 42 : 36, height: mobile ? 42 : 36, borderRadius: "50%",
-                    background: n.is_read ? "#f5f5f5" : "#fff0ed",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: mobile ? 18 : 16, flexShrink: 0,
-                  }}>
-                    {info.emoji}
+            {/* 일반 알림 */}
+            {notifications.length === 0 && requests.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "60px 0" }}>
+                <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 20, color: "#a8a29e", margin: "0 0 8px" }}>아직 알림이 없어요</p>
+              </div>
+            ) : (
+              notifications.map((n) => {
+                const { icon, bg } = getTypeIcon(n.type);
+                const isUnread = !n.is_read;
+                return (
+                  <div key={n.id} style={{
+                    display: "flex", alignItems: "flex-start", gap: 20,
+                    padding: mobile ? "14px" : "24px",
+                    borderRadius: 12,
+                    background: isUnread ? C.containerLowest : "transparent",
+                    borderLeft: isUnread ? `4px solid ${C.primary}` : "4px solid transparent",
+                    transition: "background 0.2s",
+                  }}
+                    onMouseEnter={(e) => { if (!isUnread) e.currentTarget.style.background = C.containerLow; }}
+                    onMouseLeave={(e) => { if (!isUnread) e.currentTarget.style.background = "transparent"; }}
+                  >
+                    <div style={{ position: "relative", flexShrink: 0 }}>
+                      <div style={{
+                        width: 48, height: 48, borderRadius: "50%",
+                        background: isUnread
+                          ? `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`
+                          : "#e7e5e4",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontFamily: FH, fontStyle: "italic", fontSize: 18,
+                        color: isUnread ? "#fff6ef" : "#78716c",
+                        opacity: isUnread ? 1 : 0.8,
+                      }}>
+                        {n.actor_nickname?.[0]?.toUpperCase()}
+                      </div>
+                      <div style={{
+                        position: "absolute", bottom: -4, right: -4,
+                        width: 22, height: 22, borderRadius: "50%",
+                        background: bg,
+                        border: "2px solid white",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        opacity: isUnread ? 1 : 0.5,
+                      }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: 12, color: isUnread ? "white" : C.primary, fontVariationSettings: "'FILL' 1" }}>
+                          {icon}
+                        </span>
+                      </div>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                        <p style={{
+                          margin: 0, fontFamily: FH, fontSize: mobile ? 14 : 16,
+                          color: isUnread ? C.onSurface : "#78716c", lineHeight: 1.6,
+                        }}>
+                          <b style={{ color: C.onSurface }}>{n.actor_nickname}</b>{getTypeLabel(n.type)}
+                          {n.target_place_name && (
+                            <span style={{ fontStyle: "italic" }}> — {n.target_place_name}</span>
+                          )}
+                        </p>
+                        <span style={{ fontFamily: FL, fontSize: 10, color: "#a8a29e", whiteSpace: "nowrap", marginLeft: 12 }}>
+                          {formatTime(n.created_at)}
+                        </span>
+                      </div>
+                      {n.comment_content && (
+                        <div style={{
+                          marginTop: 10, padding: "12px 16px",
+                          background: C.container, borderRadius: 8,
+                          borderLeft: `2px solid ${C.primaryContainer}`,
+                        }}>
+                          <p style={{ margin: 0, fontFamily: FH, fontStyle: "italic", fontSize: 13, color: "#78716c" }}>
+                            "{n.comment_content}"
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ margin: 0, fontSize: mobile ? 14 : 13, color: "#333", lineHeight: 1.4 }}>
-                      <b>{n.actor_nickname}</b>{info.label}
-                      {n.target_place_name && <span style={{ color: "#E8593C" }}> — {n.target_place_name}</span>}
-                    </p>
-                    <p style={{ margin: "4px 0 0", fontSize: 11, color: "#bbb" }}>{formatTime(n.created_at)}</p>
-                  </div>
-                  {!n.is_read && <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#E8593C", flexShrink: 0, marginTop: 6 }} />}
-                </div>
-              );
-            })
-          )}
-        </div>
-      )}
+                );
+              })
+            )}
+
+            {/* 하단 */}
+            {!loading && (notifications.length > 0 || requests.length > 0) && (
+              <div style={{ marginTop: 60, paddingTop: 24, borderTop: `1px solid ${C.container}`, textAlign: "center" }}>
+                <p style={{ fontFamily: FL, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.3em", color: "#a8a29e" }}>
+                  End of recent archive
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

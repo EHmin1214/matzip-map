@@ -1,11 +1,31 @@
 // src/components/SearchTab.jsx
+// 디자인: desktopsearch.html (Discovery/Search) 기반
 import { useState } from "react";
 import axios from "axios";
 import { useUser, API_BASE } from "../context/UserContext";
 import SavePlaceModal from "./SavePlaceModal";
 
+const FH = "'Noto Serif', Georgia, serif";
+const FL = "'Manrope', -apple-system, sans-serif";
+const C = {
+  primary:    "#655d54",
+  primaryDim: "#595149",
+  primaryContainer: "#ede0d5",
+  bg:         "#faf9f6",
+  container:  "#edeeea",
+  containerLow: "#f4f4f0",
+  containerLowest: "#ffffff",
+  onSurface:  "#2f3430",
+  outlineVariant: "#afb3ae",
+};
+
+const isMobile = () => window.innerWidth <= 768;
+
+const SUGGESTIONS = ["조용한 카페", "이자카야", "브런치", "빵집", "스시"];
+
 export default function SearchTab({ onPlaceAdded }) {
   const { user } = useUser();
+  const mobile = isMobile();
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [result, setResult] = useState(null);
@@ -13,19 +33,17 @@ export default function SearchTab({ onPlaceAdded }) {
   const [pendingPlace, setPendingPlace] = useState(null);
   const [savedMsg, setSavedMsg] = useState("");
 
-  const handleSearch = async () => {
-    if (!query.trim()) return;
+  const handleSearch = async (q = query) => {
+    if (!q.trim()) return;
     setError(""); setResult(null);
     setSearching(true);
     try {
-      const res = await axios.get(`${API_BASE}/search-place/`, { params: { name: query.trim() } });
+      const res = await axios.get(`${API_BASE}/search-place/`, { params: { name: q.trim() } });
       if (res.data) setResult(res.data);
-      else setError("가게를 찾을 수 없어요");
+      else setError("공간을 찾을 수 없어요");
     } catch (e) {
       setError("검색 실패. 다시 시도해주세요");
-    } finally {
-      setSearching(false);
-    }
+    } finally { setSearching(false); }
   };
 
   const handleSave = async (place) => {
@@ -37,108 +55,252 @@ export default function SearchTab({ onPlaceAdded }) {
       rating: place.rating || null, memo: place.memo || null,
       instagram_post_url: place.instagram_post_url || null,
     };
-    const url = user ? `${API_BASE}/personal-places/?user_id=${user.user_id}` : `${API_BASE}/personal-places/`;
+    const url = user
+      ? `${API_BASE}/personal-places/?user_id=${user.user_id}`
+      : `${API_BASE}/personal-places/`;
     const res = await axios.post(url, payload);
     if (onPlaceAdded) onPlaceAdded(res.data);
-    setSavedMsg(`'${place.name}' 저장됐어요!`);
+    setSavedMsg(`'${place.name}' 기록됐어요!`);
     setResult(null); setQuery("");
-    setTimeout(() => setSavedMsg(""), 2500);
+    setTimeout(() => setSavedMsg(""), 3000);
   };
 
   return (
     <div style={{
-      position: "fixed", inset: 0, background: "#f8f8f8",
-      zIndex: 20, display: "flex", flexDirection: "column",
-      paddingBottom: 60,
+      flex: 1, minHeight: "100vh", background: C.bg, overflowY: "auto",
+      paddingBottom: mobile ? 80 : 48,
     }}>
-      {/* 헤더 + 검색창 */}
-      <div style={{ background: "white", padding: "16px 16px 14px", borderBottom: "1px solid #f0f0f0" }}>
-        <h2 style={{ margin: "0 0 12px", fontSize: 18, fontWeight: 800, color: "#222" }}>맛집 검색</h2>
-        <div style={{ display: "flex", gap: 8 }}>
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-            placeholder="가게명 검색 (예: 을지면옥)"
-            autoFocus
-            style={{
-              flex: 1, padding: "13px 16px",
-              border: "1.5px solid #eee", borderRadius: 14,
-              fontSize: 15, outline: "none", WebkitAppearance: "none",
-            }}
-            onFocus={(e) => e.target.style.borderColor = "#E8593C"}
-            onBlur={(e) => e.target.style.borderColor = "#eee"}
-          />
-          <button onClick={handleSearch} disabled={searching || !query.trim()} style={{
-            padding: "13px 18px", minHeight: 48,
-            background: searching || !query.trim() ? "#eee" : "#E8593C",
-            color: searching || !query.trim() ? "#aaa" : "white",
-            border: "none", borderRadius: 14,
-            fontSize: 15, fontWeight: 700, cursor: "pointer",
-            WebkitTapHighlightColor: "transparent",
-          }}>
-            {searching ? "..." : "검색"}
-          </button>
-        </div>
-      </div>
+      {/* 상단 헤더 (PC) */}
+      {!mobile && (
+        <header style={{
+          position: "sticky", top: 0, zIndex: 10,
+          background: "rgba(250,249,246,0.85)", backdropFilter: "blur(12px)",
+          borderBottom: `1px solid ${C.container}`,
+          padding: "14px 40px",
+        }}>
+          <h1 style={{ fontFamily: FH, fontStyle: "italic", fontSize: 22, color: C.primary, margin: 0 }}>My Space</h1>
+        </header>
+      )}
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "16px", WebkitOverflowScrolling: "touch" }}>
+      <main style={{ maxWidth: 960, margin: "0 auto", padding: mobile ? "20px 16px" : "48px 40px" }}>
+
+        {/* 에디토리얼 헤더 */}
+        <div style={{
+          display: "flex", justifyContent: "space-between", alignItems: "flex-end",
+          marginBottom: 48, flexWrap: "wrap", gap: 16,
+        }}>
+          <div style={{ maxWidth: 480 }}>
+            <h2 style={{
+              fontFamily: FH, fontSize: mobile ? 36 : 52,
+              fontWeight: 400, color: C.onSurface,
+              margin: "0 0 12px", letterSpacing: "-0.02em", lineHeight: 1.1,
+            }}>Discovery</h2>
+            <p style={{
+              fontFamily: FH, fontStyle: "italic", fontSize: 15,
+              color: "#78716c", lineHeight: 1.6, margin: 0, opacity: 0.8,
+            }}>
+              나만의 공간 컬렉션에 새로운 기록을 추가하세요.
+            </p>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <p style={{ fontFamily: FL, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.2em", color: "#a8a29e", margin: 0 }}>Last Indexed</p>
+            <p style={{ fontFamily: FL, fontSize: 12, color: "#78716c", margin: 0 }}>{new Date().toLocaleDateString("ko-KR")}</p>
+          </div>
+        </div>
+
+        {/* 검색창 */}
+        <section style={{ marginBottom: 48 }}>
+          <div style={{ position: "relative" }}>
+            <div style={{
+              position: "absolute", left: 20, top: "50%", transform: "translateY(-50%)",
+              pointerEvents: "none",
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 22, color: searching ? C.primary : "#a8a29e", transition: "color 0.2s" }}>search</span>
+            </div>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              placeholder="공간, 위치, 분위기로 검색..."
+              autoFocus={!mobile}
+              style={{
+                width: "100%", padding: "20px 20px 20px 54px",
+                background: C.containerLow, border: "none",
+                borderRadius: 12, outline: "none",
+                fontFamily: FL, fontSize: 17, color: C.onSurface,
+                boxSizing: "border-box", transition: "background 0.2s",
+              }}
+              onFocus={(e) => e.target.style.background = C.container}
+              onBlur={(e) => e.target.style.background = C.containerLow}
+            />
+            <div style={{ position: "absolute", right: 20, top: "50%", transform: "translateY(-50%)" }}>
+              {searching ? (
+                <span style={{ fontFamily: FL, fontSize: 12, color: "#a8a29e" }}>검색 중...</span>
+              ) : (
+                <span className="material-symbols-outlined" style={{ fontSize: 20, color: "#c7c4bf", cursor: "pointer" }}
+                  onClick={() => handleSearch()}>tune</span>
+              )}
+            </div>
+          </div>
+
+          {/* 추천 태그 */}
+          <div style={{ marginTop: 16, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+            <span style={{ fontFamily: FL, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.15em", color: "#a8a29e", marginRight: 4 }}>
+              Suggested:
+            </span>
+            {SUGGESTIONS.map((s) => (
+              <button key={s} onClick={() => { setQuery(s); handleSearch(s); }}
+                style={{
+                  padding: "5px 14px",
+                  borderRadius: 999, border: "none",
+                  background: C.containerLow,
+                  fontFamily: FL, fontSize: 10, fontWeight: 600,
+                  textTransform: "uppercase", letterSpacing: "0.1em",
+                  color: "#78716c", cursor: "pointer", transition: "all 0.15s",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = C.primaryContainer; e.currentTarget.style.color = C.primary; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = C.containerLow; e.currentTarget.style.color = "#78716c"; }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* 저장 성공 메시지 */}
         {savedMsg && (
           <div style={{
-            background: "#e8f5e9", border: "1px solid #a5d6a7", borderRadius: 12,
-            padding: "14px 16px", fontSize: 15, color: "#2e7d32", fontWeight: 600,
-            marginBottom: 14, textAlign: "center",
+            padding: "14px 20px", background: C.containerLowest,
+            borderLeft: `4px solid ${C.primary}`,
+            borderRadius: 8, marginBottom: 24,
+            fontFamily: FH, fontStyle: "italic", fontSize: 14, color: C.onSurface,
           }}>
             ✓ {savedMsg}
           </div>
         )}
 
+        {/* 에러 */}
         {error && (
           <div style={{
-            background: "#fff0ed", borderRadius: 12, padding: "14px 16px",
-            fontSize: 15, color: "#E8593C", textAlign: "center",
+            padding: "14px 20px", background: "#fef0ec",
+            borderLeft: "4px solid #9e422c",
+            borderRadius: 8, marginBottom: 24,
+            fontFamily: FH, fontStyle: "italic", fontSize: 14, color: "#9e422c",
           }}>
             {error}
           </div>
         )}
 
+        {/* 검색 결과 — desktopsearch.html의 asymmetric bento grid 스타일 */}
         {result && (
-          <div style={{ background: "white", borderRadius: 18, padding: "20px 18px", boxShadow: "0 2px 16px rgba(0,0,0,0.08)" }}>
-            <p style={{ margin: "0 0 4px", fontSize: 12, color: "#E8593C", fontWeight: 600 }}>{result.category || "맛집"}</p>
-            <h3 style={{ margin: "0 0 8px", fontSize: 22, fontWeight: 800, color: "#1a1a1a" }}>{result.name}</h3>
-            <p style={{ margin: "0 0 16px", fontSize: 14, color: "#888" }}>📍 {result.address || "주소 정보 없음"}</p>
+          <section>
+            {/* Featured 결과 카드 */}
+            <div style={{
+              background: C.containerLowest, borderRadius: 16,
+              overflow: "hidden", transition: "background 0.3s",
+            }}
+              onMouseEnter={(e) => e.currentTarget.style.background = C.bg}
+              onMouseLeave={(e) => e.currentTarget.style.background = C.containerLowest}
+            >
+              {/* 상단 태그 */}
+              <div style={{ padding: "24px 32px 0" }}>
+                <span style={{
+                  fontFamily: FL, fontSize: 9, fontWeight: 600,
+                  textTransform: "uppercase", letterSpacing: "0.2em",
+                  color: C.primary,
+                }}>
+                  발견된 공간
+                </span>
+              </div>
 
-            {result.naver_place_url && (
-              <a href={result.naver_place_url} target="_blank" rel="noreferrer" style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                marginBottom: 16, padding: "10px 16px",
-                background: "#03C75A", color: "white", borderRadius: 10,
-                fontSize: 14, fontWeight: 600, textDecoration: "none",
-              }}>
-                🗺️ 네이버 지도에서 보기
-              </a>
-            )}
+              <div style={{ padding: mobile ? "20px" : "24px 32px 32px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16 }}>
+                  <div>
+                    {result.category && (
+                      <p style={{ margin: "0 0 8px", fontFamily: FL, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.15em", color: "#a8a29e" }}>
+                        {result.category}
+                      </p>
+                    )}
+                    <h3 style={{
+                      margin: "0 0 6px", fontFamily: FH,
+                      fontSize: mobile ? 24 : 36, fontWeight: 400,
+                      color: C.onSurface, letterSpacing: "-0.01em",
+                    }}>
+                      {result.name}
+                    </h3>
+                    {result.address && (
+                      <p style={{
+                        margin: "0 0 16px", fontFamily: FH, fontStyle: "italic",
+                        fontSize: 14, color: "#78716c",
+                        display: "flex", alignItems: "center", gap: 4,
+                      }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>location_on</span>
+                        {result.address}
+                      </p>
+                    )}
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {result.naver_place_url && (
+                        <a href={result.naver_place_url} target="_blank" rel="noreferrer" style={{
+                          padding: "6px 14px", background: C.container,
+                          borderRadius: 4, fontFamily: FL, fontSize: 9,
+                          fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em",
+                          color: "#78716c", textDecoration: "none",
+                        }}>
+                          Naver Map
+                        </a>
+                      )}
+                    </div>
+                  </div>
 
-            <button onClick={() => setPendingPlace(result)} style={{
-              width: "100%", padding: "16px",
-              background: "#E8593C", color: "white",
-              border: "none", borderRadius: 14,
-              fontSize: 17, fontWeight: 800, cursor: "pointer",
-              WebkitTapHighlightColor: "transparent",
-            }}>
-              + 내 맛집에 저장하기
-            </button>
+                  {/* 저장 버튼 — HTML의 "Add to My Space" 버튼 */}
+                  <button
+                    onClick={() => setPendingPlace(result)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 8,
+                      padding: mobile ? "14px 24px" : "14px 28px",
+                      background: C.primary, color: "#fff6ef",
+                      border: "none", borderRadius: 6,
+                      fontFamily: FL, fontSize: 11, fontWeight: 700,
+                      textTransform: "uppercase", letterSpacing: "0.1em",
+                      cursor: "pointer", transition: "background 0.15s",
+                      flexShrink: 0,
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = C.primaryDim}
+                    onMouseLeave={(e) => e.currentTarget.style.background = C.primary}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
+                    Add to My Space
+                  </button>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* 초기 상태 — 빈 화면 */}
+        {!result && !error && !savedMsg && !searching && (
+          <div style={{ textAlign: "center", padding: "80px 0" }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 40, color: "#d6d3d1", display: "block", marginBottom: 20 }}>
+              search
+            </span>
+            <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 18, color: "#a8a29e", margin: "0 0 8px" }}>
+              가게 이름으로 검색해보세요
+            </p>
+            <p style={{ fontFamily: FL, fontSize: 11, color: "#a8a29e", letterSpacing: "0.1em" }}>
+              예: 을지면옥, 스타벅스 강남점
+            </p>
           </div>
         )}
 
+        {/* 하단 Load More 스타일 */}
         {!result && !error && !savedMsg && (
-          <div style={{ textAlign: "center", padding: "60px 20px", color: "#ccc" }}>
-            <div style={{ fontSize: 56, marginBottom: 14 }}>🔍</div>
-            <p style={{ fontSize: 16 }}>가게 이름으로 검색해보세요</p>
-            <p style={{ fontSize: 13, marginTop: 6 }}>예: 을지면옥, 스타벅스 강남점</p>
+          <div style={{ marginTop: 80, textAlign: "center" }}>
+            <p style={{ fontFamily: FL, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.4em", color: "#a8a29e" }}>
+              Explore New Records
+            </p>
           </div>
         )}
-      </div>
+      </main>
 
       {pendingPlace && (
         <SavePlaceModal place={pendingPlace} onSave={handleSave} onClose={() => setPendingPlace(null)} />

@@ -39,7 +39,6 @@ export default function App() {
   const [hiddenIds, setHiddenIds] = useState(new Set());
   const [personalPlaces, setPersonalPlaces] = useState([]);
   const [showPersonal, setShowPersonal] = useState(true);
-  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
 
   const [activeFilter, setActiveFilter] = useState(null);
   const [selectedFollowingIds, setSelectedFollowingIds] = useState([]);
@@ -47,19 +46,18 @@ export default function App() {
   const [followingList, setFollowingList] = useState([]);
 
   const isMobile = window.innerWidth <= 768;
+  const SIDEBAR_WIDTH = 256; // desktopsearch.html: w-64 = 256px
 
   const loadPersonalPlaces = useCallback(() => {
     if (!user) return Promise.resolve();
     return axios.get(`${API_BASE}/personal-places/?user_id=${user.user_id}`)
-      .then((res) => setPersonalPlaces(res.data))
-      .catch(() => {});
+      .then((res) => setPersonalPlaces(res.data)).catch(() => {});
   }, [user]);
 
   const loadFollowingList = useCallback(() => {
     if (!user) return Promise.resolve();
     return axios.get(`${API_BASE}/follows/${user.user_id}/following`)
-      .then((res) => setFollowingList(res.data))
-      .catch(() => {});
+      .then((res) => setFollowingList(res.data)).catch(() => {});
   }, [user]);
 
   const loadUnread = useCallback(() => {
@@ -70,11 +68,7 @@ export default function App() {
   }, [user]);
 
   useEffect(() => {
-    if (user) {
-      loadPersonalPlaces();
-      loadFollowingList();
-      loadUnread();
-    }
+    if (user) { loadPersonalPlaces(); loadFollowingList(); loadUnread(); }
   }, [user, loadPersonalPlaces, loadFollowingList, loadUnread]);
 
   useEffect(() => {
@@ -85,15 +79,10 @@ export default function App() {
 
   const handleRefresh = useCallback(async () => {
     await Promise.all([
-      loadPersonalPlaces(),
-      loadFollowingList(),
-      loadUnread(),
+      loadPersonalPlaces(), loadFollowingList(), loadUnread(),
       ...selectedFollowingIds.map((uid) =>
         axios.get(`${API_BASE}/personal-places/?user_id=${uid}`)
-          .then((res) => {
-            const publicPlaces = res.data.filter((p) => p.is_public !== false);
-            setFollowingPlacesMap((m) => ({ ...m, [uid]: publicPlaces }));
-          })
+          .then((res) => setFollowingPlacesMap((m) => ({ ...m, [uid]: res.data.filter((p) => p.is_public !== false) })))
           .catch(() => {})
       ),
     ]);
@@ -101,30 +90,19 @@ export default function App() {
 
   const handleToggleFollowing = useCallback(async (targetUserId) => {
     setSelectedFollowingIds((prev) => {
-      if (prev.includes(targetUserId)) {
-        return prev.filter((id) => id !== targetUserId);
-      } else {
-        if (!followingPlacesMap[targetUserId]) {
-          axios.get(`${API_BASE}/personal-places/?user_id=${targetUserId}`)
-            .then((res) => {
-              const publicPlaces = res.data.filter((p) => p.is_public !== false);
-              setFollowingPlacesMap((m) => ({ ...m, [targetUserId]: publicPlaces }));
-            })
-            .catch(() => setFollowingPlacesMap((m) => ({ ...m, [targetUserId]: [] })));
-        }
-        return [...prev, targetUserId];
+      if (prev.includes(targetUserId)) return prev.filter((id) => id !== targetUserId);
+      if (!followingPlacesMap[targetUserId]) {
+        axios.get(`${API_BASE}/personal-places/?user_id=${targetUserId}`)
+          .then((res) => setFollowingPlacesMap((m) => ({ ...m, [targetUserId]: res.data.filter((p) => p.is_public !== false) })))
+          .catch(() => setFollowingPlacesMap((m) => ({ ...m, [targetUserId]: [] })));
       }
+      return [...prev, targetUserId];
     });
   }, [followingPlacesMap]);
 
   const followingPlaces = selectedFollowingIds.map((uid) => {
     const u = followingList.find((f) => f.id === uid);
-    return {
-      userId: uid,
-      nickname: u?.nickname || "?",
-      colorIdx: followingList.findIndex((f) => f.id === uid),
-      places: followingPlacesMap[uid] || [],
-    };
+    return { userId: uid, nickname: u?.nickname || "?", colorIdx: followingList.findIndex((f) => f.id === uid), places: followingPlacesMap[uid] || [] };
   });
 
   const handleMarkerClick = useCallback(async (restaurantId, isPersonal = false) => {
@@ -171,26 +149,15 @@ export default function App() {
   const addPersonalPlace = useCallback(async (place) => {
     try {
       const payload = {
-        name: place.name, address: place.address,
-        lat: place.lat, lng: place.lng,
-        category: place.category, naver_place_id: place.naver_place_id,
-        naver_place_url: place.naver_place_url,
-        folder_id: place.folder_id || null,
-        status: place.status || "want_to_go",
-        rating: place.rating || null, memo: place.memo || null,
-        instagram_post_url: place.instagram_post_url || null,
+        name: place.name, address: place.address, lat: place.lat, lng: place.lng,
+        category: place.category, naver_place_id: place.naver_place_id, naver_place_url: place.naver_place_url,
+        folder_id: place.folder_id || null, status: place.status || "want_to_go",
+        rating: place.rating || null, memo: place.memo || null, instagram_post_url: place.instagram_post_url || null,
       };
-      const url = user
-        ? `${API_BASE}/personal-places/?user_id=${user.user_id}`
-        : `${API_BASE}/personal-places/`;
+      const url = user ? `${API_BASE}/personal-places/?user_id=${user.user_id}` : `${API_BASE}/personal-places/`;
       const res = await axios.post(url, payload);
-      setPersonalPlaces((prev) => {
-        const exists = prev.find((p) => p.id === res.data.id);
-        return exists ? prev : [...prev, res.data];
-      });
-    } catch (e) {
-      console.error("맛집 저장 실패", e);
-    }
+      setPersonalPlaces((prev) => { const exists = prev.find((p) => p.id === res.data.id); return exists ? prev : [...prev, res.data]; });
+    } catch (e) { console.error("맛집 저장 실패", e); }
   }, [user]);
 
   const deletePersonalPlace = useCallback(async (placeId) => {
@@ -199,72 +166,118 @@ export default function App() {
   }, [user]);
 
   const handlePlaceUpdated = useCallback((updatedPlace) => {
-    setPersonalPlaces((prev) =>
-      prev.map((p) => p.id === updatedPlace.id ? { ...p, ...updatedPlace } : p)
-    );
+    setPersonalPlaces((prev) => prev.map((p) => p.id === updatedPlace.id ? { ...p, ...updatedPlace } : p));
   }, []);
 
-  const filteredPersonalPlaces = activeFilter
-    ? personalPlaces.filter((p) => p.status === activeFilter)
-    : personalPlaces;
-
+  const filteredPersonalPlaces = activeFilter ? personalPlaces.filter((p) => p.status === activeFilter) : personalPlaces;
   const visibleRestaurants = restaurants.filter((r) => !hiddenIds.has(r.id));
-  const sidebarWidth = sidebarOpen && !isMobile ? 280 : 0;
 
   if (loading) {
     return (
       <div style={{
         position: "fixed", inset: 0, display: "flex",
         alignItems: "center", justifyContent: "center",
-        background: "white", flexDirection: "column", gap: 12,
+        background: "#faf9f6", flexDirection: "column", gap: 16,
       }}>
-        <div style={{ fontSize: 40 }}>🗺️</div>
-        <p style={{ color: "#E8593C", fontWeight: 700, fontSize: 18 }}>맛집 지도</p>
+        <h1 style={{ fontFamily: "'Noto Serif', Georgia, serif", fontStyle: "italic", fontSize: 28, color: "#655d54", margin: 0 }}>
+          나의 공간
+        </h1>
+        <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.2em", color: "#a8a29e", margin: 0 }}>
+          The Curated Archive
+        </p>
       </div>
     );
   }
 
   if (!user) return <AuthScreen />;
 
+  // ── 탭별 전체화면 콘텐츠 (모바일) ──────────────────────────────
+  const renderMobileTab = () => {
+    if (activeTab === "feed")    return <ActivityFeed onPlaceClick={handleActivityPlaceClick} />;
+    if (activeTab === "search")  return <SearchTab onPlaceAdded={(p) => setPersonalPlaces((prev) => { const e = prev.find((x) => x.id === p.id); return e ? prev : [...prev, p]; })} />;
+    if (activeTab === "follow")  return <FollowTab onViewMap={() => setActiveTab("map")} onFollowChange={loadFollowingList} />;
+    if (activeTab === "notify")  return <NotificationTab onUnreadChange={setUnreadCount} />;
+    if (activeTab === "profile") return <ProfilePage />;
+    return null;
+  };
+
+  // ── 데스크탑 탭별 메인 콘텐츠 ──────────────────────────────────
+  const renderDesktopContent = () => {
+    if (activeTab === "feed")    return <ActivityFeed onPlaceClick={handleActivityPlaceClick} />;
+    if (activeTab === "search")  return <SearchTab onPlaceAdded={(p) => setPersonalPlaces((prev) => { const e = prev.find((x) => x.id === p.id); return e ? prev : [...prev, p]; })} />;
+    if (activeTab === "follow")  return <FollowTab onViewMap={() => setActiveTab("map")} onFollowChange={loadFollowingList} />;
+    if (activeTab === "notify")  return <NotificationTab onUnreadChange={setUnreadCount} />;
+    if (activeTab === "profile") return <ProfilePage />;
+    return null;
+  };
+
+  const showMap = activeTab === "map";
+
   return (
     <div className="app">
 
-      {/* 모바일 탭 */}
-      {isMobile && activeTab === "follow" && <FollowTab onViewMap={() => setActiveTab("map")} onFollowChange={loadFollowingList} />}
-      {isMobile && activeTab === "search" && (
-        <SearchTab onPlaceAdded={(place) => {
-          setPersonalPlaces((prev) => {
-            const exists = prev.find((p) => p.id === place.id);
-            return exists ? prev : [...prev, place];
-          });
-        }} />
-      )}
-      {isMobile && activeTab === "notify" && <NotificationTab onUnreadChange={setUnreadCount} />}
-      {isMobile && activeTab === "profile" && <ProfilePage />}
-      {isMobile && activeTab === "feed" && <ActivityFeed onPlaceClick={handleActivityPlaceClick} />}
+      {/* ── 모바일 ─────────────────────────────────────────────── */}
+      {isMobile && (
+        <>
+          {/* 지도 탭이 아닌 경우 전체 화면 탭 */}
+          {!showMap && (
+            <div style={{ position: "fixed", inset: 0, zIndex: 20, paddingBottom: 64 }}>
+              {renderMobileTab()}
+            </div>
+          )}
 
-      {/* 사이드바 토글 (데스크탑) */}
-      {!isMobile && (
-        <button
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          style={{
-            position: "fixed", top: 16, left: sidebarOpen ? 290 : 16,
-            zIndex: 30, width: 36, height: 36, borderRadius: "50%",
-            background: "white", border: "none",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-            cursor: "pointer", fontSize: 16,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            transition: "left 0.3s ease",
-          }}
-        >
-          {sidebarOpen ? "◀" : "☰"}
-        </button>
+          {/* 지도는 항상 렌더, 다른 탭 땐 뒤로 감춤 */}
+          <div style={{ display: showMap ? "block" : "none", position: "fixed", inset: 0 }}>
+            <MapView
+              restaurants={visibleRestaurants}
+              personalPlaces={showPersonal ? filteredPersonalPlaces : []}
+              accounts={accounts}
+              onMarkerClick={handleMarkerClick}
+              onMapReady={(map) => { mapRef.current = map; }}
+              followingPlaces={followingPlaces}
+              onFollowingMarkerClick={handleFollowingMarkerClick}
+            />
+          </div>
+
+          {/* 지도 탭 UI 오버레이 */}
+          {showMap && (
+            <>
+              <MapFilter
+                activeFilter={activeFilter}
+                onFilterChange={setActiveFilter}
+                sidebarWidth={0}
+                followingList={followingList}
+                selectedFollowingIds={selectedFollowingIds}
+                onToggleFollowing={handleToggleFollowing}
+                showPersonal={showPersonal}
+                onTogglePersonal={() => setShowPersonal((v) => !v)}
+              />
+              <RefreshButton onRefresh={handleRefresh} />
+              <LocationButton map={mapRef.current} />
+            </>
+          )}
+
+          {/* 맛집 상세 패널 */}
+          {selectedRestaurant && (
+            <RestaurantPanel
+              restaurant={selectedRestaurant} accounts={accounts}
+              onClose={() => setSelectedRestaurant(null)} onHide={hideRestaurant}
+              apiBase={API_BASE} sidebarWidth={0}
+              onPlaceUpdated={handlePlaceUpdated} mapInstance={mapRef.current}
+            />
+          )}
+
+          <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} unreadCount={unreadCount} />
+        </>
       )}
 
-      {/* 사이드바 (데스크탑) */}
+      {/* ── 데스크탑 ────────────────────────────────────────────── */}
       {!isMobile && (
-        <div style={{ width: sidebarOpen ? 280 : 0, overflow: "hidden", transition: "width 0.3s ease", flexShrink: 0 }}>
+        <>
+          {/* 좌측 고정 사이드바 — desktopsearch.html: w-64 fixed */}
           <Sidebar
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
             apiBase={API_BASE}
             onAddPersonalPlace={addPersonalPlace}
             personalPlaces={personalPlaces}
@@ -279,63 +292,52 @@ export default function App() {
             onFollowChange={loadFollowingList}
             onActivityPlaceClick={handleActivityPlaceClick}
           />
-        </div>
-      )}
 
-      {/* 지도 */}
-      <MapView
-        restaurants={visibleRestaurants}
-        personalPlaces={showPersonal ? filteredPersonalPlaces : []}
-        accounts={accounts}
-        onMarkerClick={handleMarkerClick}
-        onMapReady={(map) => { mapRef.current = map; }}
-        followingPlaces={followingPlaces}
-        onFollowingMarkerClick={handleFollowingMarkerClick}
-      />
+          {/* 메인 콘텐츠 영역 — ml-64 */}
+          <div style={{ marginLeft: SIDEBAR_WIDTH, flex: 1, minHeight: "100vh", display: "flex" }}>
+            {showMap ? (
+              /* 지도 화면 */
+              <div style={{ flex: 1, position: "relative" }}>
+                <MapView
+                  restaurants={visibleRestaurants}
+                  personalPlaces={showPersonal ? filteredPersonalPlaces : []}
+                  accounts={accounts}
+                  onMarkerClick={handleMarkerClick}
+                  onMapReady={(map) => { mapRef.current = map; }}
+                  followingPlaces={followingPlaces}
+                  onFollowingMarkerClick={handleFollowingMarkerClick}
+                />
+                <MapFilter
+                  activeFilter={activeFilter}
+                  onFilterChange={setActiveFilter}
+                  sidebarWidth={0}
+                  followingList={[]}
+                  selectedFollowingIds={selectedFollowingIds}
+                  onToggleFollowing={handleToggleFollowing}
+                  showPersonal={showPersonal}
+                  onTogglePersonal={() => setShowPersonal((v) => !v)}
+                />
+                <RefreshButton onRefresh={handleRefresh} />
+                <LocationButton map={mapRef.current} />
+              </div>
+            ) : (
+              /* 다른 탭 콘텐츠 */
+              <div style={{ flex: 1, display: "flex" }}>
+                {renderDesktopContent()}
+              </div>
+            )}
+          </div>
 
-      {/* 통합 필터 — 상태 필터 + 팔로잉 레이어 선택 */}
-      {(activeTab === "map" || !isMobile) && (
-        <MapFilter
-          activeFilter={activeFilter}
-          onFilterChange={setActiveFilter}
-          sidebarWidth={sidebarWidth}
-          followingList={isMobile ? followingList : []}
-          selectedFollowingIds={selectedFollowingIds}
-          onToggleFollowing={handleToggleFollowing}
-          showPersonal={showPersonal}
-          onTogglePersonal={() => setShowPersonal((v) => !v)}
-        />
-      )}
-
-      {/* 새로고침 버튼 */}
-      {(activeTab === "map" || !isMobile) && (
-        <RefreshButton onRefresh={handleRefresh} />
-      )}
-
-      {/* 현재 위치 버튼 */}
-      <LocationButton map={mapRef.current} />
-
-      {/* 맛집 상세 패널 */}
-      {selectedRestaurant && (
-        <RestaurantPanel
-          restaurant={selectedRestaurant}
-          accounts={accounts}
-          onClose={() => setSelectedRestaurant(null)}
-          onHide={hideRestaurant}
-          apiBase={API_BASE}
-          sidebarWidth={sidebarWidth}
-          onPlaceUpdated={handlePlaceUpdated}
-          mapInstance={mapRef.current}
-        />
-      )}
-
-      {/* 하단 탭바 (모바일) */}
-      {isMobile && (
-        <BottomTabBar
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          unreadCount={unreadCount}
-        />
+          {/* 맛집 상세 패널 (지도 탭) */}
+          {selectedRestaurant && showMap && (
+            <RestaurantPanel
+              restaurant={selectedRestaurant} accounts={accounts}
+              onClose={() => setSelectedRestaurant(null)} onHide={hideRestaurant}
+              apiBase={API_BASE} sidebarWidth={SIDEBAR_WIDTH}
+              onPlaceUpdated={handlePlaceUpdated} mapInstance={mapRef.current}
+            />
+          )}
+        </>
       )}
     </div>
   );
