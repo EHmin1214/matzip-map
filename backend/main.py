@@ -21,7 +21,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from database import engine
 from models import Base
 from routers import accounts, crawl, restaurants, ad_check, search_place, personal_places
-from routers import users, follows, places   # ← 신규
+from routers import users, follows, places, folders  
 
 Base.metadata.create_all(bind=engine)
 
@@ -51,7 +51,8 @@ app.include_router(crawl.router)
 app.include_router(restaurants.router)
 app.include_router(ad_check.router)
 app.include_router(search_place.router)
-app.include_router(personal_places.router)   # 기존 personal-places (하위 호환)
+app.include_router(personal_places.router)
+app.include_router(folders.router)
 
 # 신규 라우터
 app.include_router(users.router)
