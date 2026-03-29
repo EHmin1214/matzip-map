@@ -7,6 +7,7 @@ import Sidebar from "./components/Sidebar";
 import RestaurantPanel from "./components/RestaurantPanel";
 import AuthScreen from "./components/AuthScreen";
 import BottomTabBar from "./components/BottomTabBar";
+import FollowTab from "./components/FollowTab";
 import "./App.css";
 
 export const ACCOUNT_COLORS = [
@@ -24,7 +25,6 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("map");
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // 기존 상태
   const [accounts, setAccounts] = useState([]);
   const [selectedAccountIds, setSelectedAccountIds] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
@@ -36,25 +36,21 @@ export default function App() {
 
   const isMobile = window.innerWidth <= 768;
 
-  // 계정 목록 로드
   useEffect(() => {
     axios.get(`${API_BASE}/accounts/`).then((res) => setAccounts(res.data));
   }, []);
 
-  // 내 맛집 로드 (로그인 후)
   useEffect(() => {
     if (user) {
       axios.get(`${API_BASE}/personal-places/?user_id=${user.user_id}`)
         .then((res) => setPersonalPlaces(res.data))
         .catch(() => {
-          // 신규 API 실패 시 기존 API 폴백
           axios.get(`${API_BASE}/personal-places/`)
             .then((res) => setPersonalPlaces(res.data));
         });
     }
   }, [user]);
 
-  // 알림 미읽음 수 폴링 (30초마다)
   useEffect(() => {
     if (!user) return;
     const fetchUnread = () => {
@@ -70,7 +66,6 @@ export default function App() {
     return () => clearInterval(interval);
   }, [user]);
 
-  // 선택된 계정 바뀔 때마다 맛집 로드
   useEffect(() => {
     const params = selectedAccountIds.map((id) => `account_ids=${id}`).join("&");
     const url = `${API_BASE}/restaurants/${params ? "?" + params : ""}`;
@@ -99,9 +94,8 @@ export default function App() {
     if (isPersonal) {
       const place = personalPlaces.find((p) => `personal_${p.id}` === restaurantId || p.id === restaurantId);
       if (place) {
-        axios.delete(`${API_BASE}/personal-places/${place.id}${user ? `?user_id=${user.user_id}` : ""}`).then(() => {
-          setPersonalPlaces((prev) => prev.filter((p) => p.id !== place.id));
-        });
+        axios.delete(`${API_BASE}/personal-places/${place.id}${user ? `?user_id=${user.user_id}` : ""}`)
+          .then(() => setPersonalPlaces((prev) => prev.filter((p) => p.id !== place.id)));
       }
     } else {
       setHiddenIds((prev) => new Set([...prev, restaurantId]));
@@ -140,10 +134,13 @@ export default function App() {
     setPersonalPlaces((prev) => prev.filter((p) => p.id !== placeId));
   }, [user]);
 
+  const handleViewMap = useCallback(() => {
+    setActiveTab("map");
+  }, []);
+
   const visibleRestaurants = restaurants.filter((r) => !hiddenIds.has(r.id));
   const sidebarWidth = sidebarOpen ? 280 : 0;
 
-  // 로딩 중
   if (loading) {
     return (
       <div style={{
@@ -157,11 +154,16 @@ export default function App() {
     );
   }
 
-  // 비로그인 → 인증 화면
   if (!user) return <AuthScreen />;
 
   return (
     <div className="app">
+
+      {/* 팔로우 탭 */}
+      {activeTab === "follow" && (
+        <FollowTab onViewMap={handleViewMap} />
+      )}
+
       {/* 사이드바 토글 버튼 (데스크탑) */}
       {!isMobile && (
         <button
