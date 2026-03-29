@@ -11,6 +11,7 @@ import FollowTab from "./components/FollowTab";
 import ProfilePage from "./components/ProfilePage";
 import NotificationTab from "./components/NotificationTab";
 import LocationButton from "./components/LocationButton";
+import MapFilter from "./components/MapFilter";
 import "./App.css";
 
 export const ACCOUNT_COLORS = [
@@ -38,10 +39,13 @@ export default function App() {
   const [showPersonal, setShowPersonal] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
 
+  // 상태별 필터
+  const [activeFilter, setActiveFilter] = useState(null);
+
   // 팔로잉 레이어
   const [selectedFollowingIds, setSelectedFollowingIds] = useState([]);
-  const [followingPlacesMap, setFollowingPlacesMap] = useState({}); // { userId: [places] }
-  const [followingList, setFollowingList] = useState([]); // [{ id, nickname }]
+  const [followingPlacesMap, setFollowingPlacesMap] = useState({});
+  const [followingList, setFollowingList] = useState([]);
 
   const isMobile = window.innerWidth <= 768;
 
@@ -57,22 +61,18 @@ export default function App() {
           axios.get(`${API_BASE}/personal-places/`)
             .then((res) => setPersonalPlaces(res.data));
         });
-
-      // 팔로잉 목록 로드
       axios.get(`${API_BASE}/follows/${user.user_id}/following`)
         .then((res) => setFollowingList(res.data))
         .catch(() => {});
     }
   }, [user]);
 
-  // 알림 미읽음 수 폴링
   useEffect(() => {
     if (!user) return;
     const fetchUnread = () => {
       axios.get(`${API_BASE}/notifications/?user_id=${user.user_id}`)
         .then((res) => {
-          const unread = res.data.filter((n) => !n.is_read).length;
-          setUnreadCount(unread);
+          setUnreadCount(res.data.filter((n) => !n.is_read).length);
         })
         .catch(() => {});
     };
@@ -87,41 +87,31 @@ export default function App() {
     axios.get(url).then((res) => setRestaurants(res.data));
   }, [selectedAccountIds]);
 
-  // 팔로잉 체크 토글
   const handleToggleFollowing = useCallback(async (targetUserId) => {
     setSelectedFollowingIds((prev) => {
       if (prev.includes(targetUserId)) {
         return prev.filter((id) => id !== targetUserId);
       } else {
-        // 체크 시 해당 유저 맛집 로드
         if (!followingPlacesMap[targetUserId]) {
-          axios.get(`${API_BASE}/users/${targetUserId}/places?viewer_id=${user?.user_id || ""}`)
-            .then((res) => {
-              setFollowingPlacesMap((m) => ({ ...m, [targetUserId]: res.data }));
-            })
-            .catch(() => {
-              // 닉네임으로 재시도
-              const target = followingList.find((f) => f.id === targetUserId);
-              if (target) {
-                axios.get(`${API_BASE}/users/${target.nickname}/places?viewer_id=${user?.user_id || ""}`)
-                  .then((res) => {
-                    setFollowingPlacesMap((m) => ({ ...m, [targetUserId]: res.data }));
-                  })
-                  .catch(() => {});
-              }
-            });
+          const target = followingList.find((f) => f.id === targetUserId);
+          if (target) {
+            axios.get(`${API_BASE}/users/${target.nickname}/places?viewer_id=${user?.user_id || ""}`)
+              .then((res) => {
+                setFollowingPlacesMap((m) => ({ ...m, [targetUserId]: res.data }));
+              })
+              .catch(() => {});
+          }
         }
         return [...prev, targetUserId];
       }
     });
   }, [followingPlacesMap, followingList, user]);
 
-  // MapView에 넘길 팔로잉 플레이스 데이터 조합
-  const followingPlaces = selectedFollowingIds.map((uid, idx) => {
-    const user_ = followingList.find((f) => f.id === uid);
+  const followingPlaces = selectedFollowingIds.map((uid) => {
+    const u = followingList.find((f) => f.id === uid);
     return {
       userId: uid,
-      nickname: user_?.nickname || "?",
+      nickname: u?.nickname || "?",
       colorIdx: followingList.findIndex((f) => f.id === uid),
       places: followingPlacesMap[uid] || [],
     };
@@ -194,12 +184,13 @@ export default function App() {
     setPersonalPlaces((prev) => prev.filter((p) => p.id !== placeId));
   }, [user]);
 
-  const handleViewMap = useCallback(() => {
-    setActiveTab("map");
-  }, []);
+  // 필터 적용된 내 맛집
+  const filteredPersonalPlaces = activeFilter
+    ? personalPlaces.filter((p) => p.status === activeFilter)
+    : personalPlaces;
 
   const visibleRestaurants = restaurants.filter((r) => !hiddenIds.has(r.id));
-  const sidebarWidth = sidebarOpen ? 280 : 0;
+  const sidebarWidth = sidebarOpen && !isMobile ? 280 : 0;
 
   if (loading) {
     return (
@@ -219,20 +210,10 @@ export default function App() {
   return (
     <div className="app">
 
-      {/* 모바일 탭 — 팔로우 */}
-      {isMobile && activeTab === "follow" && (
-        <FollowTab onViewMap={handleViewMap} />
-      )}
-
-      {/* 모바일 탭 — 알림 */}
-      {isMobile && activeTab === "notify" && (
-        <NotificationTab onUnreadChange={setUnreadCount} />
-      )}
-
-      {/* 모바일 탭 — 프로필 */}
-      {isMobile && activeTab === "profile" && (
-        <ProfilePage />
-      )}
+      {/* 모바일 탭 */}
+      {isMobile && activeTab === "follow" && <FollowTab onViewMap={() => setActiveTab("map")} />}
+      {isMobile && activeTab === "notify" && <NotificationTab onUnreadChange={setUnreadCount} />}
+      {isMobile && activeTab === "profile" && <ProfilePage />}
 
       {/* 사이드바 토글 버튼 (데스크탑) */}
       {!isMobile && (
@@ -284,12 +265,21 @@ export default function App() {
       {/* 지도 */}
       <MapView
         restaurants={visibleRestaurants}
-        personalPlaces={showPersonal ? personalPlaces : []}
+        personalPlaces={showPersonal ? filteredPersonalPlaces : []}
         accounts={accounts}
         onMarkerClick={handleMarkerClick}
         onMapReady={(map) => { mapRef.current = map; }}
         followingPlaces={followingPlaces}
       />
+
+      {/* 상태별 필터 버튼 */}
+      {(activeTab === "map" || !isMobile) && (
+        <MapFilter
+          activeFilter={activeFilter}
+          onFilterChange={setActiveFilter}
+          sidebarWidth={sidebarWidth}
+        />
+      )}
 
       {/* 현재 위치 버튼 */}
       <LocationButton map={mapRef.current} />
