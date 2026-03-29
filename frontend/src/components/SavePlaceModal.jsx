@@ -1,10 +1,22 @@
 // src/components/SavePlaceModal.jsx
-// 저장 + 수정 모드 모두 지원
-// editMode=true 일 때는 기존 값 초기화 + "수정하기" 버튼
-
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useUser, API_BASE } from "../context/UserContext";
+
+const C = {
+  primary:    "#655d54",
+  primaryDim: "#595149",
+  bg:         "#faf9f6",
+  container:  "#f4f4f0",
+  containerHigh: "#edeeea",
+  onSurface:  "#2f3430",
+  variant:    "#5c605c",
+  outline:    "#afb3ae",
+  outlineFaint: "rgba(101,93,84,0.08)",
+  error:      "#9e422c",
+};
+const FH = "'Noto Serif', Georgia, serif";
+const FL = "'Manrope', -apple-system, sans-serif";
 
 const STATUS_OPTIONS = [
   { value: "want_to_go",      emoji: "🔖", label: "가고 싶어요" },
@@ -14,11 +26,7 @@ const STATUS_OPTIONS = [
 ];
 
 const VISITED_STATUSES = ["visited", "want_revisit", "not_recommended"];
-
-const DEFAULT_FOLDER_COLORS = [
-  "#E8593C", "#3B8BD4", "#1D9E75", "#BA7517",
-  "#7F77DD", "#D4537E", "#0F6E56", "#993C1D",
-];
+const FOLDER_COLORS = ["#655d54", "#3B8BD4", "#1D9E75", "#BA7517", "#7F77DD", "#D4537E"];
 
 export default function SavePlaceModal({ place, onSave, onClose, editMode = false }) {
   const { user } = useUser();
@@ -29,10 +37,9 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
   const [memo, setMemo] = useState(place?.memo || "");
   const [instagramUrl, setInstagramUrl] = useState(place?.instagram_post_url || "");
   const [saving, setSaving] = useState(false);
-
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
-  const [newFolderColor, setNewFolderColor] = useState("#E8593C");
+  const [newFolderColor, setNewFolderColor] = useState("#655d54");
   const [creatingFolder, setCreatingFolder] = useState(false);
 
   useEffect(() => {
@@ -51,19 +58,13 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
     setCreatingFolder(true);
     try {
       const res = await axios.post(`${API_BASE}/folders/`, {
-        user_id: user.user_id,
-        name: newFolderName.trim(),
-        color: newFolderColor,
+        user_id: user.user_id, name: newFolderName.trim(), color: newFolderColor,
       });
       setFolders((prev) => [...prev, res.data]);
       setSelectedFolderId(res.data.id);
-      setNewFolderName("");
-      setShowNewFolder(false);
-    } catch (e) {
-      alert("폴더 생성 실패");
-    } finally {
-      setCreatingFolder(false);
-    }
+      setNewFolderName(""); setShowNewFolder(false);
+    } catch (e) { alert("폴더 생성 실패"); }
+    finally { setCreatingFolder(false); }
   };
 
   const handleSave = async () => {
@@ -71,250 +72,267 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
     setSaving(true);
     try {
       await onSave({
-        ...place,
-        folder_id: selectedFolderId,
-        status,
+        ...place, folder_id: selectedFolderId, status,
         rating: VISITED_STATUSES.includes(status) && rating > 0 ? rating : null,
         memo: memo.trim() || null,
         instagram_post_url: instagramUrl.trim() || null,
       });
       onClose();
-    } catch (e) {
-      alert("저장 실패");
-    } finally {
-      setSaving(false);
-    }
+    } catch (e) { alert("저장 실패"); }
+    finally { setSaving(false); }
   };
 
   if (!place) return null;
 
   return (
-    <div
-      style={{
-        position: "fixed", inset: 0,
-        background: "rgba(0,0,0,0.4)",
-        display: "flex", alignItems: "flex-end", justifyContent: "center",
-        zIndex: 100,
-      }}
-      onClick={(e) => e.target === e.currentTarget && onClose()}
-    >
-      <div style={{
-        background: "white", borderRadius: "20px 20px 0 0",
-        width: "100%", maxWidth: 480,
-        maxHeight: "90vh", overflowY: "auto",
-        padding: "0 0 32px",
-      }}>
-        {/* 핸들 */}
-        <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 4px" }}>
-          <div style={{ width: 40, height: 4, background: "#e0e0e0", borderRadius: 2 }} />
-        </div>
-
-        {/* 헤더 */}
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&family=Manrope:wght@400;500;600;700&display=swap');
+      `}</style>
+      <div
+        onClick={(e) => e.target === e.currentTarget && onClose()}
+        style={{
+          position: "fixed", inset: 0,
+          background: "rgba(47,52,48,0.3)",
+          backdropFilter: "blur(4px)",
+          display: "flex", alignItems: "flex-end",
+          justifyContent: "center", zIndex: 100,
+        }}
+      >
         <div style={{
-          display: "flex", justifyContent: "space-between", alignItems: "flex-start",
-          padding: "8px 20px 16px", borderBottom: "1px solid #f5f5f5",
+          background: C.bg, borderRadius: "20px 20px 0 0",
+          width: "100%", maxWidth: 520,
+          maxHeight: "90vh", overflowY: "auto",
+          boxShadow: "0 -8px 40px rgba(47,52,48,0.12)",
         }}>
-          <div>
-            <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#1a1a1a" }}>
-              {editMode ? "✏️ 맛집 수정" : place.name}
-            </h3>
-            {editMode && (
-              <p style={{ margin: "4px 0 0", fontSize: 14, fontWeight: 600, color: "#E8593C" }}>
-                {place.name}
-              </p>
-            )}
-            {place.address && !editMode && (
-              <p style={{ margin: "4px 0 0", fontSize: 12, color: "#aaa" }}>{place.address}</p>
-            )}
+          {/* 핸들 */}
+          <div style={{ display: "flex", justifyContent: "center", padding: "14px 0 6px" }}>
+            <div style={{ width: 32, height: 3, background: C.outline, borderRadius: 2, opacity: 0.4 }} />
           </div>
-          <button onClick={onClose} style={{
-            background: "none", border: "none", fontSize: 20, color: "#bbb", cursor: "pointer", padding: 4,
-          }}>✕</button>
-        </div>
 
-        <div style={{ padding: "16px 20px" }}>
-
-          {/* 상태 선택 */}
-          <Section title="상태">
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              {STATUS_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setStatus(opt.value)}
-                  style={{
-                    padding: "10px 8px",
-                    border: `2px solid ${status === opt.value ? "#E8593C" : "#f0f0f0"}`,
-                    borderRadius: 10,
-                    background: status === opt.value ? "#fff0ed" : "white",
-                    cursor: "pointer", fontSize: 13, fontWeight: 600,
-                    color: status === opt.value ? "#E8593C" : "#555",
-                    transition: "all 0.15s",
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-                  }}
-                >
-                  <span>{opt.emoji}</span>
-                  <span>{opt.label}</span>
-                </button>
-              ))}
+          {/* 헤더 */}
+          <div style={{
+            display: "flex", justifyContent: "space-between", alignItems: "flex-start",
+            padding: "12px 24px 20px",
+            borderBottom: `1px solid ${C.outlineFaint}`,
+          }}>
+            <div>
+              <p style={{ margin: "0 0 4px", fontFamily: FL, fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.15em", color: C.outline }}>
+                {editMode ? "기록 수정" : "새 기록"}
+              </p>
+              <h3 style={{ margin: 0, fontFamily: FH, fontSize: 20, fontWeight: 700, color: C.onSurface }}>
+                {place.name}
+              </h3>
+              {place.address && !editMode && (
+                <p style={{ margin: "4px 0 0", fontFamily: FL, fontSize: 12, color: C.outline }}>{place.address}</p>
+              )}
             </div>
-          </Section>
+            <button onClick={onClose} style={{
+              background: "none", border: "none",
+              fontSize: 20, color: C.outline, cursor: "pointer", padding: 4,
+            }}>✕</button>
+          </div>
 
-          {/* 별점 */}
-          {VISITED_STATUSES.includes(status) && (
-            <Section title="별점">
-              <div style={{ display: "flex", gap: 8 }}>
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <button
-                    key={star}
-                    onClick={() => setRating(rating === star ? 0 : star)}
-                    style={{
-                      fontSize: 28, background: "none", border: "none",
-                      cursor: "pointer", padding: "2px 4px",
-                      filter: star <= rating ? "none" : "grayscale(1) opacity(0.3)",
-                      transition: "filter 0.15s",
-                    }}
-                  >⭐</button>
-                ))}
-                {rating > 0 && (
-                  <span style={{ fontSize: 13, color: "#aaa", alignSelf: "center", marginLeft: 4 }}>
-                    {rating}점
-                  </span>
-                )}
+          <div style={{ padding: "20px 24px" }}>
+
+            {/* 상태 선택 */}
+            <Section label="방문 상태">
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                {STATUS_OPTIONS.map((opt) => {
+                  const isActive = status === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      onClick={() => setStatus(opt.value)}
+                      style={{
+                        padding: "12px 8px",
+                        border: `1.5px solid ${isActive ? C.primary : C.outline}44`,
+                        borderRadius: 10,
+                        background: isActive ? `${C.primary}12` : "transparent",
+                        cursor: "pointer",
+                        fontFamily: FL, fontSize: 12, fontWeight: isActive ? 700 : 400,
+                        color: isActive ? C.primary : C.variant,
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      <span style={{ fontSize: 16 }}>{opt.emoji}</span>
+                      <span>{opt.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </Section>
-          )}
 
-          {/* 폴더 선택 */}
-          <Section title="폴더">
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              <FolderChip
-                label="없음" color="#aaa"
-                selected={selectedFolderId === null}
-                onClick={() => setSelectedFolderId(null)}
-              />
-              {folders.map((f) => (
-                <FolderChip
-                  key={f.id} label={f.name} color={f.color}
-                  selected={selectedFolderId === f.id}
-                  onClick={() => setSelectedFolderId(f.id)}
-                />
-              ))}
-              <button
-                onClick={() => setShowNewFolder(!showNewFolder)}
-                style={{
-                  padding: "6px 12px", border: "1.5px dashed #ddd",
-                  borderRadius: 20, background: "white",
-                  fontSize: 12, color: "#aaa", cursor: "pointer",
-                }}
-              >+ 새 폴더</button>
-            </div>
-
-            {showNewFolder && (
-              <div style={{ marginTop: 12, padding: 12, background: "#f8f8f8", borderRadius: 12 }}>
-                <input
-                  value={newFolderName}
-                  onChange={(e) => setNewFolderName(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && handleCreateFolder()}
-                  placeholder="폴더 이름" autoFocus
-                  style={{
-                    width: "100%", padding: "8px 10px",
-                    border: "1.5px solid #eee", borderRadius: 8,
-                    fontSize: 13, outline: "none", boxSizing: "border-box",
-                  }}
-                />
-                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                  {DEFAULT_FOLDER_COLORS.map((c) => (
+            {/* 별점 */}
+            {VISITED_STATUSES.includes(status) && (
+              <Section label="별점">
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  {[1, 2, 3, 4, 5].map((star) => (
                     <button
-                      key={c} onClick={() => setNewFolderColor(c)}
+                      key={star}
+                      onClick={() => setRating(rating === star ? 0 : star)}
                       style={{
-                        width: 24, height: 24, borderRadius: "50%", background: c,
-                        border: newFolderColor === c ? "2px solid #333" : "2px solid transparent",
-                        cursor: "pointer", padding: 0,
+                        fontSize: 26, background: "none", border: "none",
+                        cursor: "pointer", padding: "2px 4px",
+                        filter: star <= rating ? "none" : "grayscale(1) opacity(0.25)",
+                        transition: "filter 0.15s",
                       }}
-                    />
+                    >⭐</button>
                   ))}
+                  {rating > 0 && (
+                    <span style={{ fontFamily: FL, fontSize: 12, color: C.outline, marginLeft: 4 }}>
+                      {rating}점
+                    </span>
+                  )}
                 </div>
-                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                  <button
-                    onClick={() => setShowNewFolder(false)}
-                    style={{
-                      flex: 1, padding: "8px", border: "1px solid #ddd",
-                      borderRadius: 8, background: "white", fontSize: 13, cursor: "pointer", color: "#888",
-                    }}
-                  >취소</button>
-                  <button
-                    onClick={handleCreateFolder}
-                    disabled={creatingFolder || !newFolderName.trim()}
-                    style={{
-                      flex: 1, padding: "8px", border: "none", borderRadius: 8,
-                      background: newFolderName.trim() ? "#E8593C" : "#eee",
-                      color: newFolderName.trim() ? "white" : "#aaa",
-                      fontSize: 13, fontWeight: 700, cursor: "pointer",
-                    }}
-                  >{creatingFolder ? "..." : "만들기"}</button>
-                </div>
-              </div>
+              </Section>
             )}
-          </Section>
 
-          {/* 메모 */}
-          <Section title="메모 (선택)">
-            <input
-              value={memo}
-              onChange={(e) => setMemo(e.target.value)}
-              placeholder="한줄 메모 (예: 웨이팅 있음, 주차 가능)"
-              maxLength={100}
+            {/* 폴더 */}
+            <Section label="컬렉션">
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                <FolderChip
+                  label="없음" color={C.outline}
+                  selected={selectedFolderId === null}
+                  onClick={() => setSelectedFolderId(null)}
+                />
+                {folders.map((f) => (
+                  <FolderChip
+                    key={f.id} label={f.name} color={f.color}
+                    selected={selectedFolderId === f.id}
+                    onClick={() => setSelectedFolderId(f.id)}
+                  />
+                ))}
+                <button
+                  onClick={() => setShowNewFolder(!showNewFolder)}
+                  style={{
+                    padding: "6px 12px",
+                    border: `1.5px dashed ${C.outline}66`,
+                    borderRadius: 999, background: "none",
+                    fontFamily: FL, fontSize: 11, color: C.outline, cursor: "pointer",
+                  }}
+                >+ 새 컬렉션</button>
+              </div>
+
+              {showNewFolder && (
+                <div style={{
+                  marginTop: 12, padding: 14,
+                  background: C.container, borderRadius: 10,
+                }}>
+                  <input
+                    value={newFolderName}
+                    onChange={(e) => setNewFolderName(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleCreateFolder()}
+                    placeholder="컬렉션 이름"
+                    autoFocus
+                    style={{
+                      width: "100%", padding: "9px 12px", border: "none",
+                      background: C.bg, borderRadius: 8,
+                      fontFamily: FL, fontSize: 13, color: C.onSurface,
+                      outline: "none", boxSizing: "border-box", marginBottom: 10,
+                    }}
+                  />
+                  <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                    {FOLDER_COLORS.map((c) => (
+                      <button
+                        key={c} onClick={() => setNewFolderColor(c)}
+                        style={{
+                          width: 22, height: 22, borderRadius: "50%", background: c,
+                          border: newFolderColor === c ? `2px solid ${C.onSurface}` : "2px solid transparent",
+                          cursor: "pointer", padding: 0,
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => setShowNewFolder(false)} style={{
+                      flex: 1, padding: "8px", border: "none", borderRadius: 8,
+                      background: "none", fontFamily: FL, fontSize: 12, color: C.outline, cursor: "pointer",
+                    }}>취소</button>
+                    <button onClick={handleCreateFolder} disabled={creatingFolder || !newFolderName.trim()} style={{
+                      flex: 1, padding: "8px", border: "none", borderRadius: 8,
+                      background: newFolderName.trim() ? C.primary : C.outline,
+                      color: "#fff6ef",
+                      fontFamily: FL, fontSize: 12, fontWeight: 700, cursor: "pointer",
+                    }}>{creatingFolder ? "..." : "만들기"}</button>
+                  </div>
+                </div>
+              )}
+            </Section>
+
+            {/* 메모 */}
+            <Section label="나의 기록">
+              <textarea
+                value={memo}
+                onChange={(e) => setMemo(e.target.value)}
+                placeholder="이 공간에 대한 소중한 기억을 남겨주세요..."
+                maxLength={200}
+                rows={3}
+                style={{
+                  width: "100%", padding: "12px 14px",
+                  background: C.container, border: "none", borderRadius: 10,
+                  fontFamily: FH, fontSize: 13, fontStyle: "italic",
+                  color: C.onSurface, outline: "none",
+                  boxSizing: "border-box", resize: "none",
+                  lineHeight: 1.7,
+                }}
+                onFocus={(e) => e.target.style.background = "#ede0d5"}
+                onBlur={(e) => e.target.style.background = C.container}
+              />
+            </Section>
+
+            {/* 인스타 링크 */}
+            <Section label="인스타 포스트 링크 (선택)">
+              <input
+                value={instagramUrl}
+                onChange={(e) => setInstagramUrl(e.target.value)}
+                placeholder="https://instagram.com/p/..."
+                style={{
+                  width: "100%", padding: "11px 14px",
+                  background: C.container, border: "none", borderRadius: 10,
+                  fontFamily: FL, fontSize: 13, color: C.onSurface,
+                  outline: "none", boxSizing: "border-box",
+                }}
+                onFocus={(e) => e.target.style.background = "#ede0d5"}
+                onBlur={(e) => e.target.style.background = C.container}
+              />
+            </Section>
+
+            {/* 저장 버튼 */}
+            <button
+              onClick={handleSave}
+              disabled={saving}
               style={{
-                width: "100%", padding: "10px 12px",
-                border: "1.5px solid #f0f0f0", borderRadius: 10,
-                fontSize: 13, outline: "none", boxSizing: "border-box",
+                width: "100%", padding: "16px",
+                background: saving ? C.outline : C.primary,
+                color: "#fff6ef", border: "none", borderRadius: 12,
+                fontFamily: FL, fontSize: 14, fontWeight: 700,
+                cursor: saving ? "not-allowed" : "pointer",
+                marginTop: 8,
+                boxShadow: saving ? "none" : "0 4px 16px rgba(101,93,84,0.2)",
+                letterSpacing: "0.02em",
               }}
-              onFocus={(e) => e.target.style.borderColor = "#E8593C"}
-              onBlur={(e) => e.target.style.borderColor = "#f0f0f0"}
-            />
-          </Section>
-
-          {/* 인스타 포스트 링크 */}
-          <Section title="인스타 포스트 링크 (선택)">
-            <input
-              value={instagramUrl}
-              onChange={(e) => setInstagramUrl(e.target.value)}
-              placeholder="https://instagram.com/p/..."
-              style={{
-                width: "100%", padding: "10px 12px",
-                border: "1.5px solid #f0f0f0", borderRadius: 10,
-                fontSize: 13, outline: "none", boxSizing: "border-box",
-              }}
-              onFocus={(e) => e.target.style.borderColor = "#E8593C"}
-              onBlur={(e) => e.target.style.borderColor = "#f0f0f0"}
-            />
-          </Section>
-
-          {/* 저장/수정 버튼 */}
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            style={{
-              width: "100%", padding: "15px",
-              background: saving ? "#ccc" : "#E8593C",
-              color: "white", border: "none", borderRadius: 14,
-              fontSize: 16, fontWeight: 800,
-              cursor: saving ? "not-allowed" : "pointer",
-              marginTop: 8,
-            }}
-          >
-            {saving ? "저장 중..." : editMode ? "수정하기" : "저장하기"}
-          </button>
+            >
+              {saving ? "저장 중..." : editMode ? "수정하기" : "기록하기"}
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
-function Section({ title, children }) {
+function Section({ label, children }) {
   return (
-    <div style={{ marginBottom: 20 }}>
-      <p style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: "#555" }}>{title}</p>
+    <div style={{ marginBottom: 24 }}>
+      <p style={{
+        margin: "0 0 10px",
+        fontFamily: "'Manrope', sans-serif",
+        fontSize: 10, fontWeight: 600,
+        textTransform: "uppercase", letterSpacing: "0.15em",
+        color: "#5c605c",
+      }}>{label}</p>
       {children}
     </div>
   );
@@ -326,16 +344,17 @@ function FolderChip({ label, color, selected, onClick }) {
       onClick={onClick}
       style={{
         padding: "6px 12px",
-        border: `2px solid ${selected ? color : "#f0f0f0"}`,
-        borderRadius: 20,
-        background: selected ? `${color}18` : "white",
-        cursor: "pointer", fontSize: 12, fontWeight: 600,
-        color: selected ? color : "#888",
+        border: `1.5px solid ${selected ? color : "rgba(175,179,174,0.4)"}`,
+        borderRadius: 999,
+        background: selected ? `${color}18` : "transparent",
+        cursor: "pointer",
+        fontFamily: "'Manrope', sans-serif", fontSize: 11, fontWeight: selected ? 700 : 400,
+        color: selected ? color : "#777c77",
         display: "flex", alignItems: "center", gap: 5,
         transition: "all 0.15s",
       }}
     >
-      <div style={{ width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0 }} />
+      <div style={{ width: 6, height: 6, borderRadius: "50%", background: color, flexShrink: 0 }} />
       {label}
     </button>
   );

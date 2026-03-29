@@ -9,15 +9,78 @@ const STATUS_EMOJI = {
   not_recommended: "👎",
 };
 
+// My Space 컬러 팔레트
 const FOLLOWING_COLORS = [
   "#3B8BD4", "#1D9E75", "#BA7517",
   "#7F77DD", "#D4537E", "#0F6E56",
 ];
 const getFollowingColor = (idx) => FOLLOWING_COLORS[idx % FOLLOWING_COLORS.length];
 
-// 두 좌표가 충분히 가까운지 (클러스터 판정용)
+const MY_PRIMARY = "#655d54";
+
 const isSameLocation = (a, b, threshold = 0.0001) =>
   Math.abs(a.lat - b.lat) < threshold && Math.abs(a.lng - b.lng) < threshold;
+
+// 세련된 마커 HTML 생성
+const makeMarker = ({ label, color = MY_PRIMARY, emoji = "", shared = false, avatars = [], bgOpacity = 1 }) => {
+  const avatarHTML = avatars.slice(0, 2).map(({ initial, color: ac }) => `
+    <div style="
+      width:14px;height:14px;border-radius:50%;
+      background:${ac};
+      display:inline-flex;align-items:center;justify-content:center;
+      font-size:7px;color:white;font-weight:800;font-family:'Manrope',sans-serif;
+      border:1.5px solid #faf9f6;margin-left:-3px;
+    ">${initial}</div>
+  `).join("");
+
+  return `
+    <div style="
+      display:inline-flex;align-items:center;gap:5px;
+      background:${color};
+      color:#fff6ef;
+      padding:5px ${avatars.length > 0 ? "8px" : "10px"} 5px ${emoji ? "7px" : "10px"};
+      border-radius:${shared ? "12px" : "10px"};
+      font-family:'Manrope',sans-serif;
+      font-size:11px;font-weight:700;
+      white-space:nowrap;
+      box-shadow:0 2px 10px rgba(47,52,48,${shared ? "0.25" : "0.18"});
+      cursor:pointer;
+      border:${shared ? "2px solid #faf9f6" : "none"};
+      letter-spacing:0.01em;
+      outline:${shared ? `2px solid ${color}` : "none"};
+    ">
+      ${emoji ? `<span style="font-size:12px;">${emoji}</span>` : ""}
+      <span>${label}</span>
+      ${avatarHTML ? `<div style="display:flex;align-items:center;">${avatarHTML}</div>` : ""}
+    </div>
+  `;
+};
+
+const makeFollowingMarker = ({ label, initial, color, emoji = "" }) => `
+  <div style="
+    display:inline-flex;align-items:center;gap:6px;
+    background:${color};
+    color:#fff6ef;
+    padding:4px 10px 4px 4px;
+    border-radius:20px;
+    font-family:'Manrope',sans-serif;
+    font-size:11px;font-weight:700;
+    white-space:nowrap;
+    box-shadow:0 2px 10px rgba(47,52,48,0.2);
+    cursor:pointer;
+    border:2px solid #faf9f6;
+    letter-spacing:0.01em;
+  ">
+    <div style="
+      width:20px;height:20px;border-radius:50%;
+      background:rgba(255,246,239,0.25);
+      display:flex;align-items:center;justify-content:center;
+      font-size:9px;font-weight:800;flex-shrink:0;
+    ">${initial}</div>
+    ${emoji ? `<span style="font-size:12px;">${emoji}</span>` : ""}
+    <span>${label}</span>
+  </div>
+`;
 
 export default function MapView({
   restaurants, personalPlaces = [], accounts, onMarkerClick, onMapReady,
@@ -32,7 +95,6 @@ export default function MapView({
   const [mapReady, setMapReady] = useState(false);
   const hasFitBounds = useRef(false);
 
-  // 지도 초기화
   useEffect(() => {
     const checkNaver = setInterval(() => {
       if (window.naver && window.naver.maps) {
@@ -40,6 +102,7 @@ export default function MapView({
         mapInstance.current = new window.naver.maps.Map(mapRef.current, {
           center: new window.naver.maps.LatLng(37.5665, 126.978),
           zoom: 13,
+          mapTypeControl: false,
         });
         setMapReady(true);
         if (onMapReady) onMapReady(mapInstance.current);
@@ -48,7 +111,6 @@ export default function MapView({
     return () => clearInterval(checkNaver);
   }, []); // eslint-disable-line
 
-  // 지도 중심 이동 헬퍼
   const panToPlace = (lat, lng) => {
     if (!mapInstance.current) return;
     const isMobile = window.innerWidth <= 768;
@@ -58,10 +120,10 @@ export default function MapView({
     const adjustedCoord = projection.fromOffsetToCoord(
       new window.naver.maps.Point(point.x, point.y + panelHeight)
     );
-    mapInstance.current.panTo(adjustedCoord, { duration: 300, easing: "easeOutCubic" });
+    mapInstance.current.panTo(adjustedCoord, { duration: 300 });
   };
 
-  // ── 블로거 맛집 마커 ──────────────────────────────────────
+  // 블로거 맛집
   useEffect(() => {
     if (!mapReady || !mapInstance.current) return;
     markersRef.current.forEach((m) => m.setMap(null));
@@ -73,14 +135,13 @@ export default function MapView({
       const primaryAccountId = mentions.length > 0 ? mentions[0].account_id : null;
       const color = primaryAccountId ? getAccountColor(primaryAccountId, accounts) : "#888";
       const hasMultiMention = mentions.some((m) => m.mention_count >= 2);
-      const isMultiAccount = mentions.length >= 2;
 
       const marker = new window.naver.maps.Marker({
         position: new window.naver.maps.LatLng(r.lat, r.lng),
         map: mapInstance.current,
         title: r.name,
         icon: {
-          content: `<div style="background:${color};color:white;padding:4px 8px;border-radius:12px;font-size:12px;font-weight:600;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.25);cursor:pointer;border:${isMultiAccount ? "2px solid white" : "none"};outline:${isMultiAccount ? `2px solid ${color}` : "none"};">${r.name}${hasMultiMention ? " ✶" : ""}</div>`,
+          content: makeMarker({ label: r.name + (hasMultiMention ? " ·" : ""), color }),
           anchor: new window.naver.maps.Point(0, 0),
         },
       });
@@ -100,73 +161,43 @@ export default function MapView({
     }
   }, [restaurants, accounts, mapReady]); // eslint-disable-line
 
-  // ── 내 맛집 + 팔로잉 공유 클러스터 마커 ─────────────────
+  // 내 맛집 + 공유 클러스터
   useEffect(() => {
     if (!mapReady || !mapInstance.current) return;
     personalMarkersRef.current.forEach((m) => m.setMap(null));
     personalMarkersRef.current = [];
 
-    // 팔로잉 전체 맛집 flat list (naver_place_id 기준 공유 판정)
     const allFollowingPlaces = followingPlaces.flatMap(({ places, nickname, colorIdx }) =>
       places.map((p) => ({ ...p, _nickname: nickname, _colorIdx: colorIdx }))
     );
 
     personalPlaces.forEach((r) => {
-      const emoji = STATUS_EMOJI[r.status] || "📌";
-
-      // 같은 장소를 저장한 팔로잉 찾기
+      const emoji = STATUS_EMOJI[r.status] || "";
       const sharedWith = allFollowingPlaces.filter((fp) => {
-        if (r.naver_place_id && fp.naver_place_id) {
-          return r.naver_place_id === fp.naver_place_id;
-        }
+        if (r.naver_place_id && fp.naver_place_id) return r.naver_place_id === fp.naver_place_id;
         return isSameLocation(r, fp);
       });
-
       const isShared = sharedWith.length > 0;
-      const bgColor = r.folder_color || "#E8593C";
 
-      // 공유 마커: 아바타 스택 표시
-      let content;
-      if (isShared) {
-        const avatarStack = sharedWith.slice(0, 2).map(({ _nickname, _colorIdx }) => `
-          <div style="
-            width:16px;height:16px;border-radius:50%;
-            background:${getFollowingColor(_colorIdx)};
-            display:inline-flex;align-items:center;justify-content:center;
-            font-size:9px;color:white;font-weight:800;
-            border:1.5px solid white;margin-left:-4px;
-          ">${_nickname?.[0]?.toUpperCase()}</div>
-        `).join("");
+      const avatars = sharedWith.slice(0, 2).map(({ _nickname, _colorIdx }) => ({
+        initial: _nickname?.[0]?.toUpperCase() || "?",
+        color: getFollowingColor(_colorIdx),
+      }));
 
-        content = `
-          <div style="
-            display:flex;align-items:center;gap:4px;
-            background:${bgColor};color:white;
-            padding:3px 8px 3px 4px;
-            border-radius:16px;font-size:12px;font-weight:600;
-            white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.25);
-            cursor:pointer;
-            border:2px solid white;
-            outline:2px solid ${bgColor};
-          ">
-            ${emoji}
-            <span>${r.name}</span>
-            <div style="display:flex;align-items:center;margin-left:2px;">
-              ${avatarStack}
-              ${sharedWith.length > 2 ? `<span style="font-size:9px;margin-left:2px;">+${sharedWith.length - 2}</span>` : ""}
-            </div>
-          </div>
-        `;
-      } else {
-        content = `<div style="background:${bgColor};color:white;padding:4px 8px;border-radius:12px;font-size:12px;font-weight:600;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.25);cursor:pointer;border:2px solid white;">${emoji} ${r.name}</div>`;
-      }
+      const content = makeMarker({
+        label: r.name,
+        color: MY_PRIMARY,
+        emoji,
+        shared: isShared,
+        avatars,
+      });
 
       const marker = new window.naver.maps.Marker({
         position: new window.naver.maps.LatLng(r.lat, r.lng),
         map: mapInstance.current,
         title: r.name,
         icon: { content, anchor: new window.naver.maps.Point(0, 0) },
-        zIndex: isShared ? 10 : 5, // 공유 마커 위로
+        zIndex: isShared ? 10 : 5,
       });
 
       window.naver.maps.Event.addListener(marker, "click", () => {
@@ -177,19 +208,17 @@ export default function MapView({
     });
   }, [personalPlaces, followingPlaces, mapReady]); // eslint-disable-line
 
-  // ── 팔로잉 맛집 마커 ─────────────────────────────────────
+  // 팔로잉 마커
   useEffect(() => {
     if (!mapReady || !mapInstance.current) return;
     followingMarkersRef.current.forEach((m) => m.setMap(null));
     followingMarkersRef.current = [];
 
-    // 내 맛집과 겹치는 건 내 맛집 마커에 이미 표시 → 팔로잉 마커는 겹치지 않는 것만
     followingPlaces.forEach(({ userId, nickname, colorIdx, places }) => {
       const color = getFollowingColor(colorIdx);
       const initial = nickname?.[0]?.toUpperCase() || "?";
 
       places.forEach((r) => {
-        // 내 맛집과 같은 장소면 스킵 (내 마커에 아바타로 표시됨)
         const isDuplicate = personalPlaces.some((p) => {
           if (p.naver_place_id && r.naver_place_id) return p.naver_place_id === r.naver_place_id;
           return isSameLocation(p, r);
@@ -202,12 +231,7 @@ export default function MapView({
           map: mapInstance.current,
           title: `${nickname}: ${r.name}`,
           icon: {
-            content: `
-              <div style="display:flex;align-items:center;gap:5px;background:${color};color:white;padding:3px 8px 3px 3px;border-radius:20px;font-size:12px;font-weight:600;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.25);cursor:pointer;border:2px solid white;">
-                <div style="width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,0.3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;">${initial}</div>
-                <span>${emoji} ${r.name}</span>
-              </div>
-            `,
+            content: makeFollowingMarker({ label: r.name, initial, color, emoji }),
             anchor: new window.naver.maps.Point(0, 0),
           },
         });
@@ -228,9 +252,10 @@ export default function MapView({
         <div style={{
           position: "absolute", inset: 0,
           display: "flex", alignItems: "center", justifyContent: "center",
-          background: "#f5f5f5", fontSize: 14, color: "#888",
+          background: "#f4f4f0", fontSize: 14, color: "#777c77",
+          fontFamily: "'Manrope', sans-serif",
         }}>
-          지도 로딩 중...
+          지도 불러오는 중...
         </div>
       )}
 
@@ -238,27 +263,33 @@ export default function MapView({
       {followingPlaces.length > 0 && (
         <div style={{
           position: "absolute", bottom: 80, right: 72,
-          background: "rgba(255,255,255,0.95)", borderRadius: 12,
-          padding: "10px 14px",
-          boxShadow: "0 2px 12px rgba(0,0,0,0.12)",
-          fontSize: 12, maxWidth: 160,
-          backdropFilter: "blur(4px)",
+          background: "rgba(250,249,246,0.92)",
+          backdropFilter: "blur(12px)",
+          borderRadius: 12, padding: "12px 14px",
+          boxShadow: "0 4px 20px rgba(47,52,48,0.08)",
+          border: "1px solid rgba(101,93,84,0.08)",
+          fontSize: 11, maxWidth: 160,
         }}>
           {followingPlaces.map(({ nickname, colorIdx }) => (
-            <div key={nickname} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+            <div key={nickname} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
               <div style={{
-                width: 18, height: 18, borderRadius: "50%",
+                width: 16, height: 16, borderRadius: "50%",
                 background: getFollowingColor(colorIdx),
                 display: "flex", alignItems: "center", justifyContent: "center",
-                fontSize: 10, color: "white", fontWeight: 700,
+                fontSize: 8, color: "white", fontWeight: 800,
+                fontFamily: "'Manrope', sans-serif",
               }}>
                 {nickname?.[0]?.toUpperCase()}
               </div>
-              <span style={{ color: "#333", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nickname}</span>
+              <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: 11, color: "#2f3430", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nickname}</span>
             </div>
           ))}
-          <div style={{ borderTop: "1px solid #f0f0f0", marginTop: 6, paddingTop: 6, fontSize: 10, color: "#aaa" }}>
-            겹친 마커 = 함께 저장한 곳
+          <div style={{
+            borderTop: "1px solid rgba(101,93,84,0.08)", marginTop: 6, paddingTop: 6,
+            fontFamily: "'Manrope', sans-serif", fontSize: 9, color: "#afb3ae",
+            textTransform: "uppercase", letterSpacing: "0.08em",
+          }}>
+            공유 장소 = 겹친 마커
           </div>
         </div>
       )}

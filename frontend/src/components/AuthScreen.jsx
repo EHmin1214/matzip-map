@@ -2,9 +2,24 @@
 import { useState } from "react";
 import { useUser } from "../context/UserContext";
 
+const C = {
+  primary:    "#655d54",
+  primaryDim: "#595149",
+  bg:         "#faf9f6",
+  surface:    "#ffffff",
+  container:  "#f4f4f0",
+  onSurface:  "#2f3430",
+  variant:    "#5c605c",
+  outline:    "#afb3ae",
+  error:      "#9e422c",
+};
+
+const FONT_HEADLINE = "'Noto Serif', Georgia, serif";
+const FONT_LABEL    = "'Manrope', -apple-system, sans-serif";
+
 export default function AuthScreen() {
   const { login, register } = useUser();
-  const [mode, setMode] = useState("login"); // "login" | "register"
+  const [mode, setMode] = useState("login");
   const [nickname, setNickname] = useState("");
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
@@ -12,26 +27,14 @@ export default function AuthScreen() {
 
   const handleSubmit = async () => {
     setError("");
-    if (nickname.trim().length < 2) {
-      setError("닉네임은 2자 이상이어야 해요");
-      return;
-    }
-    if (!/^\d{4}$/.test(pin)) {
-      setError("PIN은 숫자 4자리여야 해요");
-      return;
-    }
-
+    if (nickname.trim().length < 2) { setError("닉네임은 2자 이상이어야 해요"); return; }
+    if (!/^\d{4}$/.test(pin)) { setError("PIN은 숫자 4자리여야 해요"); return; }
     setLoading(true);
     try {
-      if (mode === "login") {
-        await login(nickname.trim(), pin);
-      } else {
-        await register(nickname.trim(), pin);
-      }
+      if (mode === "login") await login(nickname.trim(), pin);
+      else await register(nickname.trim(), pin);
     } catch (e) {
-      const msg = e.response?.data?.detail;
-      if (msg) setError(msg);
-      else setError("다시 시도해주세요");
+      setError(e.response?.data?.detail || "다시 시도해주세요");
     } finally {
       setLoading(false);
     }
@@ -40,116 +43,216 @@ export default function AuthScreen() {
   return (
     <div style={{
       position: "fixed", inset: 0,
-      background: "linear-gradient(135deg, #fff5f3 0%, #fff 100%)",
-      display: "flex", alignItems: "center", justifyContent: "center",
-      zIndex: 1000, padding: 24,
+      background: C.bg,
+      display: "flex", zIndex: 1000,
+      fontFamily: FONT_LABEL,
     }}>
+      {/* 왼쪽 — 비주얼 패널 (PC) */}
       <div style={{
-        background: "white", borderRadius: 20,
-        padding: "40px 32px", width: "100%", maxWidth: 360,
-        boxShadow: "0 8px 40px rgba(232,89,60,0.12)",
-      }}>
-        {/* 로고 */}
-        <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div style={{ fontSize: 40, marginBottom: 8 }}>🗺️</div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: "#E8593C", margin: 0 }}>
-            맛집 지도
-          </h1>
-          <p style={{ fontSize: 13, color: "#999", marginTop: 6 }}>
-            내가 신뢰하는 사람의 맛집을 지도로
-          </p>
-        </div>
-
-        {/* 탭 */}
+        display: "none",
+        width: "50%", position: "relative", overflow: "hidden",
+        background: `linear-gradient(160deg, ${C.primaryDim} 0%, ${C.primary} 60%, #877a6f 100%)`,
+      }}
+        className="auth-left"
+      >
+        {/* 패턴 오버레이 */}
         <div style={{
-          display: "flex", background: "#f5f5f5",
-          borderRadius: 10, padding: 4, marginBottom: 24,
-        }}>
-          {["login", "register"].map((m) => (
-            <button key={m} onClick={() => { setMode(m); setError(""); }}
-              style={{
-                flex: 1, padding: "8px 0", border: "none", cursor: "pointer",
-                borderRadius: 8, fontSize: 14, fontWeight: 600, transition: "all 0.2s",
-                background: mode === m ? "white" : "transparent",
-                color: mode === m ? "#E8593C" : "#999",
-                boxShadow: mode === m ? "0 1px 4px rgba(0,0,0,0.1)" : "none",
-              }}>
-              {m === "login" ? "로그인" : "시작하기"}
-            </button>
-          ))}
-        </div>
-
-        {/* 닉네임 */}
-        <div style={{ marginBottom: 16 }}>
-          <label style={{ fontSize: 13, fontWeight: 600, color: "#555", display: "block", marginBottom: 6 }}>
-            닉네임
-          </label>
-          <input
-            value={nickname}
-            onChange={(e) => setNickname(e.target.value)}
-            placeholder="2자 이상"
-            onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-            style={{
-              width: "100%", padding: "12px 14px", border: "1.5px solid #eee",
-              borderRadius: 10, fontSize: 15, outline: "none", boxSizing: "border-box",
-              transition: "border-color 0.2s",
-            }}
-            onFocus={(e) => e.target.style.borderColor = "#E8593C"}
-            onBlur={(e) => e.target.style.borderColor = "#eee"}
-          />
-        </div>
-
-        {/* PIN */}
-        <div style={{ marginBottom: 24 }}>
-          <label style={{ fontSize: 13, fontWeight: 600, color: "#555", display: "block", marginBottom: 6 }}>
-            PIN 번호
-          </label>
-          <input
-            type="password"
-            inputMode="numeric"
-            maxLength={4}
-            value={pin}
-            onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-            placeholder="숫자 4자리"
-            onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-            style={{
-              width: "100%", padding: "12px 14px", border: "1.5px solid #eee",
-              borderRadius: 10, fontSize: 15, outline: "none", boxSizing: "border-box",
-              letterSpacing: 8, textAlign: "center",
-            }}
-            onFocus={(e) => e.target.style.borderColor = "#E8593C"}
-            onBlur={(e) => e.target.style.borderColor = "#eee"}
-          />
-        </div>
-
-        {/* 에러 */}
-        {error && (
-          <p style={{ color: "#E8593C", fontSize: 13, textAlign: "center", marginBottom: 16, margin: "-8px 0 16px" }}>
-            {error}
+          position: "absolute", inset: 0,
+          backgroundImage: `radial-gradient(circle at 30% 70%, rgba(255,246,239,0.08) 0%, transparent 60%),
+                            radial-gradient(circle at 80% 20%, rgba(255,246,239,0.06) 0%, transparent 50%)`,
+        }} />
+        {/* 텍스트 */}
+        <div style={{ position: "absolute", bottom: 48, left: 48, zIndex: 10 }}>
+          <h1 style={{
+            fontFamily: FONT_HEADLINE, fontStyle: "italic",
+            fontSize: 40, fontWeight: 700, color: "#fff6ef",
+            margin: "0 0 8px", letterSpacing: "-0.5px",
+          }}>
+            나의 맛집 지도
+          </h1>
+          <p style={{
+            fontFamily: FONT_LABEL, fontSize: 11,
+            textTransform: "uppercase", letterSpacing: "0.3em",
+            color: "rgba(255,246,239,0.6)", margin: 0,
+          }}>
+            내가 신뢰하는 사람의 맛집
           </p>
-        )}
-
-        {/* 버튼 */}
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
-          style={{
-            width: "100%", padding: "14px 0",
-            background: loading ? "#ccc" : "#E8593C",
-            color: "white", border: "none", borderRadius: 12,
-            fontSize: 16, fontWeight: 700, cursor: loading ? "not-allowed" : "pointer",
-            transition: "background 0.2s",
-          }}
-        >
-          {loading ? "처리 중..." : mode === "login" ? "로그인" : "시작하기"}
-        </button>
-
-        {mode === "login" && (
-          <p style={{ fontSize: 12, color: "#bbb", textAlign: "center", marginTop: 16 }}>
-            처음이라면 '시작하기'를 눌러주세요
-          </p>
-        )}
+        </div>
+        {/* 장식 원 */}
+        <div style={{
+          position: "absolute", top: -80, right: -80,
+          width: 300, height: 300, borderRadius: "50%",
+          border: "1px solid rgba(255,246,239,0.1)",
+        }} />
+        <div style={{
+          position: "absolute", top: 40, right: 40,
+          width: 180, height: 180, borderRadius: "50%",
+          border: "1px solid rgba(255,246,239,0.08)",
+        }} />
       </div>
+
+      {/* 오른쪽 — 입력 패널 */}
+      <div style={{
+        flex: 1, display: "flex", flexDirection: "column",
+        justifyContent: "center", alignItems: "center",
+        padding: "40px 24px",
+        background: C.bg,
+      }}>
+        <div style={{ width: "100%", maxWidth: 400 }}>
+
+          {/* 모바일 브랜드 */}
+          <div style={{ marginBottom: 48 }}>
+            <h1 style={{
+              fontFamily: FONT_HEADLINE, fontStyle: "italic",
+              fontSize: 28, fontWeight: 700, color: C.primary,
+              margin: 0,
+            }}>
+              나의 맛집 지도
+            </h1>
+            <div style={{
+              width: 32, height: 2,
+              background: C.outline, marginTop: 12, opacity: 0.4,
+            }} />
+          </div>
+
+          {/* 헤더 */}
+          <div style={{ marginBottom: 32 }}>
+            <h2 style={{
+              fontFamily: FONT_HEADLINE, fontSize: 32, fontWeight: 700,
+              color: C.onSurface, margin: "0 0 8px", letterSpacing: "-0.5px",
+            }}>
+              {mode === "login" ? "다시 오셨군요" : "처음 오셨군요"}
+            </h2>
+            <p style={{
+              fontFamily: FONT_LABEL, fontSize: 13,
+              color: C.variant, lineHeight: 1.6, margin: 0,
+            }}>
+              {mode === "login"
+                ? "닉네임과 PIN으로 나만의 맛집 지도를 열어보세요"
+                : "닉네임과 PIN을 설정하고 나만의 맛집 지도를 시작해보세요"}
+            </p>
+          </div>
+
+          {/* 입력 필드 */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 20, marginBottom: 28 }}>
+            <Field
+              label="닉네임"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder="2자 이상 입력"
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+            />
+            <Field
+              label="PIN 번호"
+              type="password"
+              inputMode="numeric"
+              maxLength={4}
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              placeholder="숫자 4자리"
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+              style={{ textAlign: "center", letterSpacing: 12, fontSize: 18 }}
+            />
+          </div>
+
+          {/* 에러 */}
+          {error && (
+            <p style={{
+              fontFamily: FONT_LABEL, fontSize: 12,
+              color: C.error, marginBottom: 16,
+              padding: "10px 14px", background: "#fef0ec",
+              borderRadius: 8, margin: "0 0 20px",
+            }}>
+              {error}
+            </p>
+          )}
+
+          {/* 제출 버튼 */}
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            style={{
+              width: "100%", padding: "16px",
+              background: loading ? C.outline : C.primary,
+              color: "#fff6ef", border: "none",
+              borderRadius: 12,
+              fontFamily: FONT_LABEL, fontSize: 14, fontWeight: 700,
+              cursor: loading ? "not-allowed" : "pointer",
+              letterSpacing: "0.02em",
+              transition: "background 0.2s, transform 0.1s",
+              boxShadow: loading ? "none" : "0 4px 16px rgba(101,93,84,0.2)",
+            }}
+            onMouseEnter={(e) => { if (!loading) e.currentTarget.style.background = C.primaryDim; }}
+            onMouseLeave={(e) => { if (!loading) e.currentTarget.style.background = C.primary; }}
+          >
+            {loading ? "처리 중..." : mode === "login" ? "시작하기" : "계정 만들기"}
+          </button>
+
+          {/* 모드 전환 */}
+          <div style={{
+            marginTop: 28, paddingTop: 28,
+            borderTop: `1px solid ${C.outline}22`,
+            textAlign: "center",
+          }}>
+            <p style={{ fontFamily: FONT_LABEL, fontSize: 13, color: C.variant, margin: 0 }}>
+              {mode === "login" ? "처음이신가요?" : "이미 계정이 있나요?"}
+              {" "}
+              <button
+                onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); }}
+                style={{
+                  background: "none", border: "none",
+                  fontFamily: FONT_LABEL, fontSize: 13, fontWeight: 700,
+                  color: C.primary, cursor: "pointer",
+                  textDecoration: "underline", textUnderlineOffset: 3,
+                  padding: 0,
+                }}
+              >
+                {mode === "login" ? "계정 만들기" : "로그인"}
+              </button>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&family=Manrope:wght@400;500;600;700&display=swap');
+        @media (min-width: 768px) {
+          .auth-left { display: block !important; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function Field({ label, style: extraStyle = {}, ...props }) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <div>
+      <label style={{
+        display: "block", fontFamily: "'Manrope', sans-serif",
+        fontSize: 10, fontWeight: 600,
+        textTransform: "uppercase", letterSpacing: "0.15em",
+        color: "#5c605c", marginBottom: 8,
+      }}>
+        {label}
+      </label>
+      <input
+        {...props}
+        onFocus={(e) => { setFocused(true); props.onFocus?.(e); }}
+        onBlur={(e) => { setFocused(false); props.onBlur?.(e); }}
+        style={{
+          width: "100%", padding: "14px 16px",
+          background: "#f4f4f0", border: "none",
+          borderRadius: 12,
+          outline: focused ? `2px solid #655d54` : "2px solid transparent",
+          fontFamily: "'Manrope', sans-serif",
+          fontSize: 15, color: "#2f3430",
+          boxSizing: "border-box",
+          transition: "outline 0.15s",
+          WebkitAppearance: "none",
+          ...extraStyle,
+        }}
+      />
     </div>
   );
 }
