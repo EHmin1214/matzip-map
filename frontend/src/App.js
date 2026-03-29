@@ -12,6 +12,7 @@ import ProfilePage from "./components/ProfilePage";
 import NotificationTab from "./components/NotificationTab";
 import LocationButton from "./components/LocationButton";
 import MapFilter from "./components/MapFilter";
+import SearchTab from "./components/SearchTab";
 import "./App.css";
 
 export const ACCOUNT_COLORS = [
@@ -39,17 +40,13 @@ export default function App() {
   const [showPersonal, setShowPersonal] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
 
-  // 상태별 필터
   const [activeFilter, setActiveFilter] = useState(null);
-
-  // 팔로잉 레이어
   const [selectedFollowingIds, setSelectedFollowingIds] = useState([]);
   const [followingPlacesMap, setFollowingPlacesMap] = useState({});
   const [followingList, setFollowingList] = useState([]);
 
   const isMobile = window.innerWidth <= 768;
 
-  // 팔로잉 목록 로드 함수 — FollowTab에서도 호출 가능하도록 분리
   const loadFollowingList = useCallback(() => {
     if (!user) return;
     axios.get(`${API_BASE}/follows/${user.user_id}/following`)
@@ -91,18 +88,14 @@ export default function App() {
     axios.get(url).then((res) => setRestaurants(res.data));
   }, [selectedAccountIds]);
 
-  // 팔로잉 체크 토글 — user_id로 직접 맛집 조회
   const handleToggleFollowing = useCallback(async (targetUserId) => {
     setSelectedFollowingIds((prev) => {
-      const isOn = prev.includes(targetUserId);
-      if (isOn) {
+      if (prev.includes(targetUserId)) {
         return prev.filter((id) => id !== targetUserId);
       } else {
-        // 아직 맛집 안 불러온 경우에만 API 호출
         if (!followingPlacesMap[targetUserId]) {
           axios.get(`${API_BASE}/personal-places/?user_id=${targetUserId}`)
             .then((res) => {
-              // 공개 맛집만 필터
               const publicPlaces = res.data.filter((p) => p.is_public !== false);
               setFollowingPlacesMap((m) => ({ ...m, [targetUserId]: publicPlaces }));
             })
@@ -115,7 +108,6 @@ export default function App() {
     });
   }, [followingPlacesMap]);
 
-  // MapView에 넘길 팔로잉 플레이스 데이터
   const followingPlaces = selectedFollowingIds.map((uid) => {
     const u = followingList.find((f) => f.id === uid);
     return {
@@ -160,10 +152,8 @@ export default function App() {
   const addPersonalPlace = useCallback(async (place) => {
     try {
       const payload = {
-        name: place.name,
-        address: place.address,
-        lat: place.lat,
-        lng: place.lng,
+        name: place.name, address: place.address,
+        lat: place.lat, lng: place.lng,
         category: place.category,
         naver_place_id: place.naver_place_id,
         naver_place_url: place.naver_place_url,
@@ -193,7 +183,16 @@ export default function App() {
     setPersonalPlaces((prev) => prev.filter((p) => p.id !== placeId));
   }, [user]);
 
-  // 필터 적용된 내 맛집
+  // 맛집 수정 후 상태 갱신
+  const handlePlaceUpdated = useCallback((updatedPlace) => {
+    setPersonalPlaces((prev) =>
+      prev.map((p) => p.id === updatedPlace.id ? { ...p, ...updatedPlace } : p)
+    );
+    setSelectedRestaurant((prev) =>
+      prev && prev.id === updatedPlace.id ? { ...prev, ...updatedPlace } : prev
+    );
+  }, []);
+
   const filteredPersonalPlaces = activeFilter
     ? personalPlaces.filter((p) => p.status === activeFilter)
     : personalPlaces;
@@ -221,16 +220,20 @@ export default function App() {
 
       {/* 모바일 탭 */}
       {isMobile && activeTab === "follow" && (
-        <FollowTab
-          onViewMap={() => setActiveTab("map")}
-          // 팔로우/언팔 시 App의 followingList 갱신
-          onFollowChange={loadFollowingList}
-        />
+        <FollowTab onViewMap={() => setActiveTab("map")} onFollowChange={loadFollowingList} />
+      )}
+      {isMobile && activeTab === "search" && (
+        <SearchTab onPlaceAdded={(place) => {
+          setPersonalPlaces((prev) => {
+            const exists = prev.find((p) => p.id === place.id);
+            return exists ? prev : [...prev, place];
+          });
+        }} />
       )}
       {isMobile && activeTab === "notify" && <NotificationTab onUnreadChange={setUnreadCount} />}
       {isMobile && activeTab === "profile" && <ProfilePage />}
 
-      {/* 사이드바 토글 버튼 (데스크탑) */}
+      {/* 사이드바 토글 (데스크탑) */}
       {!isMobile && (
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -289,7 +292,7 @@ export default function App() {
         followingPlaces={followingPlaces}
       />
 
-      {/* 상태별 필터 버튼 */}
+      {/* 상태별 필터 */}
       {(activeTab === "map" || !isMobile) && (
         <MapFilter
           activeFilter={activeFilter}
@@ -310,6 +313,7 @@ export default function App() {
           onHide={hideRestaurant}
           apiBase={API_BASE}
           sidebarWidth={sidebarWidth}
+          onPlaceUpdated={handlePlaceUpdated}
         />
       )}
 

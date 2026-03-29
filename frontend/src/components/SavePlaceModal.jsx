@@ -1,4 +1,7 @@
 // src/components/SavePlaceModal.jsx
+// 저장 + 수정 모드 모두 지원
+// editMode=true 일 때는 기존 값 초기화 + "수정하기" 버튼
+
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useUser, API_BASE } from "../context/UserContext";
@@ -17,23 +20,21 @@ const DEFAULT_FOLDER_COLORS = [
   "#7F77DD", "#D4537E", "#0F6E56", "#993C1D",
 ];
 
-export default function SavePlaceModal({ place, onSave, onClose }) {
+export default function SavePlaceModal({ place, onSave, onClose, editMode = false }) {
   const { user } = useUser();
   const [folders, setFolders] = useState([]);
-  const [selectedFolderId, setSelectedFolderId] = useState(null);
-  const [status, setStatus] = useState("want_to_go");
-  const [rating, setRating] = useState(0);
-  const [memo, setMemo] = useState("");
-  const [instagramUrl, setInstagramUrl] = useState("");
+  const [selectedFolderId, setSelectedFolderId] = useState(place?.folder_id || null);
+  const [status, setStatus] = useState(place?.status || "want_to_go");
+  const [rating, setRating] = useState(place?.rating || 0);
+  const [memo, setMemo] = useState(place?.memo || "");
+  const [instagramUrl, setInstagramUrl] = useState(place?.instagram_post_url || "");
   const [saving, setSaving] = useState(false);
 
-  // 새 폴더 만들기
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [newFolderColor, setNewFolderColor] = useState("#E8593C");
   const [creatingFolder, setCreatingFolder] = useState(false);
 
-  // 폴더 목록 로드
   useEffect(() => {
     if (!user) return;
     axios.get(`${API_BASE}/folders/?user_id=${user.user_id}`)
@@ -41,11 +42,8 @@ export default function SavePlaceModal({ place, onSave, onClose }) {
       .catch(() => {});
   }, [user]);
 
-  // 별점 — 방문 전 상태면 초기화
   useEffect(() => {
-    if (!VISITED_STATUSES.includes(status)) {
-      setRating(0);
-    }
+    if (!VISITED_STATUSES.includes(status)) setRating(0);
   }, [status]);
 
   const handleCreateFolder = async () => {
@@ -91,22 +89,19 @@ export default function SavePlaceModal({ place, onSave, onClose }) {
   if (!place) return null;
 
   return (
-    <div style={{
-      position: "fixed", inset: 0,
-      background: "rgba(0,0,0,0.4)",
-      display: "flex", alignItems: "flex-end",
-      justifyContent: "center",
-      zIndex: 100,
-      padding: "0",
-    }}
+    <div
+      style={{
+        position: "fixed", inset: 0,
+        background: "rgba(0,0,0,0.4)",
+        display: "flex", alignItems: "flex-end", justifyContent: "center",
+        zIndex: 100,
+      }}
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div style={{
-        background: "white",
-        borderRadius: "20px 20px 0 0",
+        background: "white", borderRadius: "20px 20px 0 0",
         width: "100%", maxWidth: 480,
-        maxHeight: "90vh",
-        overflowY: "auto",
+        maxHeight: "90vh", overflowY: "auto",
         padding: "0 0 32px",
       }}>
         {/* 핸들 */}
@@ -121,21 +116,20 @@ export default function SavePlaceModal({ place, onSave, onClose }) {
         }}>
           <div>
             <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800, color: "#1a1a1a" }}>
-              {place.name}
+              {editMode ? "✏️ 맛집 수정" : place.name}
             </h3>
-            {place.address && (
-              <p style={{ margin: "4px 0 0", fontSize: 12, color: "#aaa" }}>
-                {place.address}
+            {editMode && (
+              <p style={{ margin: "4px 0 0", fontSize: 14, fontWeight: 600, color: "#E8593C" }}>
+                {place.name}
               </p>
             )}
+            {place.address && !editMode && (
+              <p style={{ margin: "4px 0 0", fontSize: 12, color: "#aaa" }}>{place.address}</p>
+            )}
           </div>
-          <button
-            onClick={onClose}
-            style={{
-              background: "none", border: "none",
-              fontSize: 20, color: "#bbb", cursor: "pointer", padding: 4,
-            }}
-          >✕</button>
+          <button onClick={onClose} style={{
+            background: "none", border: "none", fontSize: 20, color: "#bbb", cursor: "pointer", padding: 4,
+          }}>✕</button>
         </div>
 
         <div style={{ padding: "16px 20px" }}>
@@ -150,7 +144,8 @@ export default function SavePlaceModal({ place, onSave, onClose }) {
                   style={{
                     padding: "10px 8px",
                     border: `2px solid ${status === opt.value ? "#E8593C" : "#f0f0f0"}`,
-                    borderRadius: 10, background: status === opt.value ? "#fff0ed" : "white",
+                    borderRadius: 10,
+                    background: status === opt.value ? "#fff0ed" : "white",
                     cursor: "pointer", fontSize: 13, fontWeight: 600,
                     color: status === opt.value ? "#E8593C" : "#555",
                     transition: "all 0.15s",
@@ -164,7 +159,7 @@ export default function SavePlaceModal({ place, onSave, onClose }) {
             </div>
           </Section>
 
-          {/* 별점 (방문 후 상태일 때만) */}
+          {/* 별점 */}
           {VISITED_STATUSES.includes(status) && (
             <Section title="별점">
               <div style={{ display: "flex", gap: 8 }}>
@@ -178,9 +173,7 @@ export default function SavePlaceModal({ place, onSave, onClose }) {
                       filter: star <= rating ? "none" : "grayscale(1) opacity(0.3)",
                       transition: "filter 0.15s",
                     }}
-                  >
-                    ⭐
-                  </button>
+                  >⭐</button>
                 ))}
                 {rating > 0 && (
                   <span style={{ fontSize: 13, color: "#aaa", alignSelf: "center", marginLeft: 4 }}>
@@ -194,63 +187,48 @@ export default function SavePlaceModal({ place, onSave, onClose }) {
           {/* 폴더 선택 */}
           <Section title="폴더">
             <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-              {/* 폴더 없음 */}
               <FolderChip
-                label="없음"
-                color="#aaa"
+                label="없음" color="#aaa"
                 selected={selectedFolderId === null}
                 onClick={() => setSelectedFolderId(null)}
               />
               {folders.map((f) => (
                 <FolderChip
-                  key={f.id}
-                  label={f.name}
-                  color={f.color}
+                  key={f.id} label={f.name} color={f.color}
                   selected={selectedFolderId === f.id}
                   onClick={() => setSelectedFolderId(f.id)}
                 />
               ))}
-              {/* 새 폴더 버튼 */}
               <button
                 onClick={() => setShowNewFolder(!showNewFolder)}
                 style={{
                   padding: "6px 12px", border: "1.5px dashed #ddd",
                   borderRadius: 20, background: "white",
                   fontSize: 12, color: "#aaa", cursor: "pointer",
-                  display: "flex", alignItems: "center", gap: 4,
                 }}
-              >
-                + 새 폴더
-              </button>
+              >+ 새 폴더</button>
             </div>
 
-            {/* 새 폴더 만들기 */}
             {showNewFolder && (
-              <div style={{
-                marginTop: 12, padding: 12,
-                background: "#f8f8f8", borderRadius: 12,
-              }}>
+              <div style={{ marginTop: 12, padding: 12, background: "#f8f8f8", borderRadius: 12 }}>
                 <input
                   value={newFolderName}
                   onChange={(e) => setNewFolderName(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleCreateFolder()}
-                  placeholder="폴더 이름"
-                  autoFocus
+                  placeholder="폴더 이름" autoFocus
                   style={{
                     width: "100%", padding: "8px 10px",
                     border: "1.5px solid #eee", borderRadius: 8,
                     fontSize: 13, outline: "none", boxSizing: "border-box",
                   }}
                 />
-                {/* 색상 선택 */}
                 <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
                   {DEFAULT_FOLDER_COLORS.map((c) => (
                     <button
-                      key={c}
-                      onClick={() => setNewFolderColor(c)}
+                      key={c} onClick={() => setNewFolderColor(c)}
                       style={{
-                        width: 24, height: 24, borderRadius: "50%",
-                        background: c, border: newFolderColor === c ? "2px solid #333" : "2px solid transparent",
+                        width: 24, height: 24, borderRadius: "50%", background: c,
+                        border: newFolderColor === c ? "2px solid #333" : "2px solid transparent",
                         cursor: "pointer", padding: 0,
                       }}
                     />
@@ -260,24 +238,20 @@ export default function SavePlaceModal({ place, onSave, onClose }) {
                   <button
                     onClick={() => setShowNewFolder(false)}
                     style={{
-                      flex: 1, padding: "8px",
-                      border: "1px solid #ddd", borderRadius: 8,
-                      background: "white", fontSize: 13, cursor: "pointer", color: "#888",
+                      flex: 1, padding: "8px", border: "1px solid #ddd",
+                      borderRadius: 8, background: "white", fontSize: 13, cursor: "pointer", color: "#888",
                     }}
                   >취소</button>
                   <button
                     onClick={handleCreateFolder}
                     disabled={creatingFolder || !newFolderName.trim()}
                     style={{
-                      flex: 1, padding: "8px",
-                      border: "none", borderRadius: 8,
+                      flex: 1, padding: "8px", border: "none", borderRadius: 8,
                       background: newFolderName.trim() ? "#E8593C" : "#eee",
                       color: newFolderName.trim() ? "white" : "#aaa",
                       fontSize: 13, fontWeight: 700, cursor: "pointer",
                     }}
-                  >
-                    {creatingFolder ? "..." : "만들기"}
-                  </button>
+                  >{creatingFolder ? "..." : "만들기"}</button>
                 </div>
               </div>
             )}
@@ -316,7 +290,7 @@ export default function SavePlaceModal({ place, onSave, onClose }) {
             />
           </Section>
 
-          {/* 저장 버튼 */}
+          {/* 저장/수정 버튼 */}
           <button
             onClick={handleSave}
             disabled={saving}
@@ -329,7 +303,7 @@ export default function SavePlaceModal({ place, onSave, onClose }) {
               marginTop: 8,
             }}
           >
-            {saving ? "저장 중..." : "저장하기"}
+            {saving ? "저장 중..." : editMode ? "수정하기" : "저장하기"}
           </button>
         </div>
       </div>
@@ -337,14 +311,10 @@ export default function SavePlaceModal({ place, onSave, onClose }) {
   );
 }
 
-// ── 헬퍼 컴포넌트 ──────────────────────────────────────────
-
 function Section({ title, children }) {
   return (
     <div style={{ marginBottom: 20 }}>
-      <p style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: "#555" }}>
-        {title}
-      </p>
+      <p style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 700, color: "#555" }}>{title}</p>
       {children}
     </div>
   );
@@ -365,10 +335,7 @@ function FolderChip({ label, color, selected, onClick }) {
         transition: "all 0.15s",
       }}
     >
-      <div style={{
-        width: 8, height: 8, borderRadius: "50%",
-        background: color, flexShrink: 0,
-      }} />
+      <div style={{ width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0 }} />
       {label}
     </button>
   );
