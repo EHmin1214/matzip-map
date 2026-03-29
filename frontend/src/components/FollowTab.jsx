@@ -3,9 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useUser, API_BASE } from "../context/UserContext";
 
-// embedded=true : 사이드바 안에 들어갈 때 (position normal)
-// embedded=false : 모바일 전체화면 (position fixed)
-export default function FollowTab({ onViewMap, embedded = false }) {
+export default function FollowTab({ onViewMap, embedded = false, onFollowChange }) {
   const { user } = useUser();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResult, setSearchResult] = useState(null);
@@ -63,6 +61,8 @@ export default function FollowTab({ onViewMap, embedded = false }) {
         }
         loadFollowing();
       }
+      // App.js의 followingList도 갱신
+      if (onFollowChange) onFollowChange();
     } catch (e) {
       const msg = e.response?.data?.detail;
       alert(msg || "오류가 발생했어요");
@@ -72,10 +72,7 @@ export default function FollowTab({ onViewMap, embedded = false }) {
   };
 
   const containerStyle = embedded
-    ? {
-        height: "100%", overflowY: "auto",
-        background: "white",
-      }
+    ? { height: "100%", overflowY: "auto", background: "white" }
     : {
         position: "fixed", inset: 0,
         background: "#f8f8f8", overflowY: "auto",
@@ -84,16 +81,13 @@ export default function FollowTab({ onViewMap, embedded = false }) {
 
   return (
     <div style={containerStyle}>
-      {/* 헤더 — 전체화면 모드에서만 표시 */}
       {!embedded && (
         <div style={{
           background: "white", padding: "16px 20px",
           borderBottom: "1px solid #f0f0f0",
           position: "sticky", top: 0, zIndex: 10,
         }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#222" }}>
-            팔로우
-          </h2>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#222" }}>팔로우</h2>
         </div>
       )}
 
@@ -101,11 +95,6 @@ export default function FollowTab({ onViewMap, embedded = false }) {
 
         {/* 유저 검색 */}
         <div style={{ marginBottom: 20 }}>
-          {!embedded && (
-            <p style={{ fontSize: 13, fontWeight: 700, color: "#555", marginBottom: 10 }}>
-              유저 검색
-            </p>
-          )}
           <div style={{ display: "flex", gap: 6 }}>
             <input
               value={searchQuery}
@@ -161,10 +150,7 @@ export default function FollowTab({ onViewMap, embedded = false }) {
           </p>
 
           {following.length === 0 ? (
-            <div style={{
-              textAlign: "center", padding: "24px 12px",
-              color: "#bbb", fontSize: 13,
-            }}>
+            <div style={{ textAlign: "center", padding: "24px 12px", color: "#bbb", fontSize: 13 }}>
               <div style={{ fontSize: 28, marginBottom: 8 }}>👥</div>
               아직 팔로우한 사람이 없어요
             </div>
@@ -201,7 +187,6 @@ function UserCard({ userData, isMe, isFollowing, onFollowToggle, onViewMap, load
       border: compact ? "1px solid #f0f0f0" : "none",
       display: "flex", alignItems: "center", gap: 10,
     }}>
-      {/* 아바타 */}
       <div style={{
         width: compact ? 36 : 44, height: compact ? 36 : 44,
         borderRadius: "50%",
@@ -212,7 +197,6 @@ function UserCard({ userData, isMe, isFollowing, onFollowToggle, onViewMap, load
         {userData.nickname?.[0]?.toUpperCase() || "?"}
       </div>
 
-      {/* 정보 */}
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
           <span style={{ fontWeight: 700, fontSize: compact ? 13 : 15, color: "#222" }}>
@@ -237,9 +221,7 @@ function UserCard({ userData, isMe, isFollowing, onFollowToggle, onViewMap, load
         )}
         {userData.instagram_url && (
           <a
-            href={userData.instagram_url}
-            target="_blank"
-            rel="noreferrer"
+            href={userData.instagram_url} target="_blank" rel="noreferrer"
             style={{ fontSize: 11, color: "#E8593C", textDecoration: "none", display: "block", marginTop: 2 }}
           >
             📷 Instagram
@@ -247,9 +229,8 @@ function UserCard({ userData, isMe, isFollowing, onFollowToggle, onViewMap, load
         )}
       </div>
 
-      {/* 버튼들 */}
       <div style={{ display: "flex", flexDirection: "column", gap: 4, flexShrink: 0 }}>
-        {isFollowing && (
+        {isFollowing && onViewMap && (
           <button
             onClick={() => onViewMap(userData)}
             style={{

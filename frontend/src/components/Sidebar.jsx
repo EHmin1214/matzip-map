@@ -1,12 +1,11 @@
 // src/components/Sidebar.jsx
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import axios from "axios";
 import { getAccountColor } from "../App";
 import FollowTab from "./FollowTab";
 import SavePlaceModal from "./SavePlaceModal";
 import ProfilePage from "./ProfilePage";
 import NotificationTab from "./NotificationTab";
-import { useUser, API_BASE } from "../context/UserContext";
 
 export default function Sidebar({
   accounts, setAccounts,
@@ -14,25 +13,15 @@ export default function Sidebar({
   apiBase, onAddPersonalPlace,
   personalPlaces, showPersonal, setShowPersonal, onDeletePersonalPlace,
   unreadCount, onUnreadChange,
-  // 팔로잉 레이어
   selectedFollowingIds, onToggleFollowing,
+  followingList = [],       // ← App.js에서 직접 받음
+  onFollowChange,           // ← 팔로우/언팔 후 App.js 갱신용
 }) {
-  const { user } = useUser();
   const [sidebarTab, setSidebarTab] = useState("my");
   const [message, setMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [pendingPlace, setPendingPlace] = useState(null);
-
-  // 팔로잉 목록
-  const [following, setFollowing] = useState([]);
-
-  useEffect(() => {
-    if (!user) return;
-    axios.get(`${API_BASE}/follows/${user.user_id}/following`)
-      .then((res) => setFollowing(res.data))
-      .catch(() => {});
-  }, [user]);
 
   const TABS = [
     { id: "my",      label: "맛집" },
@@ -71,7 +60,6 @@ export default function Sidebar({
     return "📍";
   };
 
-  // 팔로잉 색상 — 순서대로 배정
   const FOLLOWING_COLORS = [
     "#3B8BD4", "#1D9E75", "#BA7517",
     "#7F77DD", "#D4537E", "#0F6E56",
@@ -133,7 +121,11 @@ export default function Sidebar({
         {/* 팔로우 탭 */}
         {sidebarTab === "follow" && (
           <div style={{ flex: 1, overflow: "hidden" }}>
-            <FollowTab onViewMap={() => {}} embedded />
+            <FollowTab
+              onViewMap={() => {}}
+              embedded
+              onFollowChange={onFollowChange}
+            />
           </div>
         )}
 
@@ -244,17 +236,17 @@ export default function Sidebar({
               )}
             </div>
 
-            {/* 팔로잉 맛집 레이어 */}
+            {/* 팔로잉 맛집 레이어 — App.js의 followingList 직접 사용 */}
             <div style={{ padding: "8px 0" }}>
               <p style={{ fontSize: 12, color: "#888", padding: "4px 16px 8px" }}>
-                팔로잉 맛집 ({following.length})
+                팔로잉 맛집 ({followingList.length})
               </p>
-              {following.length === 0 ? (
+              {followingList.length === 0 ? (
                 <p style={{ fontSize: 12, color: "#bbb", padding: "0 16px" }}>
                   팔로우한 사람이 없어요
                 </p>
               ) : (
-                following.map((f, idx) => {
+                followingList.map((f, idx) => {
                   const color = getFollowingColor(idx);
                   const isSelected = selectedFollowingIds.includes(f.id);
                   return (
@@ -291,7 +283,7 @@ export default function Sidebar({
                         {f.nickname?.[0]?.toUpperCase()}
                       </div>
 
-                      {/* 닉네임 */}
+                      {/* 닉네임 + 맛집 수 */}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{
                           margin: 0, fontSize: 13, fontWeight: 600, color: "#1a1a1a",

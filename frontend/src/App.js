@@ -49,6 +49,14 @@ export default function App() {
 
   const isMobile = window.innerWidth <= 768;
 
+  // 팔로잉 목록 로드 함수 — FollowTab에서도 호출 가능하도록 분리
+  const loadFollowingList = useCallback(() => {
+    if (!user) return;
+    axios.get(`${API_BASE}/follows/${user.user_id}/following`)
+      .then((res) => setFollowingList(res.data))
+      .catch(() => {});
+  }, [user]);
+
   useEffect(() => {
     axios.get(`${API_BASE}/accounts/`).then((res) => setAccounts(res.data));
   }, []);
@@ -61,19 +69,15 @@ export default function App() {
           axios.get(`${API_BASE}/personal-places/`)
             .then((res) => setPersonalPlaces(res.data));
         });
-      axios.get(`${API_BASE}/follows/${user.user_id}/following`)
-        .then((res) => setFollowingList(res.data))
-        .catch(() => {});
+      loadFollowingList();
     }
-  }, [user]);
+  }, [user, loadFollowingList]);
 
   useEffect(() => {
     if (!user) return;
     const fetchUnread = () => {
       axios.get(`${API_BASE}/notifications/?user_id=${user.user_id}`)
-        .then((res) => {
-          setUnreadCount(res.data.filter((n) => !n.is_read).length);
-        })
+        .then((res) => setUnreadCount(res.data.filter((n) => !n.is_read).length))
         .catch(() => {});
     };
     fetchUnread();
@@ -87,26 +91,31 @@ export default function App() {
     axios.get(url).then((res) => setRestaurants(res.data));
   }, [selectedAccountIds]);
 
+  // 팔로잉 체크 토글 — user_id로 직접 맛집 조회
   const handleToggleFollowing = useCallback(async (targetUserId) => {
     setSelectedFollowingIds((prev) => {
-      if (prev.includes(targetUserId)) {
+      const isOn = prev.includes(targetUserId);
+      if (isOn) {
         return prev.filter((id) => id !== targetUserId);
       } else {
+        // 아직 맛집 안 불러온 경우에만 API 호출
         if (!followingPlacesMap[targetUserId]) {
-          const target = followingList.find((f) => f.id === targetUserId);
-          if (target) {
-            axios.get(`${API_BASE}/users/${target.nickname}/places?viewer_id=${user?.user_id || ""}`)
-              .then((res) => {
-                setFollowingPlacesMap((m) => ({ ...m, [targetUserId]: res.data }));
-              })
-              .catch(() => {});
-          }
+          axios.get(`${API_BASE}/personal-places/?user_id=${targetUserId}`)
+            .then((res) => {
+              // 공개 맛집만 필터
+              const publicPlaces = res.data.filter((p) => p.is_public !== false);
+              setFollowingPlacesMap((m) => ({ ...m, [targetUserId]: publicPlaces }));
+            })
+            .catch(() => {
+              setFollowingPlacesMap((m) => ({ ...m, [targetUserId]: [] }));
+            });
         }
         return [...prev, targetUserId];
       }
     });
-  }, [followingPlacesMap, followingList, user]);
+  }, [followingPlacesMap]);
 
+  // MapView에 넘길 팔로잉 플레이스 데이터
   const followingPlaces = selectedFollowingIds.map((uid) => {
     const u = followingList.find((f) => f.id === uid);
     return {
@@ -211,7 +220,13 @@ export default function App() {
     <div className="app">
 
       {/* 모바일 탭 */}
-      {isMobile && activeTab === "follow" && <FollowTab onViewMap={() => setActiveTab("map")} />}
+      {isMobile && activeTab === "follow" && (
+        <FollowTab
+          onViewMap={() => setActiveTab("map")}
+          // 팔로우/언팔 시 App의 followingList 갱신
+          onFollowChange={loadFollowingList}
+        />
+      )}
       {isMobile && activeTab === "notify" && <NotificationTab onUnreadChange={setUnreadCount} />}
       {isMobile && activeTab === "profile" && <ProfilePage />}
 
@@ -258,6 +273,8 @@ export default function App() {
             onUnreadChange={setUnreadCount}
             selectedFollowingIds={selectedFollowingIds}
             onToggleFollowing={handleToggleFollowing}
+            followingList={followingList}
+            onFollowChange={loadFollowingList}
           />
         </div>
       )}
