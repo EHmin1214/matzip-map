@@ -1,12 +1,6 @@
 """
 models.py
 DB 테이블 정의 (SQLAlchemy ORM).
-
-[기존 테이블 - 유지]
-  accounts, posts, restaurants, post_restaurants, ad_check_cache
-
-[신규 테이블]
-  users, follows, folders, personal_places, place_likes, place_comments, notifications
 """
 
 from datetime import datetime
@@ -18,7 +12,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
 
 
-# ── 기존 테이블 (크롤링 관련) ──────────────────────────────────
+# ── 기존 테이블 (크롤링) ───────────────────────────────────────
 
 class Account(Base):
     __tablename__ = "accounts"
@@ -93,14 +87,12 @@ class AdCheckCache(Base):
 # ── 신규 테이블 ────────────────────────────────────────────────
 
 class User(Base):
-    """앱 유저. 닉네임 + PIN으로 식별."""
     __tablename__ = "users"
-
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     nickname: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     pin_hash: Mapped[str] = mapped_column(String(200), nullable=False)
     instagram_url: Mapped[str | None] = mapped_column(String(200), nullable=True)
-    blog_url: Mapped[str | None] = mapped_column(String(200), nullable=True)   # ← 신규
+    blog_url: Mapped[str | None] = mapped_column(String(200), nullable=True)
     is_public: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
@@ -112,13 +104,22 @@ class User(Base):
 
 
 class Follow(Base):
+    """
+    팔로우 관계.
+    status:
+      pending  : 비공개 계정에 팔로우 요청 보낸 상태
+      accepted : 팔로우 완료 (공개 계정은 바로 accepted)
+    """
     __tablename__ = "follows"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     follower_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     following_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="accepted")  # pending | accepted
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
     follower: Mapped["User"] = relationship("User", foreign_keys=[follower_id], back_populates="following")
     following_user: Mapped["User"] = relationship("User", foreign_keys=[following_id], back_populates="followers")
+
     __table_args__ = (UniqueConstraint("follower_id", "following_id", name="uq_follow"),)
 
 
@@ -135,12 +136,8 @@ class Folder(Base):
 
 
 class PersonalPlace(Base):
-    """
-    유저가 직접 저장한 맛집.
-    status: want_to_go | visited | want_revisit | not_recommended
-    """
+    """status: want_to_go | visited | want_revisit | not_recommended"""
     __tablename__ = "personal_places"
-
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
     folder_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("folders.id"), nullable=True)
@@ -185,12 +182,19 @@ class PlaceComment(Base):
 
 
 class Notification(Base):
-    """type: follow | like | comment"""
+    """
+    type:
+      follow          : 팔로우 완료 (공개 계정)
+      follow_request  : 팔로우 요청 (비공개 계정)
+      follow_accepted : 팔로우 요청 수락됨
+      like            : 좋아요
+      comment         : 댓글
+    """
     __tablename__ = "notifications"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     actor_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
-    type: Mapped[str] = mapped_column(String(20), nullable=False)
+    type: Mapped[str] = mapped_column(String(30), nullable=False)
     target_place_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("personal_places.id"), nullable=True)
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
