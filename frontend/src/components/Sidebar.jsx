@@ -1,29 +1,43 @@
 // src/components/Sidebar.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { getAccountColor } from "../App";
 import FollowTab from "./FollowTab";
 import SavePlaceModal from "./SavePlaceModal";
 import ProfilePage from "./ProfilePage";
+import NotificationTab from "./NotificationTab";
+import { useUser, API_BASE } from "../context/UserContext";
 
 export default function Sidebar({
   accounts, setAccounts,
-  selectedAccountIds, onToggleAccount, onAccountAdded,
+  selectedAccountIds, onToggleAccount,
   apiBase, onAddPersonalPlace,
   personalPlaces, showPersonal, setShowPersonal, onDeletePersonalPlace,
+  unreadCount, onUnreadChange,
+  // 팔로잉 레이어
+  selectedFollowingIds, onToggleFollowing,
 }) {
+  const { user } = useUser();
   const [sidebarTab, setSidebarTab] = useState("my");
-  const [newId, setNewId] = useState("");
-  const [newName, setNewName] = useState("");
-  const [crawling, setCrawling] = useState(null);
   const [message, setMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [pendingPlace, setPendingPlace] = useState(null);
 
+  // 팔로잉 목록
+  const [following, setFollowing] = useState([]);
+
+  useEffect(() => {
+    if (!user) return;
+    axios.get(`${API_BASE}/follows/${user.user_id}/following`)
+      .then((res) => setFollowing(res.data))
+      .catch(() => {});
+  }, [user]);
+
   const TABS = [
-    { id: "my",      label: "내 맛집" },
+    { id: "my",      label: "맛집" },
     { id: "follow",  label: "팔로우" },
+    { id: "notify",  label: "알림", badge: unreadCount },
     { id: "profile", label: "프로필" },
   ];
 
@@ -49,49 +63,6 @@ export default function Sidebar({
     }
   };
 
-  const addAccount = async () => {
-    if (!newId.trim()) return;
-    try {
-      const res = await axios.post(`${apiBase}/accounts/`, {
-        source: "naver_blog",
-        author_id: newId.trim(),
-        author_name: newName.trim() || newId.trim(),
-      });
-      onAccountAdded(res.data);
-      setNewId(""); setNewName("");
-      setMessage("계정 추가 완료!");
-      setTimeout(() => setMessage(""), 2000);
-    } catch (e) {
-      setMessage("추가 실패");
-    }
-  };
-
-  const crawlAccount = async (accountId) => {
-    setCrawling(accountId);
-    setMessage("크롤링 중...");
-    try {
-      const res = await axios.post(`${apiBase}/crawl/${accountId}?max_posts=30`);
-      setMessage(res.data.message);
-    } catch (e) {
-      setMessage("크롤링 실패");
-    } finally {
-      setCrawling(null);
-      setTimeout(() => setMessage(""), 3000);
-    }
-  };
-
-  const deleteAccount = async (accountId, authorName) => {
-    if (!window.confirm(`'${authorName}' 블로거를 삭제할까요?`)) return;
-    try {
-      await axios.delete(`${apiBase}/accounts/${accountId}`);
-      setAccounts((prev) => prev.filter((a) => a.id !== accountId));
-      setMessage("삭제 완료!");
-      setTimeout(() => setMessage(""), 2000);
-    } catch (e) {
-      setMessage("삭제 실패");
-    }
-  };
-
   const statusEmoji = (status) => {
     if (status === "want_to_go") return "🔖";
     if (status === "visited") return "✅";
@@ -99,6 +70,13 @@ export default function Sidebar({
     if (status === "not_recommended") return "👎";
     return "📍";
   };
+
+  // 팔로잉 색상 — 순서대로 배정
+  const FOLLOWING_COLORS = [
+    "#3B8BD4", "#1D9E75", "#BA7517",
+    "#7F77DD", "#D4537E", "#0F6E56",
+  ];
+  const getFollowingColor = (idx) => FOLLOWING_COLORS[idx % FOLLOWING_COLORS.length];
 
   return (
     <>
@@ -119,7 +97,7 @@ export default function Sidebar({
         <div style={{
           display: "flex", background: "#f8f8f8",
           borderBottom: "1px solid #f0f0f0",
-          padding: "8px 10px", gap: 4,
+          padding: "8px 8px", gap: 4,
         }}>
           {TABS.map((tab) => (
             <button
@@ -128,14 +106,26 @@ export default function Sidebar({
               style={{
                 flex: 1, padding: "7px 0",
                 border: "none", borderRadius: 8,
-                fontSize: 12, fontWeight: 600, cursor: "pointer",
+                fontSize: 11, fontWeight: 600, cursor: "pointer",
                 transition: "all 0.2s",
                 background: sidebarTab === tab.id ? "white" : "transparent",
                 color: sidebarTab === tab.id ? "#E8593C" : "#888",
                 boxShadow: sidebarTab === tab.id ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+                position: "relative",
               }}
             >
               {tab.label}
+              {tab.badge > 0 && (
+                <span style={{
+                  position: "absolute", top: 2, right: 4,
+                  background: "#E8593C", color: "white",
+                  borderRadius: "50%", width: 14, height: 14,
+                  fontSize: 9, fontWeight: 700,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  {tab.badge > 9 ? "9+" : tab.badge}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -147,6 +137,13 @@ export default function Sidebar({
           </div>
         )}
 
+        {/* 알림 탭 */}
+        {sidebarTab === "notify" && (
+          <div style={{ flex: 1, overflow: "hidden" }}>
+            <NotificationTab embedded onUnreadChange={onUnreadChange} />
+          </div>
+        )}
+
         {/* 프로필 탭 */}
         {sidebarTab === "profile" && (
           <div style={{ flex: 1, overflow: "hidden" }}>
@@ -154,7 +151,7 @@ export default function Sidebar({
           </div>
         )}
 
-        {/* 내 맛집 탭 */}
+        {/* 맛집 탭 */}
         {sidebarTab === "my" && (
           <div style={{ flex: 1, overflowY: "auto" }}>
 
@@ -200,7 +197,7 @@ export default function Sidebar({
                 onClick={() => setShowPersonal(!showPersonal)}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#555", flexShrink: 0 }} />
+                  <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#E8593C", flexShrink: 0 }} />
                   <span style={{ fontSize: 13, fontWeight: 600, color: "#1a1a1a" }}>내 맛집</span>
                   <span style={{ fontSize: 11, color: "#888" }}>({personalPlaces.length})</span>
                 </div>
@@ -247,80 +244,75 @@ export default function Sidebar({
               )}
             </div>
 
-            {/* 블로거 추가 */}
-            <div style={{ padding: "12px 16px", borderBottom: "1px solid #f0f0f0" }}>
-              <p style={{ fontSize: 12, color: "#888", margin: "0 0 8px" }}>블로거 추가</p>
-              <input value={newId} onChange={(e) => setNewId(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addAccount()}
-                placeholder="블로거 ID" style={inputStyle} />
-              <input value={newName} onChange={(e) => setNewName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addAccount()}
-                placeholder="닉네임 (선택)" style={{ ...inputStyle, marginTop: 6 }} />
-              <button onClick={addAccount} style={buttonStyle}>추가</button>
-            </div>
-
-            {/* 등록된 블로거 목록 */}
-            <div style={{ flex: 1, padding: "8px 0" }}>
+            {/* 팔로잉 맛집 레이어 */}
+            <div style={{ padding: "8px 0" }}>
               <p style={{ fontSize: 12, color: "#888", padding: "4px 16px 8px" }}>
-                등록된 블로거 ({accounts.length})
+                팔로잉 맛집 ({following.length})
               </p>
-              {accounts.length === 0 && (
-                <p style={{ fontSize: 13, color: "#bbb", padding: "0 16px" }}>블로거를 추가해보세요</p>
+              {following.length === 0 ? (
+                <p style={{ fontSize: 12, color: "#bbb", padding: "0 16px" }}>
+                  팔로우한 사람이 없어요
+                </p>
+              ) : (
+                following.map((f, idx) => {
+                  const color = getFollowingColor(idx);
+                  const isSelected = selectedFollowingIds.includes(f.id);
+                  return (
+                    <div
+                      key={f.id}
+                      style={{
+                        display: "flex", alignItems: "center",
+                        padding: "8px 16px",
+                        background: isSelected ? `${color}12` : "white",
+                        borderLeft: `3px solid ${isSelected ? color : "transparent"}`,
+                        cursor: "pointer", gap: 10,
+                        transition: "all 0.15s",
+                      }}
+                      onClick={() => onToggleFollowing(f.id)}
+                    >
+                      {/* 체크박스 */}
+                      <div style={{
+                        width: 16, height: 16, borderRadius: 4,
+                        border: `1.5px solid ${isSelected ? color : "#ddd"}`,
+                        background: isSelected ? color : "white",
+                        flexShrink: 0,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        {isSelected && <span style={{ color: "white", fontSize: 10 }}>✓</span>}
+                      </div>
+
+                      {/* 아바타 */}
+                      <div style={{
+                        width: 28, height: 28, borderRadius: "50%",
+                        background: color,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 12, color: "white", fontWeight: 700, flexShrink: 0,
+                      }}>
+                        {f.nickname?.[0]?.toUpperCase()}
+                      </div>
+
+                      {/* 닉네임 */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{
+                          margin: 0, fontSize: 13, fontWeight: 600, color: "#1a1a1a",
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        }}>{f.nickname}</p>
+                        {f.place_count !== undefined && (
+                          <p style={{ margin: 0, fontSize: 11, color: "#aaa" }}>
+                            맛집 {f.place_count}개
+                          </p>
+                        )}
+                      </div>
+
+                      {/* 색상 점 */}
+                      <div style={{
+                        width: 8, height: 8, borderRadius: "50%",
+                        background: color, flexShrink: 0,
+                      }} />
+                    </div>
+                  );
+                })
               )}
-              {accounts.map((acc) => {
-                const color = getAccountColor(acc.id, accounts);
-                const isSelected = selectedAccountIds.includes(acc.id);
-                return (
-                  <div
-                    key={acc.id}
-                    style={{
-                      display: "flex", alignItems: "center", padding: "8px 16px",
-                      background: isSelected ? `${color}12` : "white",
-                      borderLeft: `3px solid ${isSelected ? color : "transparent"}`,
-                      cursor: "pointer", gap: 8,
-                    }}
-                    onClick={() => onToggleAccount(acc.id)}
-                  >
-                    <div style={{
-                      width: 16, height: 16, borderRadius: 4,
-                      border: `1.5px solid ${isSelected ? color : "#ddd"}`,
-                      background: isSelected ? color : "white", flexShrink: 0,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                      {isSelected && <span style={{ color: "white", fontSize: 10 }}>✓</span>}
-                    </div>
-                    <div style={{ width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{
-                        margin: 0, fontSize: 13, fontWeight: 600, color: "#1a1a1a",
-                        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                      }}>{acc.author_name}</p>
-                      <p style={{ margin: 0, fontSize: 11, color: "#888" }}>
-                        @{acc.author_id} · 맛집 {acc.post_count}개
-                      </p>
-                    </div>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); crawlAccount(acc.id); }}
-                      disabled={crawling === acc.id}
-                      style={{
-                        fontSize: 11, padding: "3px 8px",
-                        border: `1px solid ${color}`, borderRadius: 6,
-                        background: "white", color,
-                        cursor: crawling === acc.id ? "not-allowed" : "pointer", flexShrink: 0,
-                      }}
-                    >{crawling === acc.id ? "⏳" : "수집"}</button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); deleteAccount(acc.id, acc.author_name); }}
-                      style={{
-                        fontSize: 11, padding: "3px 8px",
-                        border: "1px solid #ddd", borderRadius: 6,
-                        background: "white", color: "#888",
-                        cursor: "pointer", flexShrink: 0,
-                      }}
-                    >삭제</button>
-                  </div>
-                );
-              })}
             </div>
           </div>
         )}
@@ -342,11 +334,4 @@ const inputStyle = {
   width: "100%", padding: "7px 10px",
   border: "1px solid #e0e0e0", borderRadius: 8,
   fontSize: 13, boxSizing: "border-box", outline: "none",
-};
-
-const buttonStyle = {
-  width: "100%", marginTop: 8, padding: "8px",
-  background: "#E8593C", color: "white",
-  border: "none", borderRadius: 8,
-  fontSize: 13, fontWeight: 600, cursor: "pointer",
 };

@@ -1,5 +1,5 @@
 // src/App.js
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
 import { useUser, API_BASE } from "./context/UserContext";
 import MapView from "./components/MapView";
@@ -9,6 +9,8 @@ import AuthScreen from "./components/AuthScreen";
 import BottomTabBar from "./components/BottomTabBar";
 import FollowTab from "./components/FollowTab";
 import ProfilePage from "./components/ProfilePage";
+import NotificationTab from "./components/NotificationTab";
+import LocationButton from "./components/LocationButton";
 import "./App.css";
 
 export const ACCOUNT_COLORS = [
@@ -25,6 +27,7 @@ export default function App() {
   const { user, loading } = useUser();
   const [activeTab, setActiveTab] = useState("map");
   const [unreadCount, setUnreadCount] = useState(0);
+  const mapRef = useRef(null);
 
   const [accounts, setAccounts] = useState([]);
   const [selectedAccountIds, setSelectedAccountIds] = useState([]);
@@ -34,6 +37,11 @@ export default function App() {
   const [personalPlaces, setPersonalPlaces] = useState([]);
   const [showPersonal, setShowPersonal] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
+
+  // 팔로잉 레이어
+  const [selectedFollowingIds, setSelectedFollowingIds] = useState([]);
+  const [followingPlacesMap, setFollowingPlacesMap] = useState({}); // { userId: [places] }
+  const [followingList, setFollowingList] = useState([]); // [{ id, nickname }]
 
   const isMobile = window.innerWidth <= 768;
 
@@ -49,9 +57,15 @@ export default function App() {
           axios.get(`${API_BASE}/personal-places/`)
             .then((res) => setPersonalPlaces(res.data));
         });
+
+      // 팔로잉 목록 로드
+      axios.get(`${API_BASE}/follows/${user.user_id}/following`)
+        .then((res) => setFollowingList(res.data))
+        .catch(() => {});
     }
   }, [user]);
 
+  // 알림 미읽음 수 폴링
   useEffect(() => {
     if (!user) return;
     const fetchUnread = () => {
@@ -72,6 +86,46 @@ export default function App() {
     const url = `${API_BASE}/restaurants/${params ? "?" + params : ""}`;
     axios.get(url).then((res) => setRestaurants(res.data));
   }, [selectedAccountIds]);
+
+  // 팔로잉 체크 토글
+  const handleToggleFollowing = useCallback(async (targetUserId) => {
+    setSelectedFollowingIds((prev) => {
+      if (prev.includes(targetUserId)) {
+        return prev.filter((id) => id !== targetUserId);
+      } else {
+        // 체크 시 해당 유저 맛집 로드
+        if (!followingPlacesMap[targetUserId]) {
+          axios.get(`${API_BASE}/users/${targetUserId}/places?viewer_id=${user?.user_id || ""}`)
+            .then((res) => {
+              setFollowingPlacesMap((m) => ({ ...m, [targetUserId]: res.data }));
+            })
+            .catch(() => {
+              // 닉네임으로 재시도
+              const target = followingList.find((f) => f.id === targetUserId);
+              if (target) {
+                axios.get(`${API_BASE}/users/${target.nickname}/places?viewer_id=${user?.user_id || ""}`)
+                  .then((res) => {
+                    setFollowingPlacesMap((m) => ({ ...m, [targetUserId]: res.data }));
+                  })
+                  .catch(() => {});
+              }
+            });
+        }
+        return [...prev, targetUserId];
+      }
+    });
+  }, [followingPlacesMap, followingList, user]);
+
+  // MapView에 넘길 팔로잉 플레이스 데이터 조합
+  const followingPlaces = selectedFollowingIds.map((uid, idx) => {
+    const user_ = followingList.find((f) => f.id === uid);
+    return {
+      userId: uid,
+      nickname: user_?.nickname || "?",
+      colorIdx: followingList.findIndex((f) => f.id === uid),
+      places: followingPlacesMap[uid] || [],
+    };
+  });
 
   const toggleAccount = (id) => {
     setSelectedAccountIds((prev) =>
@@ -170,6 +224,11 @@ export default function App() {
         <FollowTab onViewMap={handleViewMap} />
       )}
 
+      {/* 모바일 탭 — 알림 */}
+      {isMobile && activeTab === "notify" && (
+        <NotificationTab onUnreadChange={setUnreadCount} />
+      )}
+
       {/* 모바일 탭 — 프로필 */}
       {isMobile && activeTab === "profile" && (
         <ProfilePage />
@@ -214,6 +273,10 @@ export default function App() {
             showPersonal={showPersonal}
             setShowPersonal={setShowPersonal}
             onDeletePersonalPlace={deletePersonalPlace}
+            unreadCount={unreadCount}
+            onUnreadChange={setUnreadCount}
+            selectedFollowingIds={selectedFollowingIds}
+            onToggleFollowing={handleToggleFollowing}
           />
         </div>
       )}
@@ -224,7 +287,12 @@ export default function App() {
         personalPlaces={showPersonal ? personalPlaces : []}
         accounts={accounts}
         onMarkerClick={handleMarkerClick}
+        onMapReady={(map) => { mapRef.current = map; }}
+        followingPlaces={followingPlaces}
       />
+
+      {/* 현재 위치 버튼 */}
+      <LocationButton map={mapRef.current} />
 
       {/* 맛집 상세 패널 */}
       {selectedRestaurant && (
