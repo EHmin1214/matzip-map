@@ -1,12 +1,13 @@
 // src/App.js
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
+import { useUser, API_BASE } from "./context/UserContext";
 import MapView from "./components/MapView";
 import Sidebar from "./components/Sidebar";
 import RestaurantPanel from "./components/RestaurantPanel";
+import AuthScreen from "./components/AuthScreen";
+import BottomTabBar from "./components/BottomTabBar";
 import "./App.css";
-
-const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8000";
 
 export const ACCOUNT_COLORS = [
   "#E8593C", "#3B8BD4", "#1D9E75", "#BA7517",
@@ -19,27 +20,55 @@ export function getAccountColor(accountId, accounts) {
 }
 
 export default function App() {
+  const { user, loading } = useUser();
+  const [activeTab, setActiveTab] = useState("map");
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // 기존 상태
   const [accounts, setAccounts] = useState([]);
   const [selectedAccountIds, setSelectedAccountIds] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [hiddenIds, setHiddenIds] = useState(new Set());
-
-  // Personal 맛집 — DB에서 불러옴
   const [personalPlaces, setPersonalPlaces] = useState([]);
   const [showPersonal, setShowPersonal] = useState(true);
-
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
+
+  const isMobile = window.innerWidth <= 768;
 
   // 계정 목록 로드
   useEffect(() => {
     axios.get(`${API_BASE}/accounts/`).then((res) => setAccounts(res.data));
   }, []);
 
-  // Personal 맛집 로드
+  // 내 맛집 로드 (로그인 후)
   useEffect(() => {
-    axios.get(`${API_BASE}/personal-places/`).then((res) => setPersonalPlaces(res.data));
-  }, []);
+    if (user) {
+      axios.get(`${API_BASE}/personal-places/?user_id=${user.user_id}`)
+        .then((res) => setPersonalPlaces(res.data))
+        .catch(() => {
+          // 신규 API 실패 시 기존 API 폴백
+          axios.get(`${API_BASE}/personal-places/`)
+            .then((res) => setPersonalPlaces(res.data));
+        });
+    }
+  }, [user]);
+
+  // 알림 미읽음 수 폴링 (30초마다)
+  useEffect(() => {
+    if (!user) return;
+    const fetchUnread = () => {
+      axios.get(`${API_BASE}/notifications/?user_id=${user.user_id}`)
+        .then((res) => {
+          const unread = res.data.filter((n) => !n.is_read).length;
+          setUnreadCount(unread);
+        })
+        .catch(() => {});
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   // 선택된 계정 바뀔 때마다 맛집 로드
   useEffect(() => {
@@ -58,20 +87,19 @@ export default function App() {
     if (isPersonal) {
       const place = personalPlaces.find((p) => `personal_${p.id}` === restaurantId);
       if (place) setSelectedRestaurant({ ...place, sources: [], isPersonal: true });
-      if (window.innerWidth <= 768) setSidebarOpen(false);
+      if (isMobile) setSidebarOpen(false);
       return;
     }
     const res = await axios.get(`${API_BASE}/restaurants/${restaurantId}`);
     setSelectedRestaurant(res.data);
-    if (window.innerWidth <= 768) setSidebarOpen(false);
-  }, [personalPlaces]);
+    if (isMobile) setSidebarOpen(false);
+  }, [personalPlaces, isMobile]);
 
   const hideRestaurant = useCallback((restaurantId, isPersonal = false) => {
     if (isPersonal) {
-      // Personal 맛집은 숨기기 대신 삭제
       const place = personalPlaces.find((p) => `personal_${p.id}` === restaurantId || p.id === restaurantId);
       if (place) {
-        axios.delete(`${API_BASE}/personal-places/${place.id}`).then(() => {
+        axios.delete(`${API_BASE}/personal-places/${place.id}${user ? `?user_id=${user.user_id}` : ""}`).then(() => {
           setPersonalPlaces((prev) => prev.filter((p) => p.id !== place.id));
         });
       }
@@ -79,84 +107,105 @@ export default function App() {
       setHiddenIds((prev) => new Set([...prev, restaurantId]));
     }
     setSelectedRestaurant(null);
-  }, [personalPlaces]);
+  }, [personalPlaces, user]);
 
-  // 검색 결과를 Personal 맛집으로 저장
   const addPersonalPlace = useCallback(async (place) => {
     try {
-      const res = await axios.post(`${API_BASE}/personal-places/`, {
+      const payload = {
         name: place.name,
         address: place.address,
         lat: place.lat,
         lng: place.lng,
         category: place.category,
+        naver_place_id: place.naver_place_id,
         naver_place_url: place.naver_place_url,
-      });
+      };
+      const url = user
+        ? `${API_BASE}/personal-places/?user_id=${user.user_id}`
+        : `${API_BASE}/personal-places/`;
+      const res = await axios.post(url, payload);
       setPersonalPlaces((prev) => {
         const exists = prev.find((p) => p.id === res.data.id);
         if (exists) return prev;
         return [...prev, res.data];
       });
-      if (window.innerWidth <= 768) setSidebarOpen(false);
+      if (isMobile) setSidebarOpen(false);
     } catch (e) {
-      console.error("Personal 맛집 저장 실패", e);
+      console.error("맛집 저장 실패", e);
     }
-  }, []);
+  }, [user, isMobile]);
 
   const deletePersonalPlace = useCallback(async (placeId) => {
-    await axios.delete(`${API_BASE}/personal-places/${placeId}`);
+    await axios.delete(`${API_BASE}/personal-places/${placeId}${user ? `?user_id=${user.user_id}` : ""}`);
     setPersonalPlaces((prev) => prev.filter((p) => p.id !== placeId));
-  }, []);
+  }, [user]);
 
   const visibleRestaurants = restaurants.filter((r) => !hiddenIds.has(r.id));
   const sidebarWidth = sidebarOpen ? 280 : 0;
 
+  // 로딩 중
+  if (loading) {
+    return (
+      <div style={{
+        position: "fixed", inset: 0, display: "flex",
+        alignItems: "center", justifyContent: "center",
+        background: "white", flexDirection: "column", gap: 12,
+      }}>
+        <div style={{ fontSize: 40 }}>🗺️</div>
+        <p style={{ color: "#E8593C", fontWeight: 700 }}>맛집 지도</p>
+      </div>
+    );
+  }
+
+  // 비로그인 → 인증 화면
+  if (!user) return <AuthScreen />;
+
   return (
     <div className="app">
-      {/* 사이드바 토글 버튼 */}
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        style={{
-          position: "fixed",
-          top: 16,
-          left: sidebarOpen ? 290 : 16,
-          zIndex: 30,
-          width: 36, height: 36,
-          borderRadius: "50%",
-          background: "white",
-          border: "none",
-          boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
-          cursor: "pointer",
-          fontSize: 16,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          transition: "left 0.3s ease",
-        }}
-      >
-        {sidebarOpen ? "◀" : "☰"}
-      </button>
+      {/* 사이드바 토글 버튼 (데스크탑) */}
+      {!isMobile && (
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          style={{
+            position: "fixed", top: 16,
+            left: sidebarOpen ? 290 : 16,
+            zIndex: 30, width: 36, height: 36,
+            borderRadius: "50%", background: "white",
+            border: "none", boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+            cursor: "pointer", fontSize: 16,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            transition: "left 0.3s ease",
+          }}
+        >
+          {sidebarOpen ? "◀" : "☰"}
+        </button>
+      )}
 
-      {/* 사이드바 */}
-      <div style={{
-        width: sidebarOpen ? 280 : 0,
-        overflow: "hidden",
-        transition: "width 0.3s ease",
-        flexShrink: 0,
-      }}>
-        <Sidebar
-          accounts={accounts}
-          setAccounts={setAccounts}
-          selectedAccountIds={selectedAccountIds}
-          onToggleAccount={toggleAccount}
-          onAccountAdded={(acc) => setAccounts((prev) => [...prev, acc])}
-          apiBase={API_BASE}
-          onAddPersonalPlace={addPersonalPlace}
-          personalPlaces={personalPlaces}
-          showPersonal={showPersonal}
-          setShowPersonal={setShowPersonal}
-          onDeletePersonalPlace={deletePersonalPlace}
-        />
-      </div>
+      {/* 사이드바 (데스크탑) */}
+      {!isMobile && (
+        <div style={{
+          width: sidebarOpen ? 280 : 0,
+          overflow: "hidden",
+          transition: "width 0.3s ease",
+          flexShrink: 0,
+        }}>
+          <Sidebar
+            accounts={accounts}
+            setAccounts={setAccounts}
+            selectedAccountIds={selectedAccountIds}
+            onToggleAccount={toggleAccount}
+            onAccountAdded={(acc) => setAccounts((prev) => [...prev, acc])}
+            apiBase={API_BASE}
+            onAddPersonalPlace={addPersonalPlace}
+            personalPlaces={personalPlaces}
+            showPersonal={showPersonal}
+            setShowPersonal={setShowPersonal}
+            onDeletePersonalPlace={deletePersonalPlace}
+          />
+        </div>
+      )}
 
+      {/* 지도 */}
       <MapView
         restaurants={visibleRestaurants}
         personalPlaces={showPersonal ? personalPlaces : []}
@@ -164,6 +213,7 @@ export default function App() {
         onMarkerClick={handleMarkerClick}
       />
 
+      {/* 맛집 상세 패널 */}
       {selectedRestaurant && (
         <RestaurantPanel
           restaurant={selectedRestaurant}
@@ -172,6 +222,15 @@ export default function App() {
           onHide={hideRestaurant}
           apiBase={API_BASE}
           sidebarWidth={sidebarWidth}
+        />
+      )}
+
+      {/* 하단 탭바 (모바일) */}
+      {isMobile && (
+        <BottomTabBar
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          unreadCount={unreadCount}
         />
       )}
     </div>
