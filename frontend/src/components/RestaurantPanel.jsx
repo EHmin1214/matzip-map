@@ -9,9 +9,10 @@ const isMobile = () => window.innerWidth <= 768;
 
 export default function RestaurantPanel({
   restaurant, accounts, onClose, onHide, apiBase, sidebarWidth = 280,
-  onPlaceUpdated,
+  onPlaceUpdated, mapInstance,
 }) {
   const { user } = useUser();
+  const mobile = isMobile();
   const [r, setR] = useState(restaurant);
   const [adResult, setAdResult] = useState(null);
   const [adLoading, setAdLoading] = useState(false);
@@ -24,10 +25,7 @@ export default function RestaurantPanel({
   const [submittingComment, setSubmittingComment] = useState(false);
   const [showComments, setShowComments] = useState(false);
 
-  // 스와이프 닫기
-  const panelRef = useRef(null);
   const touchStartY = useRef(null);
-  const mobile = isMobile();
 
   useEffect(() => { setR(restaurant); }, [restaurant?.id]);
 
@@ -47,6 +45,13 @@ export default function RestaurantPanel({
       .then((res) => setComments(res.data))
       .catch(() => {});
   }, [r?.id, isOthersPlace]);
+
+  // 지도 중심 이동
+  const handleCenterMap = () => {
+    if (!mapInstance || !r.lat || !r.lng || !window.naver) return;
+    mapInstance.setCenter(new window.naver.maps.LatLng(r.lat, r.lng));
+    mapInstance.setZoom(17);
+  };
 
   const handleLike = async () => {
     if (!user || !isOthersPlace) return;
@@ -115,14 +120,12 @@ export default function RestaurantPanel({
     if (!r.isPersonal) checkAds();
   }, [r?.id]); // eslint-disable-line
 
-  // 스와이프 닫기 핸들러
-  const handleTouchStart = (e) => {
-    touchStartY.current = e.touches[0].clientY;
-  };
+  // 스와이프 닫기
+  const handleTouchStart = (e) => { touchStartY.current = e.touches[0].clientY; };
   const handleTouchEnd = (e) => {
     if (touchStartY.current === null) return;
     const diff = e.changedTouches[0].clientY - touchStartY.current;
-    if (diff > 80) onClose(); // 80px 이상 아래로 스와이프하면 닫기
+    if (diff > 80) onClose();
     touchStartY.current = null;
   };
 
@@ -142,32 +145,31 @@ export default function RestaurantPanel({
   return (
     <>
       <div
-        ref={panelRef}
         onTouchStart={mobile ? handleTouchStart : undefined}
         onTouchEnd={mobile ? handleTouchEnd : undefined}
         style={{
           position: "fixed",
-          bottom: mobile ? 60 : 0, // 모바일: 탭바 위
+          bottom: mobile ? 60 : 0,
           left: mobile ? 0 : sidebarWidth,
           right: 0,
           background: "white",
           borderRadius: mobile ? "20px 20px 0 0" : "16px 16px 0 0",
           boxShadow: "0 -4px 24px rgba(0,0,0,0.15)",
           zIndex: 20,
-          maxHeight: mobile ? "60vh" : "55vh",
+          maxHeight: mobile ? "62vh" : "55vh",
           overflowY: "auto",
           transition: "left 0.3s ease",
           WebkitOverflowScrolling: "touch",
         }}
       >
-        {/* 스와이프 핸들 (모바일) */}
+        {/* 스와이프 핸들 */}
         {mobile && (
           <div style={{ display: "flex", justifyContent: "center", padding: "10px 0 4px", cursor: "grab" }}>
             <div style={{ width: 36, height: 4, background: "#ddd", borderRadius: 2 }} />
           </div>
         )}
 
-        <div style={{ padding: mobile ? "8px 20px 20px" : "20px 24px" }}>
+        <div style={{ padding: mobile ? "8px 20px 24px" : "20px 24px" }}>
           {/* 헤더 */}
           <div style={{ display: "flex", alignItems: "flex-start", marginBottom: 12 }}>
             <div style={{ flex: 1 }}>
@@ -184,17 +186,11 @@ export default function RestaurantPanel({
               {isPersonalMine && (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
                   {r.status && (
-                    <span style={{
-                      fontSize: 12, padding: "4px 10px",
-                      background: "#fff0ed", color: "#E8593C",
-                      borderRadius: 20, fontWeight: 600,
-                    }}>
+                    <span style={{ fontSize: 12, padding: "4px 10px", background: "#fff0ed", color: "#E8593C", borderRadius: 20, fontWeight: 600 }}>
                       {STATUS_LABEL[r.status] || r.status}
                     </span>
                   )}
-                  {r.rating > 0 && (
-                    <span style={{ fontSize: 13, color: "#E8593C" }}>{"⭐".repeat(r.rating)}</span>
-                  )}
+                  {r.rating > 0 && <span style={{ fontSize: 13, color: "#E8593C" }}>{"⭐".repeat(r.rating)}</span>}
                   {r.memo && <span style={{ fontSize: 12, color: "#888" }}>💬 {r.memo}</span>}
                   {r.instagram_post_url && (
                     <a href={r.instagram_post_url} target="_blank" rel="noreferrer"
@@ -206,8 +202,18 @@ export default function RestaurantPanel({
               )}
             </div>
 
-            {/* 버튼들 — 모바일에서 크게 */}
+            {/* 버튼들 */}
             <div style={{ display: "flex", gap: 6, flexShrink: 0, marginLeft: 8 }}>
+              {/* 지도 중심 이동 버튼 */}
+              <button onClick={handleCenterMap} title="지도에서 보기"
+                style={{
+                  background: "#f0f7ff", border: "none", borderRadius: "50%",
+                  width: mobile ? 40 : 32, height: mobile ? 40 : 32,
+                  cursor: "pointer", fontSize: mobile ? 16 : 14,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  WebkitTapHighlightColor: "transparent",
+                }}>🎯</button>
+
               {isPersonalMine && (
                 <button onClick={() => setEditModalOpen(true)}
                   style={{
@@ -239,19 +245,20 @@ export default function RestaurantPanel({
             </div>
           </div>
 
-          {/* 네이버 지도 */}
-          {r.naver_place_url && (
-            <a href={r.naver_place_url} target="_blank" rel="noreferrer" style={{
-              display: "inline-flex", alignItems: "center", gap: 6,
-              marginBottom: 14,
-              padding: mobile ? "10px 16px" : "7px 14px",
-              background: "#03C75A", color: "white", borderRadius: 10,
-              fontSize: 13, fontWeight: 600, textDecoration: "none",
-              WebkitTapHighlightColor: "transparent",
-            }}>
-              🗺️ 네이버 지도에서 보기
-            </a>
-          )}
+          {/* 네이버 지도 + 지도 이동 버튼 */}
+          <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+            {r.naver_place_url && (
+              <a href={r.naver_place_url} target="_blank" rel="noreferrer" style={{
+                display: "inline-flex", alignItems: "center", gap: 6,
+                padding: mobile ? "10px 16px" : "7px 14px",
+                background: "#03C75A", color: "white", borderRadius: 10,
+                fontSize: 13, fontWeight: 600, textDecoration: "none",
+                WebkitTapHighlightColor: "transparent",
+              }}>
+                🗺️ 네이버 지도
+              </a>
+            )}
+          </div>
 
           {/* 이웃 */}
           {neighbors.length > 0 && (
@@ -291,12 +298,10 @@ export default function RestaurantPanel({
               <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
                 <button onClick={handleLike} style={{
                   display: "flex", alignItems: "center", gap: 6,
-                  padding: mobile ? "10px 18px" : "8px 16px",
-                  minHeight: 44,
+                  padding: mobile ? "10px 18px" : "8px 16px", minHeight: 44,
                   background: liked ? "#fff0ed" : "#f5f5f5",
                   border: `1.5px solid ${liked ? "#E8593C" : "#eee"}`,
-                  borderRadius: 22, cursor: "pointer",
-                  fontSize: 14, fontWeight: 600,
+                  borderRadius: 22, cursor: "pointer", fontSize: 14, fontWeight: 600,
                   color: liked ? "#E8593C" : "#888",
                   WebkitTapHighlightColor: "transparent",
                 }}>
@@ -304,12 +309,10 @@ export default function RestaurantPanel({
                 </button>
                 <button onClick={() => setShowComments(!showComments)} style={{
                   display: "flex", alignItems: "center", gap: 6,
-                  padding: mobile ? "10px 18px" : "8px 16px",
-                  minHeight: 44,
+                  padding: mobile ? "10px 18px" : "8px 16px", minHeight: 44,
                   background: showComments ? "#f0f4ff" : "#f5f5f5",
                   border: `1.5px solid ${showComments ? "#3B8BD4" : "#eee"}`,
-                  borderRadius: 22, cursor: "pointer",
-                  fontSize: 14, fontWeight: 600,
+                  borderRadius: 22, cursor: "pointer", fontSize: 14, fontWeight: 600,
                   color: showComments ? "#3B8BD4" : "#888",
                   WebkitTapHighlightColor: "transparent",
                 }}>
@@ -320,16 +323,13 @@ export default function RestaurantPanel({
               {showComments && (
                 <div style={{ background: "#f8f8f8", borderRadius: 14, padding: 14 }}>
                   {comments.length === 0 ? (
-                    <p style={{ fontSize: 13, color: "#bbb", textAlign: "center", padding: "8px 0" }}>
-                      첫 댓글을 남겨보세요!
-                    </p>
+                    <p style={{ fontSize: 13, color: "#bbb", textAlign: "center", padding: "8px 0" }}>첫 댓글을 남겨보세요!</p>
                   ) : (
                     <div style={{ marginBottom: 12, maxHeight: 160, overflowY: "auto" }}>
                       {comments.map((c) => (
                         <div key={c.id} style={{ display: "flex", gap: 8, marginBottom: 10, alignItems: "flex-start" }}>
                           <div style={{
-                            width: 30, height: 30, borderRadius: "50%",
-                            background: "#E8593C", color: "white",
+                            width: 30, height: 30, borderRadius: "50%", background: "#E8593C", color: "white",
                             display: "flex", alignItems: "center", justifyContent: "center",
                             fontSize: 13, fontWeight: 700, flexShrink: 0,
                           }}>
@@ -353,22 +353,19 @@ export default function RestaurantPanel({
                     </div>
                   )}
                   <div style={{ display: "flex", gap: 8 }}>
-                    <input
-                      value={commentInput}
+                    <input value={commentInput}
                       onChange={(e) => setCommentInput(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleComment()}
                       placeholder="댓글 입력..."
                       style={{
                         flex: 1, padding: "10px 14px",
                         border: "1.5px solid #eee", borderRadius: 22,
-                        fontSize: 14, outline: "none",
-                        WebkitAppearance: "none",
+                        fontSize: 14, outline: "none", WebkitAppearance: "none",
                       }}
                       onFocus={(e) => e.target.style.borderColor = "#E8593C"}
                       onBlur={(e) => e.target.style.borderColor = "#eee"}
                     />
-                    <button onClick={handleComment}
-                      disabled={submittingComment || !commentInput.trim()}
+                    <button onClick={handleComment} disabled={submittingComment || !commentInput.trim()}
                       style={{
                         padding: "10px 16px", minHeight: 44,
                         background: commentInput.trim() ? "#E8593C" : "#eee",
@@ -391,7 +388,7 @@ export default function RestaurantPanel({
               <p style={{ fontSize: 12, color: "#888", margin: "0 0 8px", fontWeight: 600 }}>광고 분석</p>
               {adLoading && (
                 <div style={{ background: "#f5f5f5", borderRadius: 12, padding: "14px 16px", fontSize: 13, color: "#888", display: "flex", alignItems: "center", gap: 8 }}>
-                  <span>⏳</span> 블로그 분석 중...
+                  ⏳ 블로그 분석 중...
                 </div>
               )}
               {!adLoading && adResult && verdictInfo && (
@@ -418,9 +415,7 @@ export default function RestaurantPanel({
           {/* 소개 블로거 */}
           {r.sources && r.sources.length > 0 && (
             <div>
-              <p style={{ fontSize: 12, color: "#888", margin: "0 0 8px", fontWeight: 600 }}>
-                소개한 블로거 ({r.sources.length})
-              </p>
+              <p style={{ fontSize: 12, color: "#888", margin: "0 0 8px", fontWeight: 600 }}>소개한 블로거 ({r.sources.length})</p>
               {r.sources.map((s, i) => {
                 const acc = accounts.find(a => a.author_id === s.author_id);
                 const color = acc ? getAccountColor(acc.id, accounts) : "#888";
@@ -429,12 +424,10 @@ export default function RestaurantPanel({
                     display: "flex", alignItems: "center",
                     padding: mobile ? "12px 14px" : "10px 12px", marginBottom: 8,
                     background: "#fafafa", borderRadius: 12,
-                    textDecoration: "none", border: "1px solid #f0f0f0",
-                    minHeight: 44,
+                    textDecoration: "none", border: "1px solid #f0f0f0", minHeight: 44,
                   }}>
                     <div style={{
-                      width: 34, height: 34, borderRadius: "50%",
-                      background: color, color: "white",
+                      width: 34, height: 34, borderRadius: "50%", background: color, color: "white",
                       display: "flex", alignItems: "center", justifyContent: "center",
                       fontSize: 14, fontWeight: 700, marginRight: 12, flexShrink: 0,
                     }}>
@@ -463,8 +456,7 @@ export default function RestaurantPanel({
 function formatTime(dateStr) {
   if (!dateStr) return "";
   const date = new Date(dateStr);
-  const now = new Date();
-  const diff = Math.floor((now - date) / 1000);
+  const diff = Math.floor((new Date() - date) / 1000);
   if (diff < 60) return "방금 전";
   if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;

@@ -15,7 +15,6 @@ import LocationButton from "./components/LocationButton";
 import MapFilter from "./components/MapFilter";
 import SearchTab from "./components/SearchTab";
 import RefreshButton from "./components/RefreshButton";
-import MobileMapControls from "./components/MobileMapControls";
 import "./App.css";
 
 export const ACCOUNT_COLORS = [
@@ -84,13 +83,11 @@ export default function App() {
     return () => clearInterval(interval);
   }, [user, loadUnread]);
 
-  // 전체 새로고침
   const handleRefresh = useCallback(async () => {
     await Promise.all([
       loadPersonalPlaces(),
       loadFollowingList(),
       loadUnread(),
-      // 팔로잉 맛집 캐시 초기화
       ...selectedFollowingIds.map((uid) =>
         axios.get(`${API_BASE}/personal-places/?user_id=${uid}`)
           .then((res) => {
@@ -296,29 +293,23 @@ export default function App() {
         onFollowingMarkerClick={handleFollowingMarkerClick}
       />
 
-      {/* 필터 버튼 */}
+      {/* 통합 필터 — 상태 필터 + 팔로잉 레이어 선택 */}
       {(activeTab === "map" || !isMobile) && (
         <MapFilter
           activeFilter={activeFilter}
           onFilterChange={setActiveFilter}
           sidebarWidth={sidebarWidth}
+          followingList={isMobile ? followingList : []}
+          selectedFollowingIds={selectedFollowingIds}
+          onToggleFollowing={handleToggleFollowing}
+          showPersonal={showPersonal}
+          onTogglePersonal={() => setShowPersonal((v) => !v)}
         />
       )}
 
       {/* 새로고침 버튼 */}
       {(activeTab === "map" || !isMobile) && (
         <RefreshButton onRefresh={handleRefresh} />
-      )}
-
-      {/* 모바일 지도탭 — 팔로잉 레이어 컨트롤 */}
-      {isMobile && activeTab === "map" && followingList.length > 0 && (
-        <MobileMapControls
-          followingList={followingList}
-          selectedFollowingIds={selectedFollowingIds}
-          onToggleFollowing={handleToggleFollowing}
-          showPersonal={showPersonal}
-          onTogglePersonal={() => setShowPersonal((v) => !v)}
-        />
       )}
 
       {/* 현재 위치 버튼 */}
@@ -334,6 +325,7 @@ export default function App() {
           apiBase={API_BASE}
           sidebarWidth={sidebarWidth}
           onPlaceUpdated={handlePlaceUpdated}
+          mapInstance={mapRef.current}
         />
       )}
 
