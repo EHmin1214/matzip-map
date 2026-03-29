@@ -14,6 +14,8 @@ import ActivityFeed from "./components/ActivityFeed";
 import LocationButton from "./components/LocationButton";
 import MapFilter from "./components/MapFilter";
 import SearchTab from "./components/SearchTab";
+import RefreshButton from "./components/RefreshButton";
+import MobileMapControls from "./components/MobileMapControls";
 import "./App.css";
 
 export const ACCOUNT_COLORS = [
@@ -47,33 +49,58 @@ export default function App() {
 
   const isMobile = window.innerWidth <= 768;
 
+  const loadPersonalPlaces = useCallback(() => {
+    if (!user) return Promise.resolve();
+    return axios.get(`${API_BASE}/personal-places/?user_id=${user.user_id}`)
+      .then((res) => setPersonalPlaces(res.data))
+      .catch(() => {});
+  }, [user]);
+
   const loadFollowingList = useCallback(() => {
-    if (!user) return;
-    axios.get(`${API_BASE}/follows/${user.user_id}/following`)
+    if (!user) return Promise.resolve();
+    return axios.get(`${API_BASE}/follows/${user.user_id}/following`)
       .then((res) => setFollowingList(res.data))
+      .catch(() => {});
+  }, [user]);
+
+  const loadUnread = useCallback(() => {
+    if (!user) return;
+    axios.get(`${API_BASE}/notifications/?user_id=${user.user_id}`)
+      .then((res) => setUnreadCount(res.data.filter((n) => !n.is_read).length))
       .catch(() => {});
   }, [user]);
 
   useEffect(() => {
     if (user) {
-      axios.get(`${API_BASE}/personal-places/?user_id=${user.user_id}`)
-        .then((res) => setPersonalPlaces(res.data))
-        .catch(() => {});
+      loadPersonalPlaces();
       loadFollowingList();
+      loadUnread();
     }
-  }, [user, loadFollowingList]);
+  }, [user, loadPersonalPlaces, loadFollowingList, loadUnread]);
 
   useEffect(() => {
     if (!user) return;
-    const fetchUnread = () => {
-      axios.get(`${API_BASE}/notifications/?user_id=${user.user_id}`)
-        .then((res) => setUnreadCount(res.data.filter((n) => !n.is_read).length))
-        .catch(() => {});
-    };
-    fetchUnread();
-    const interval = setInterval(fetchUnread, 30000);
+    const interval = setInterval(loadUnread, 30000);
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, loadUnread]);
+
+  // 전체 새로고침
+  const handleRefresh = useCallback(async () => {
+    await Promise.all([
+      loadPersonalPlaces(),
+      loadFollowingList(),
+      loadUnread(),
+      // 팔로잉 맛집 캐시 초기화
+      ...selectedFollowingIds.map((uid) =>
+        axios.get(`${API_BASE}/personal-places/?user_id=${uid}`)
+          .then((res) => {
+            const publicPlaces = res.data.filter((p) => p.is_public !== false);
+            setFollowingPlacesMap((m) => ({ ...m, [uid]: publicPlaces }));
+          })
+          .catch(() => {})
+      ),
+    ]);
+  }, [loadPersonalPlaces, loadFollowingList, loadUnread, selectedFollowingIds]);
 
   const handleToggleFollowing = useCallback(async (targetUserId) => {
     setSelectedFollowingIds((prev) => {
@@ -107,36 +134,26 @@ export default function App() {
     if (isPersonal) {
       const place = personalPlaces.find((p) => `personal_${p.id}` === restaurantId);
       if (place) setSelectedRestaurant({ ...place, sources: [], isPersonal: true });
-      if (isMobile) setSidebarOpen(false);
       return;
     }
     const res = await axios.get(`${API_BASE}/restaurants/${restaurantId}`);
     setSelectedRestaurant(res.data);
-    if (isMobile) setSidebarOpen(false);
-  }, [personalPlaces, isMobile]);
+  }, [personalPlaces]);
 
   const handleFollowingMarkerClick = useCallback((place) => {
     setSelectedRestaurant({ ...place, sources: [], isPersonal: true });
-    if (isMobile) setSidebarOpen(false);
-  }, [isMobile]);
+  }, []);
 
-  // 활동 피드에서 맛집 클릭 → 지도에서 해당 위치로 이동
   const handleActivityPlaceClick = useCallback((activity) => {
     setSelectedRestaurant({
-      id: activity.place_id,
-      name: activity.place_name,
-      lat: activity.place_lat,
-      lng: activity.place_lng,
-      status: activity.place_status,
-      user_id: activity.owner_id,
-      isPersonal: true,
-      sources: [],
+      id: activity.place_id, name: activity.place_name,
+      lat: activity.place_lat, lng: activity.place_lng,
+      status: activity.place_status, user_id: activity.owner_id,
+      isPersonal: true, sources: [],
     });
     setActiveTab("map");
-    if (mapRef.current) {
-      mapRef.current.setCenter(
-        new window.naver.maps.LatLng(activity.place_lat, activity.place_lng)
-      );
+    if (mapRef.current && window.naver) {
+      mapRef.current.setCenter(new window.naver.maps.LatLng(activity.place_lat, activity.place_lng));
       mapRef.current.setZoom(16);
     }
   }, []);
@@ -159,13 +176,11 @@ export default function App() {
       const payload = {
         name: place.name, address: place.address,
         lat: place.lat, lng: place.lng,
-        category: place.category,
-        naver_place_id: place.naver_place_id,
+        category: place.category, naver_place_id: place.naver_place_id,
         naver_place_url: place.naver_place_url,
         folder_id: place.folder_id || null,
         status: place.status || "want_to_go",
-        rating: place.rating || null,
-        memo: place.memo || null,
+        rating: place.rating || null, memo: place.memo || null,
         instagram_post_url: place.instagram_post_url || null,
       };
       const url = user
@@ -176,11 +191,10 @@ export default function App() {
         const exists = prev.find((p) => p.id === res.data.id);
         return exists ? prev : [...prev, res.data];
       });
-      if (isMobile) setSidebarOpen(false);
     } catch (e) {
       console.error("맛집 저장 실패", e);
     }
-  }, [user, isMobile]);
+  }, [user]);
 
   const deletePersonalPlace = useCallback(async (placeId) => {
     await axios.delete(`${API_BASE}/personal-places/${placeId}${user ? `?user_id=${user.user_id}` : ""}`);
@@ -208,7 +222,7 @@ export default function App() {
         background: "white", flexDirection: "column", gap: 12,
       }}>
         <div style={{ fontSize: 40 }}>🗺️</div>
-        <p style={{ color: "#E8593C", fontWeight: 700 }}>맛집 지도</p>
+        <p style={{ color: "#E8593C", fontWeight: 700, fontSize: 18 }}>맛집 지도</p>
       </div>
     );
   }
@@ -219,9 +233,7 @@ export default function App() {
     <div className="app">
 
       {/* 모바일 탭 */}
-      {isMobile && activeTab === "follow" && (
-        <FollowTab onViewMap={() => setActiveTab("map")} onFollowChange={loadFollowingList} />
-      )}
+      {isMobile && activeTab === "follow" && <FollowTab onViewMap={() => setActiveTab("map")} onFollowChange={loadFollowingList} />}
       {isMobile && activeTab === "search" && (
         <SearchTab onPlaceAdded={(place) => {
           setPersonalPlaces((prev) => {
@@ -232,20 +244,17 @@ export default function App() {
       )}
       {isMobile && activeTab === "notify" && <NotificationTab onUnreadChange={setUnreadCount} />}
       {isMobile && activeTab === "profile" && <ProfilePage />}
-      {isMobile && activeTab === "feed" && (
-        <ActivityFeed onPlaceClick={handleActivityPlaceClick} />
-      )}
+      {isMobile && activeTab === "feed" && <ActivityFeed onPlaceClick={handleActivityPlaceClick} />}
 
       {/* 사이드바 토글 (데스크탑) */}
       {!isMobile && (
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           style={{
-            position: "fixed", top: 16,
-            left: sidebarOpen ? 290 : 16,
-            zIndex: 30, width: 36, height: 36,
-            borderRadius: "50%", background: "white",
-            border: "none", boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
+            position: "fixed", top: 16, left: sidebarOpen ? 290 : 16,
+            zIndex: 30, width: 36, height: 36, borderRadius: "50%",
+            background: "white", border: "none",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.2)",
             cursor: "pointer", fontSize: 16,
             display: "flex", alignItems: "center", justifyContent: "center",
             transition: "left 0.3s ease",
@@ -257,12 +266,7 @@ export default function App() {
 
       {/* 사이드바 (데스크탑) */}
       {!isMobile && (
-        <div style={{
-          width: sidebarOpen ? 280 : 0,
-          overflow: "hidden",
-          transition: "width 0.3s ease",
-          flexShrink: 0,
-        }}>
+        <div style={{ width: sidebarOpen ? 280 : 0, overflow: "hidden", transition: "width 0.3s ease", flexShrink: 0 }}>
           <Sidebar
             apiBase={API_BASE}
             onAddPersonalPlace={addPersonalPlace}
@@ -292,7 +296,7 @@ export default function App() {
         onFollowingMarkerClick={handleFollowingMarkerClick}
       />
 
-      {/* 상태별 필터 */}
+      {/* 필터 버튼 */}
       {(activeTab === "map" || !isMobile) && (
         <MapFilter
           activeFilter={activeFilter}
@@ -301,8 +305,26 @@ export default function App() {
         />
       )}
 
+      {/* 새로고침 버튼 */}
+      {(activeTab === "map" || !isMobile) && (
+        <RefreshButton onRefresh={handleRefresh} />
+      )}
+
+      {/* 모바일 지도탭 — 팔로잉 레이어 컨트롤 */}
+      {isMobile && activeTab === "map" && followingList.length > 0 && (
+        <MobileMapControls
+          followingList={followingList}
+          selectedFollowingIds={selectedFollowingIds}
+          onToggleFollowing={handleToggleFollowing}
+          showPersonal={showPersonal}
+          onTogglePersonal={() => setShowPersonal((v) => !v)}
+        />
+      )}
+
+      {/* 현재 위치 버튼 */}
       <LocationButton map={mapRef.current} />
 
+      {/* 맛집 상세 패널 */}
       {selectedRestaurant && (
         <RestaurantPanel
           restaurant={selectedRestaurant}
@@ -315,6 +337,7 @@ export default function App() {
         />
       )}
 
+      {/* 하단 탭바 (모바일) */}
       {isMobile && (
         <BottomTabBar
           activeTab={activeTab}
