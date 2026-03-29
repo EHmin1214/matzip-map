@@ -4,6 +4,7 @@ import axios from "axios";
 import { getAccountColor } from "../App";
 import FollowTab from "./FollowTab";
 import SavePlaceModal from "./SavePlaceModal";
+import ProfilePage from "./ProfilePage";
 
 export default function Sidebar({
   accounts, setAccounts,
@@ -19,6 +20,12 @@ export default function Sidebar({
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [pendingPlace, setPendingPlace] = useState(null);
+
+  const TABS = [
+    { id: "my",      label: "내 맛집" },
+    { id: "follow",  label: "팔로우" },
+    { id: "profile", label: "프로필" },
+  ];
 
   const searchPlace = async () => {
     if (!searchQuery.trim()) return;
@@ -112,19 +119,16 @@ export default function Sidebar({
         <div style={{
           display: "flex", background: "#f8f8f8",
           borderBottom: "1px solid #f0f0f0",
-          padding: "8px 12px", gap: 6,
+          padding: "8px 10px", gap: 4,
         }}>
-          {[
-            { id: "my", label: "내 맛집" },
-            { id: "follow", label: "팔로우" },
-          ].map((tab) => (
+          {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setSidebarTab(tab.id)}
               style={{
                 flex: 1, padding: "7px 0",
                 border: "none", borderRadius: 8,
-                fontSize: 13, fontWeight: 600, cursor: "pointer",
+                fontSize: 12, fontWeight: 600, cursor: "pointer",
                 transition: "all 0.2s",
                 background: sidebarTab === tab.id ? "white" : "transparent",
                 color: sidebarTab === tab.id ? "#E8593C" : "#888",
@@ -140,6 +144,13 @@ export default function Sidebar({
         {sidebarTab === "follow" && (
           <div style={{ flex: 1, overflow: "hidden" }}>
             <FollowTab onViewMap={() => {}} embedded />
+          </div>
+        )}
+
+        {/* 프로필 탭 */}
+        {sidebarTab === "profile" && (
+          <div style={{ flex: 1, overflow: "hidden" }}>
+            <ProfilePage embedded />
           </div>
         )}
 
@@ -210,22 +221,16 @@ export default function Sidebar({
                         <p style={{
                           margin: 0, fontSize: 12, fontWeight: 600, color: "#1a1a1a",
                           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                        }}>
-                          {place.name}
-                        </p>
+                        }}>{place.name}</p>
                         {place.memo && (
                           <p style={{
                             margin: 0, fontSize: 10, color: "#aaa",
                             overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                          }}>
-                            {place.memo}
-                          </p>
+                          }}>{place.memo}</p>
                         )}
                       </div>
                       {place.rating && (
-                        <span style={{ fontSize: 10, color: "#E8593C", flexShrink: 0 }}>
-                          ⭐{place.rating}
-                        </span>
+                        <span style={{ fontSize: 10, color: "#E8593C", flexShrink: 0 }}>⭐{place.rating}</span>
                       )}
                       <button
                         onClick={() => onDeletePersonalPlace(place.id)}
@@ -300,7 +305,7 @@ export default function Sidebar({
                       style={{
                         fontSize: 11, padding: "3px 8px",
                         border: `1px solid ${color}`, borderRadius: 6,
-                        background: "white", color: color,
+                        background: "white", color,
                         cursor: crawling === acc.id ? "not-allowed" : "pointer", flexShrink: 0,
                       }}
                     >{crawling === acc.id ? "⏳" : "수집"}</button>

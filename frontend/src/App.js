@@ -8,6 +8,7 @@ import RestaurantPanel from "./components/RestaurantPanel";
 import AuthScreen from "./components/AuthScreen";
 import BottomTabBar from "./components/BottomTabBar";
 import FollowTab from "./components/FollowTab";
+import ProfilePage from "./components/ProfilePage";
 import "./App.css";
 
 export const ACCOUNT_COLORS = [
@@ -113,6 +114,11 @@ export default function App() {
         category: place.category,
         naver_place_id: place.naver_place_id,
         naver_place_url: place.naver_place_url,
+        folder_id: place.folder_id || null,
+        status: place.status || "want_to_go",
+        rating: place.rating || null,
+        memo: place.memo || null,
+        instagram_post_url: place.instagram_post_url || null,
       };
       const url = user
         ? `${API_BASE}/personal-places/?user_id=${user.user_id}`
@@ -159,9 +165,14 @@ export default function App() {
   return (
     <div className="app">
 
-      {/* 팔로우 탭 */}
-      {activeTab === "follow" && (
+      {/* 모바일 탭 — 팔로우 */}
+      {isMobile && activeTab === "follow" && (
         <FollowTab onViewMap={handleViewMap} />
+      )}
+
+      {/* 모바일 탭 — 프로필 */}
+      {isMobile && activeTab === "profile" && (
+        <ProfilePage />
       )}
 
       {/* 사이드바 토글 버튼 (데스크탑) */}
