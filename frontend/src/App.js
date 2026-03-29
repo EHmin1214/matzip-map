@@ -1,4 +1,4 @@
- // src/App.js
+// src/App.js
 import { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
 import { useUser, API_BASE } from "./context/UserContext";
@@ -10,6 +10,7 @@ import BottomTabBar from "./components/BottomTabBar";
 import FollowTab from "./components/FollowTab";
 import ProfilePage from "./components/ProfilePage";
 import NotificationTab from "./components/NotificationTab";
+import ActivityFeed from "./components/ActivityFeed";
 import LocationButton from "./components/LocationButton";
 import MapFilter from "./components/MapFilter";
 import SearchTab from "./components/SearchTab";
@@ -31,8 +32,7 @@ export default function App() {
   const [unreadCount, setUnreadCount] = useState(0);
   const mapRef = useRef(null);
 
-  const [accounts] = useState([]);                    // 블로거 크롤링 — 표시만 유지, 추가 UI 제거
-  const [selectedAccountIds] = useState([]);
+  const [accounts] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [hiddenIds, setHiddenIds] = useState(new Set());
@@ -75,13 +75,6 @@ export default function App() {
     return () => clearInterval(interval);
   }, [user]);
 
-  // 기존 크롤링 맛집 — 선택된 계정 있을 때만 로드 (기능 유지)
-  useEffect(() => {
-    if (selectedAccountIds.length === 0) { setRestaurants([]); return; }
-    const params = selectedAccountIds.map((id) => `account_ids=${id}`).join("&");
-    axios.get(`${API_BASE}/restaurants/?${params}`).then((res) => setRestaurants(res.data));
-  }, [selectedAccountIds]);
-
   const handleToggleFollowing = useCallback(async (targetUserId) => {
     setSelectedFollowingIds((prev) => {
       if (prev.includes(targetUserId)) {
@@ -122,16 +115,31 @@ export default function App() {
     if (isMobile) setSidebarOpen(false);
   }, [personalPlaces, isMobile]);
 
-  // ✅ 팔로잉 마커 클릭 — place 데이터 직접 받아서 패널 열기
   const handleFollowingMarkerClick = useCallback((place) => {
-    setSelectedRestaurant({
-      ...place,
-      sources: [],
-      isPersonal: true,
-      // user_id가 있으면 남의 맛집으로 인식
-    });
+    setSelectedRestaurant({ ...place, sources: [], isPersonal: true });
     if (isMobile) setSidebarOpen(false);
   }, [isMobile]);
+
+  // 활동 피드에서 맛집 클릭 → 지도에서 해당 위치로 이동
+  const handleActivityPlaceClick = useCallback((activity) => {
+    setSelectedRestaurant({
+      id: activity.place_id,
+      name: activity.place_name,
+      lat: activity.place_lat,
+      lng: activity.place_lng,
+      status: activity.place_status,
+      user_id: activity.owner_id,
+      isPersonal: true,
+      sources: [],
+    });
+    setActiveTab("map");
+    if (mapRef.current) {
+      mapRef.current.setCenter(
+        new window.naver.maps.LatLng(activity.place_lat, activity.place_lng)
+      );
+      mapRef.current.setZoom(16);
+    }
+  }, []);
 
   const hideRestaurant = useCallback((restaurantId, isPersonal = false) => {
     if (isPersonal) {
@@ -183,9 +191,6 @@ export default function App() {
     setPersonalPlaces((prev) =>
       prev.map((p) => p.id === updatedPlace.id ? { ...p, ...updatedPlace } : p)
     );
-    setSelectedRestaurant((prev) =>
-      prev && prev.id === updatedPlace.id ? { ...prev, ...updatedPlace } : prev
-    );
   }, []);
 
   const filteredPersonalPlaces = activeFilter
@@ -227,6 +232,9 @@ export default function App() {
       )}
       {isMobile && activeTab === "notify" && <NotificationTab onUnreadChange={setUnreadCount} />}
       {isMobile && activeTab === "profile" && <ProfilePage />}
+      {isMobile && activeTab === "feed" && (
+        <ActivityFeed onPlaceClick={handleActivityPlaceClick} />
+      )}
 
       {/* 사이드바 토글 (데스크탑) */}
       {!isMobile && (
@@ -268,6 +276,7 @@ export default function App() {
             onToggleFollowing={handleToggleFollowing}
             followingList={followingList}
             onFollowChange={loadFollowingList}
+            onActivityPlaceClick={handleActivityPlaceClick}
           />
         </div>
       )}
@@ -292,10 +301,8 @@ export default function App() {
         />
       )}
 
-      {/* 현재 위치 버튼 */}
       <LocationButton map={mapRef.current} />
 
-      {/* 맛집 상세 패널 */}
       {selectedRestaurant && (
         <RestaurantPanel
           restaurant={selectedRestaurant}
@@ -308,7 +315,6 @@ export default function App() {
         />
       )}
 
-      {/* 하단 탭바 (모바일) */}
       {isMobile && (
         <BottomTabBar
           activeTab={activeTab}

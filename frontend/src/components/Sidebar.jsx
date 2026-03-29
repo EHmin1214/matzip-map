@@ -5,15 +5,16 @@ import FollowTab from "./FollowTab";
 import SavePlaceModal from "./SavePlaceModal";
 import ProfilePage from "./ProfilePage";
 import NotificationTab from "./NotificationTab";
+import ActivityFeed from "./ActivityFeed";
 
 export default function Sidebar({
-  selectedAccountIds, onToggleAccount,
   apiBase, onAddPersonalPlace,
   personalPlaces, showPersonal, setShowPersonal, onDeletePersonalPlace,
   unreadCount, onUnreadChange,
   selectedFollowingIds, onToggleFollowing,
   followingList = [],
   onFollowChange,
+  onActivityPlaceClick,
 }) {
   const [sidebarTab, setSidebarTab] = useState("my");
   const [message, setMessage] = useState("");
@@ -23,6 +24,7 @@ export default function Sidebar({
 
   const TABS = [
     { id: "my",      label: "맛집" },
+    { id: "feed",    label: "피드" },
     { id: "follow",  label: "팔로우" },
     { id: "notify",  label: "알림", badge: unreadCount },
     { id: "profile", label: "프로필" },
@@ -80,30 +82,31 @@ export default function Sidebar({
         <div style={{
           display: "flex", background: "#f8f8f8",
           borderBottom: "1px solid #f0f0f0",
-          padding: "8px 8px", gap: 4,
+          padding: "6px 6px", gap: 3,
+          overflowX: "auto",
         }}>
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setSidebarTab(tab.id)}
               style={{
-                flex: 1, padding: "7px 0",
+                flex: "0 0 auto", padding: "6px 8px",
                 border: "none", borderRadius: 8,
-                fontSize: 11, fontWeight: 600, cursor: "pointer",
+                fontSize: 10, fontWeight: 600, cursor: "pointer",
                 transition: "all 0.2s",
                 background: sidebarTab === tab.id ? "white" : "transparent",
                 color: sidebarTab === tab.id ? "#E8593C" : "#888",
                 boxShadow: sidebarTab === tab.id ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
-                position: "relative",
+                position: "relative", whiteSpace: "nowrap",
               }}
             >
               {tab.label}
               {tab.badge > 0 && (
                 <span style={{
-                  position: "absolute", top: 2, right: 4,
+                  position: "absolute", top: 2, right: 2,
                   background: "#E8593C", color: "white",
-                  borderRadius: "50%", width: 14, height: 14,
-                  fontSize: 9, fontWeight: 700,
+                  borderRadius: "50%", width: 12, height: 12,
+                  fontSize: 8, fontWeight: 700,
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
                   {tab.badge > 9 ? "9+" : tab.badge}
@@ -113,18 +116,21 @@ export default function Sidebar({
           ))}
         </div>
 
+        {sidebarTab === "feed" && (
+          <div style={{ flex: 1, overflow: "hidden" }}>
+            <ActivityFeed embedded onPlaceClick={onActivityPlaceClick} />
+          </div>
+        )}
         {sidebarTab === "follow" && (
           <div style={{ flex: 1, overflow: "hidden" }}>
             <FollowTab onViewMap={() => {}} embedded onFollowChange={onFollowChange} />
           </div>
         )}
-
         {sidebarTab === "notify" && (
           <div style={{ flex: 1, overflow: "hidden" }}>
             <NotificationTab embedded onUnreadChange={onUnreadChange} />
           </div>
         )}
-
         {sidebarTab === "profile" && (
           <div style={{ flex: 1, overflow: "hidden" }}>
             <ProfilePage embedded />
@@ -133,7 +139,6 @@ export default function Sidebar({
 
         {sidebarTab === "my" && (
           <div style={{ flex: 1, overflowY: "auto" }}>
-
             {/* 가게 검색 */}
             <div style={{ padding: "12px 16px", borderBottom: "1px solid #f0f0f0" }}>
               <p style={{ fontSize: 12, color: "#888", margin: "0 0 8px" }}>가게 검색</p>
@@ -145,34 +150,24 @@ export default function Sidebar({
                   placeholder="가게명 검색"
                   style={{ ...inputStyle, flex: 1 }}
                 />
-                <button
-                  onClick={searchPlace}
-                  disabled={searching}
-                  style={{
-                    padding: "7px 12px",
-                    background: searching ? "#f5f5f5" : "#1a1a1a",
-                    color: searching ? "#888" : "white",
-                    border: "none", borderRadius: 8,
-                    fontSize: 12, fontWeight: 600,
-                    cursor: searching ? "not-allowed" : "pointer",
-                    flexShrink: 0,
-                  }}
-                >
+                <button onClick={searchPlace} disabled={searching} style={{
+                  padding: "7px 12px",
+                  background: searching ? "#f5f5f5" : "#1a1a1a",
+                  color: searching ? "#888" : "white",
+                  border: "none", borderRadius: 8,
+                  fontSize: 12, fontWeight: 600,
+                  cursor: searching ? "not-allowed" : "pointer", flexShrink: 0,
+                }}>
                   {searching ? "..." : "검색"}
                 </button>
               </div>
-              {message && (
-                <p style={{ fontSize: 12, color: "#E8593C", margin: "6px 0 0" }}>{message}</p>
-              )}
+              {message && <p style={{ fontSize: 12, color: "#E8593C", margin: "6px 0 0" }}>{message}</p>}
             </div>
 
             {/* 내 맛집 목록 */}
             <div style={{ borderBottom: "1px solid #f0f0f0" }}>
               <div
-                style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "10px 16px", cursor: "pointer",
-                }}
+                style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", cursor: "pointer" }}
                 onClick={() => setShowPersonal(!showPersonal)}
               >
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -182,41 +177,23 @@ export default function Sidebar({
                 </div>
                 <span style={{ fontSize: 11, color: "#aaa" }}>{showPersonal ? "▲" : "▼"}</span>
               </div>
-
               {showPersonal && (
                 <div style={{ paddingBottom: 8 }}>
                   {personalPlaces.length === 0 && (
-                    <p style={{ fontSize: 12, color: "#bbb", padding: "0 16px 8px" }}>
-                      가게를 검색해서 추가해보세요
-                    </p>
+                    <p style={{ fontSize: 12, color: "#bbb", padding: "0 16px 8px" }}>가게를 검색해서 추가해보세요</p>
                   )}
                   {personalPlaces.map((place) => (
                     <div key={place.id} style={{ display: "flex", alignItems: "center", padding: "6px 16px", gap: 8 }}>
                       <span style={{ fontSize: 14, flexShrink: 0 }}>{statusEmoji(place.status)}</span>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{
-                          margin: 0, fontSize: 12, fontWeight: 600, color: "#1a1a1a",
-                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                        }}>{place.name}</p>
-                        {place.memo && (
-                          <p style={{
-                            margin: 0, fontSize: 10, color: "#aaa",
-                            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                          }}>{place.memo}</p>
-                        )}
+                        <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: "#1a1a1a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{place.name}</p>
+                        {place.memo && <p style={{ margin: 0, fontSize: 10, color: "#aaa", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{place.memo}</p>}
                       </div>
-                      {place.rating && (
-                        <span style={{ fontSize: 10, color: "#E8593C", flexShrink: 0 }}>⭐{place.rating}</span>
-                      )}
-                      <button
-                        onClick={() => onDeletePersonalPlace(place.id)}
-                        style={{
-                          fontSize: 11, padding: "3px 8px",
-                          border: "1px solid #ddd", borderRadius: 6,
-                          background: "white", color: "#888",
-                          cursor: "pointer", flexShrink: 0,
-                        }}
-                      >삭제</button>
+                      {place.rating && <span style={{ fontSize: 10, color: "#E8593C", flexShrink: 0 }}>⭐{place.rating}</span>}
+                      <button onClick={() => onDeletePersonalPlace(place.id)} style={{
+                        fontSize: 11, padding: "3px 8px", border: "1px solid #ddd", borderRadius: 6,
+                        background: "white", color: "#888", cursor: "pointer", flexShrink: 0,
+                      }}>삭제</button>
                     </div>
                   ))}
                 </div>
@@ -229,25 +206,18 @@ export default function Sidebar({
                 팔로잉 맛집 ({followingList.length})
               </p>
               {followingList.length === 0 ? (
-                <p style={{ fontSize: 12, color: "#bbb", padding: "0 16px" }}>
-                  팔로우한 사람이 없어요
-                </p>
+                <p style={{ fontSize: 12, color: "#bbb", padding: "0 16px" }}>팔로우한 사람이 없어요</p>
               ) : (
                 followingList.map((f, idx) => {
                   const color = getFollowingColor(idx);
                   const isSelected = selectedFollowingIds.includes(f.id);
                   return (
-                    <div
-                      key={f.id}
-                      style={{
-                        display: "flex", alignItems: "center",
-                        padding: "8px 16px",
-                        background: isSelected ? `${color}12` : "white",
-                        borderLeft: `3px solid ${isSelected ? color : "transparent"}`,
-                        cursor: "pointer", gap: 10, transition: "all 0.15s",
-                      }}
-                      onClick={() => onToggleFollowing(f.id)}
-                    >
+                    <div key={f.id} style={{
+                      display: "flex", alignItems: "center", padding: "8px 16px",
+                      background: isSelected ? `${color}12` : "white",
+                      borderLeft: `3px solid ${isSelected ? color : "transparent"}`,
+                      cursor: "pointer", gap: 10, transition: "all 0.15s",
+                    }} onClick={() => onToggleFollowing(f.id)}>
                       <div style={{
                         width: 16, height: 16, borderRadius: 4,
                         border: `1.5px solid ${isSelected ? color : "#ddd"}`,
@@ -264,13 +234,8 @@ export default function Sidebar({
                         {f.nickname?.[0]?.toUpperCase()}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{
-                          margin: 0, fontSize: 13, fontWeight: 600, color: "#1a1a1a",
-                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                        }}>{f.nickname}</p>
-                        {f.place_count !== undefined && (
-                          <p style={{ margin: 0, fontSize: 11, color: "#aaa" }}>맛집 {f.place_count}개</p>
-                        )}
+                        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#1a1a1a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.nickname}</p>
+                        {f.place_count !== undefined && <p style={{ margin: 0, fontSize: 11, color: "#aaa" }}>맛집 {f.place_count}개</p>}
                       </div>
                       <div style={{ width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0 }} />
                     </div>
@@ -283,11 +248,7 @@ export default function Sidebar({
       </div>
 
       {pendingPlace && (
-        <SavePlaceModal
-          place={pendingPlace}
-          onSave={onAddPersonalPlace}
-          onClose={() => setPendingPlace(null)}
-        />
+        <SavePlaceModal place={pendingPlace} onSave={onAddPersonalPlace} onClose={() => setPendingPlace(null)} />
       )}
     </>
   );

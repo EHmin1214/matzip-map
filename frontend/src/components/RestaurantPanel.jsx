@@ -7,15 +7,16 @@ import SavePlaceModal from "./SavePlaceModal";
 
 export default function RestaurantPanel({
   restaurant, accounts, onClose, onHide, apiBase, sidebarWidth = 280,
-  onPlaceUpdated, // 수정 후 App.js 상태 갱신용
+  onPlaceUpdated,
 }) {
   const { user } = useUser();
-  const r = restaurant;
+  const [r, setR] = useState(restaurant); // ← 로컬 상태로 관리해서 즉시 반영
   const [adResult, setAdResult] = useState(null);
   const [adLoading, setAdLoading] = useState(false);
-
-  // 수정 모달
   const [editModalOpen, setEditModalOpen] = useState(false);
+
+  // 이웃
+  const [neighbors, setNeighbors] = useState([]);
 
   // 좋아요 / 댓글
   const [liked, setLiked] = useState(false);
@@ -25,9 +26,23 @@ export default function RestaurantPanel({
   const [submittingComment, setSubmittingComment] = useState(false);
   const [showComments, setShowComments] = useState(false);
 
+  // restaurant prop 바뀔 때 로컬 상태 동기화
+  useEffect(() => {
+    setR(restaurant);
+  }, [restaurant?.id]);
+
   const isPersonalMine = r.isPersonal && (!r.user_id || (user && r.user_id === user.user_id));
   const isOthersPlace = r.isPersonal && r.user_id && user && r.user_id !== user.user_id;
 
+  // 이웃 로드
+  useEffect(() => {
+    if (!r.isPersonal || !r.id) return;
+    axios.get(`${API_BASE}/places/${r.id}/neighbors?viewer_id=${user?.user_id || ""}`)
+      .then((res) => setNeighbors(res.data))
+      .catch(() => {});
+  }, [r?.id, r?.isPersonal, user?.user_id]);
+
+  // 좋아요/댓글 로드
   useEffect(() => {
     if (!isOthersPlace || !r.id) return;
     axios.get(`${API_BASE}/places/${r.id}/comments`)
@@ -49,8 +64,7 @@ export default function RestaurantPanel({
     setSubmittingComment(true);
     try {
       const res = await axios.post(`${API_BASE}/places/${r.id}/comments`, {
-        content: commentInput.trim(),
-        user_id: user.user_id,
+        content: commentInput.trim(), user_id: user.user_id,
       });
       setComments((prev) => [...prev, res.data]);
       setCommentInput("");
@@ -68,9 +82,9 @@ export default function RestaurantPanel({
     } catch (e) {}
   };
 
-  // 맛집 수정 저장
+  // ✅ 수정 저장 — API 호출 후 로컬 + 부모 상태 즉시 반영
   const handleEditSave = async (updated) => {
-    await axios.patch(
+    const res = await axios.patch(
       `${API_BASE}/personal-places/${r.id}?user_id=${user.user_id}`,
       {
         folder_id: updated.folder_id,
@@ -80,7 +94,11 @@ export default function RestaurantPanel({
         instagram_post_url: updated.instagram_post_url,
       }
     );
-    if (onPlaceUpdated) onPlaceUpdated({ ...r, ...updated });
+    const updatedPlace = res.data;
+    // 로컬 상태 즉시 업데이트
+    setR((prev) => ({ ...prev, ...updatedPlace }));
+    // 부모(App.js) 상태도 업데이트
+    if (onPlaceUpdated) onPlaceUpdated({ ...r, ...updatedPlace });
   };
 
   const checkAds = useCallback(async () => {
@@ -91,12 +109,9 @@ export default function RestaurantPanel({
         address_hint: r.address ? r.address.split(" ").slice(0, 2).join(" ") : null,
       });
       setAdResult(res.data);
-    } catch (e) {
-      console.error("광고 분석 실패", e);
-    } finally {
-      setAdLoading(false);
-    }
-  }, [r, apiBase]); // eslint-disable-line
+    } catch (e) {}
+    finally { setAdLoading(false); }
+  }, [r?.name, apiBase]); // eslint-disable-line
 
   useEffect(() => {
     if (!r) return;
@@ -105,6 +120,7 @@ export default function RestaurantPanel({
     setLikeCount(0);
     setComments([]);
     setShowComments(false);
+    setNeighbors([]);
     if (!r.isPersonal) checkAds();
   }, [r?.id]); // eslint-disable-line
 
@@ -160,13 +176,9 @@ export default function RestaurantPanel({
                   </span>
                 )}
                 {r.rating > 0 && (
-                  <span style={{ fontSize: 12, color: "#E8593C" }}>
-                    {"⭐".repeat(r.rating)}
-                  </span>
+                  <span style={{ fontSize: 12, color: "#E8593C" }}>{"⭐".repeat(r.rating)}</span>
                 )}
-                {r.memo && (
-                  <span style={{ fontSize: 12, color: "#888" }}>💬 {r.memo}</span>
-                )}
+                {r.memo && <span style={{ fontSize: 12, color: "#888" }}>💬 {r.memo}</span>}
                 {r.instagram_post_url && (
                   <a href={r.instagram_post_url} target="_blank" rel="noreferrer"
                     style={{ fontSize: 12, color: "#E8593C", textDecoration: "none" }}>
@@ -178,37 +190,28 @@ export default function RestaurantPanel({
           </div>
 
           <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-            {/* 수정 버튼 (내 맛집만) */}
             {isPersonalMine && (
-              <button
-                onClick={() => setEditModalOpen(true)}
-                title="수정"
+              <button onClick={() => setEditModalOpen(true)} title="수정"
                 style={{
                   background: "#fff0ed", border: "none", borderRadius: "50%",
                   width: 32, height: 32, cursor: "pointer", fontSize: 14,
                   display: "flex", alignItems: "center", justifyContent: "center",
-                }}
-              >✏️</button>
+                }}>✏️</button>
             )}
             {!isOthersPlace && (
-              <button
-                onClick={() => onHide(r.id, r.isPersonal)}
-                title="삭제"
+              <button onClick={() => onHide(r.id, r.isPersonal)} title="삭제"
                 style={{
                   background: "#f5f5f5", border: "none", borderRadius: "50%",
                   width: 32, height: 32, cursor: "pointer", fontSize: 14,
                   display: "flex", alignItems: "center", justifyContent: "center", color: "#888",
-                }}
-              >🗑</button>
+                }}>🗑</button>
             )}
-            <button
-              onClick={onClose}
+            <button onClick={onClose}
               style={{
                 background: "#f5f5f5", border: "none", borderRadius: "50%",
                 width: 32, height: 32, cursor: "pointer", fontSize: 16,
                 display: "flex", alignItems: "center", justifyContent: "center",
-              }}
-            >×</button>
+              }}>×</button>
           </div>
         </div>
 
@@ -224,36 +227,67 @@ export default function RestaurantPanel({
           </a>
         )}
 
-        {/* 좋아요 + 댓글 (팔로잉 유저 맛집) */}
+        {/* ── 이웃 표시 ── */}
+        {neighbors.length > 0 && (
+          <div style={{ marginBottom: 16 }}>
+            <p style={{ fontSize: 12, color: "#888", margin: "0 0 8px", fontWeight: 600 }}>
+              함께 저장한 이웃 ({neighbors.length})
+            </p>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {neighbors.map((n) => (
+                <div key={n.user_id} style={{
+                  display: "flex", alignItems: "center", gap: 6,
+                  background: "#f8f8f8", borderRadius: 20,
+                  padding: "6px 10px", border: "1px solid #f0f0f0",
+                }}>
+                  <div style={{
+                    width: 22, height: 22, borderRadius: "50%",
+                    background: "linear-gradient(135deg, #3B8BD4, #7F77DD)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 10, color: "white", fontWeight: 700, flexShrink: 0,
+                  }}>
+                    {n.nickname?.[0]?.toUpperCase()}
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "#555" }}>{n.nickname}</span>
+                  {n.status && (
+                    <span style={{ fontSize: 12 }}>
+                      {n.status === "want_to_go" ? "🔖"
+                        : n.status === "visited" ? "✅"
+                        : n.status === "want_revisit" ? "❤️"
+                        : "👎"}
+                    </span>
+                  )}
+                  {n.rating && <span style={{ fontSize: 11, color: "#E8593C" }}>⭐{n.rating}</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── 좋아요 + 댓글 ── */}
         {isOthersPlace && (
           <div style={{ marginBottom: 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-              <button
-                onClick={handleLike}
-                style={{
-                  display: "flex", alignItems: "center", gap: 6,
-                  padding: "8px 16px",
-                  background: liked ? "#fff0ed" : "#f5f5f5",
-                  border: `1.5px solid ${liked ? "#E8593C" : "#eee"}`,
-                  borderRadius: 20, cursor: "pointer",
-                  fontSize: 14, fontWeight: 600,
-                  color: liked ? "#E8593C" : "#888",
-                }}
-              >
+              <button onClick={handleLike} style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "8px 16px",
+                background: liked ? "#fff0ed" : "#f5f5f5",
+                border: `1.5px solid ${liked ? "#E8593C" : "#eee"}`,
+                borderRadius: 20, cursor: "pointer",
+                fontSize: 14, fontWeight: 600,
+                color: liked ? "#E8593C" : "#888",
+              }}>
                 {liked ? "❤️" : "🤍"} {likeCount > 0 ? likeCount : "좋아요"}
               </button>
-              <button
-                onClick={() => setShowComments(!showComments)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 6,
-                  padding: "8px 16px",
-                  background: showComments ? "#f0f4ff" : "#f5f5f5",
-                  border: `1.5px solid ${showComments ? "#3B8BD4" : "#eee"}`,
-                  borderRadius: 20, cursor: "pointer",
-                  fontSize: 14, fontWeight: 600,
-                  color: showComments ? "#3B8BD4" : "#888",
-                }}
-              >
+              <button onClick={() => setShowComments(!showComments)} style={{
+                display: "flex", alignItems: "center", gap: 6,
+                padding: "8px 16px",
+                background: showComments ? "#f0f4ff" : "#f5f5f5",
+                border: `1.5px solid ${showComments ? "#3B8BD4" : "#eee"}`,
+                borderRadius: 20, cursor: "pointer",
+                fontSize: 14, fontWeight: 600,
+                color: showComments ? "#3B8BD4" : "#888",
+              }}>
                 💬 {comments.length > 0 ? comments.length : "댓글"}
               </button>
             </div>
@@ -281,10 +315,10 @@ export default function RestaurantPanel({
                             <span style={{ fontSize: 12, fontWeight: 700, color: "#333" }}>{c.author_nickname}</span>
                             <span style={{ fontSize: 10, color: "#ccc" }}>{formatTime(c.created_at)}</span>
                             {user && c.user_id === user.user_id && (
-                              <button
-                                onClick={() => handleDeleteComment(c.id)}
-                                style={{ background: "none", border: "none", fontSize: 10, color: "#ccc", cursor: "pointer", marginLeft: "auto" }}
-                              >삭제</button>
+                              <button onClick={() => handleDeleteComment(c.id)}
+                                style={{ background: "none", border: "none", fontSize: 10, color: "#ccc", cursor: "pointer", marginLeft: "auto" }}>
+                                삭제
+                              </button>
                             )}
                           </div>
                           <p style={{ margin: "2px 0 0", fontSize: 13, color: "#444" }}>{c.content}</p>
@@ -294,8 +328,7 @@ export default function RestaurantPanel({
                   </div>
                 )}
                 <div style={{ display: "flex", gap: 8 }}>
-                  <input
-                    value={commentInput}
+                  <input value={commentInput}
                     onChange={(e) => setCommentInput(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleComment()}
                     placeholder="댓글 입력..."
@@ -307,8 +340,7 @@ export default function RestaurantPanel({
                     onFocus={(e) => e.target.style.borderColor = "#E8593C"}
                     onBlur={(e) => e.target.style.borderColor = "#eee"}
                   />
-                  <button
-                    onClick={handleComment}
+                  <button onClick={handleComment}
                     disabled={submittingComment || !commentInput.trim()}
                     style={{
                       padding: "8px 14px",
@@ -317,8 +349,9 @@ export default function RestaurantPanel({
                       border: "none", borderRadius: 20,
                       fontSize: 13, fontWeight: 700,
                       cursor: commentInput.trim() ? "pointer" : "not-allowed",
-                    }}
-                  >{submittingComment ? "..." : "전송"}</button>
+                    }}>
+                    {submittingComment ? "..." : "전송"}
+                  </button>
                 </div>
               </div>
             )}
@@ -353,23 +386,6 @@ export default function RestaurantPanel({
                   <span>🟡 의심 {adResult.suspicious_count}개</span>
                   <span>🟢 순수 {adResult.genuine_count}개</span>
                 </div>
-                {adResult.posts.filter(p => p.is_ad || p.is_suspicious).length > 0 && (
-                  <div style={{ marginTop: 12 }}>
-                    <p style={{ fontSize: 11, fontWeight: 600, color: "#555", margin: "0 0 6px" }}>광고/의심 게시물</p>
-                    {adResult.posts.filter(p => p.is_ad || p.is_suspicious).slice(0, 5).map((p, i) => (
-                      <a key={i} href={p.post_url} target="_blank" rel="noreferrer" style={{
-                        display: "flex", alignItems: "center", gap: 8, padding: "6px 8px", marginBottom: 4,
-                        background: "rgba(255,255,255,0.7)", borderRadius: 8, textDecoration: "none",
-                      }}>
-                        <span style={{ fontSize: 12 }}>{p.is_ad ? "🔴" : "🟡"}</span>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ margin: 0, fontSize: 11, color: "#333", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.post_title}</p>
-                          {p.matched_keywords.length > 0 && <p style={{ margin: 0, fontSize: 10, color: "#888" }}>키워드: {p.matched_keywords.join(", ")}</p>}
-                        </div>
-                      </a>
-                    ))}
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -406,7 +422,6 @@ export default function RestaurantPanel({
         )}
       </div>
 
-      {/* 수정 모달 */}
       {editModalOpen && (
         <SavePlaceModal
           place={r}
