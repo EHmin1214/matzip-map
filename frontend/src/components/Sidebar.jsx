@@ -1,6 +1,7 @@
 // src/components/Sidebar.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
+import { useUser, API_BASE } from "../context/UserContext";
 import FollowTab from "./FollowTab";
 import SavePlaceModal from "./SavePlaceModal";
 import ProfilePage from "./ProfilePage";
@@ -16,11 +17,14 @@ export default function Sidebar({
   onFollowChange,
   onActivityPlaceClick,
 }) {
+  const { user } = useUser();
   const [sidebarTab, setSidebarTab] = useState("my");
   const [message, setMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [pendingPlace, setPendingPlace] = useState(null);
+  const [collapsedFolders, setCollapsedFolders] = useState(new Set());
+  const [folders, setFolders] = useState([]); // 폴더 목록
 
   const TABS = [
     { id: "my",      label: "맛집" },
@@ -29,6 +33,14 @@ export default function Sidebar({
     { id: "notify",  label: "알림", badge: unreadCount },
     { id: "profile", label: "프로필" },
   ];
+
+  // 폴더 목록 로드
+  useEffect(() => {
+    if (!user) return;
+    axios.get(`${API_BASE}/folders/?user_id=${user.user_id}`)
+      .then((res) => setFolders(res.data))
+      .catch(() => {});
+  }, [user, personalPlaces]); // personalPlaces 바뀔 때도 갱신
 
   const searchPlace = async () => {
     if (!searchQuery.trim()) return;
@@ -60,6 +72,38 @@ export default function Sidebar({
     return "📍";
   };
 
+  const toggleFolder = (key) => {
+    setCollapsedFolders((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
+  // folder_id → 폴더 정보
+  const getFolderInfo = (folderId) => {
+    if (!folderId) return { name: "미분류", color: "#aaa" };
+    const f = folders.find((f) => f.id === folderId);
+    return f ? { name: f.name, color: f.color } : { name: `폴더 ${folderId}`, color: "#888" };
+  };
+
+  // 폴더별 그룹핑
+  const folderGroups = {};
+  personalPlaces.forEach((p) => {
+    const key = p.folder_id ? String(p.folder_id) : "none";
+    if (!folderGroups[key]) folderGroups[key] = [];
+    folderGroups[key].push(p);
+  });
+
+  // 폴더 순서: 폴더 있는 것 먼저, 미분류 나중
+  const folderOrder = [
+    ...Object.keys(folderGroups).filter((k) => k !== "none"),
+    ...(folderGroups["none"] ? ["none"] : []),
+  ];
+
+  const hasMultipleFolders = folderOrder.length > 1;
+
   const FOLLOWING_COLORS = ["#3B8BD4", "#1D9E75", "#BA7517", "#7F77DD", "#D4537E", "#0F6E56"];
   const getFollowingColor = (idx) => FOLLOWING_COLORS[idx % FOLLOWING_COLORS.length];
 
@@ -78,32 +122,34 @@ export default function Sidebar({
           </h1>
         </div>
 
-        {/* 탭바 */}
+        {/* 탭바 — flex:1 로 균등 분할 */}
         <div style={{
-          display: "flex", background: "#f8f8f8",
+          display: "flex",
+          background: "#f8f8f8",
           borderBottom: "1px solid #f0f0f0",
-          padding: "6px 6px", gap: 3,
-          overflowX: "auto",
+          padding: "6px",
+          gap: 3,
         }}>
           {TABS.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setSidebarTab(tab.id)}
               style={{
-                flex: "0 0 auto", padding: "6px 8px",
+                flex: 1,
+                padding: "7px 0",
                 border: "none", borderRadius: 8,
                 fontSize: 10, fontWeight: 600, cursor: "pointer",
                 transition: "all 0.2s",
                 background: sidebarTab === tab.id ? "white" : "transparent",
                 color: sidebarTab === tab.id ? "#E8593C" : "#888",
                 boxShadow: sidebarTab === tab.id ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
-                position: "relative", whiteSpace: "nowrap",
+                position: "relative",
               }}
             >
               {tab.label}
               {tab.badge > 0 && (
                 <span style={{
-                  position: "absolute", top: 2, right: 2,
+                  position: "absolute", top: 1, right: 2,
                   background: "#E8593C", color: "white",
                   borderRadius: "50%", width: 12, height: 12,
                   fontSize: 8, fontWeight: 700,
@@ -137,8 +183,10 @@ export default function Sidebar({
           </div>
         )}
 
+        {/* 맛집 탭 */}
         {sidebarTab === "my" && (
           <div style={{ flex: 1, overflowY: "auto" }}>
+
             {/* 가게 검색 */}
             <div style={{ padding: "12px 16px", borderBottom: "1px solid #f0f0f0" }}>
               <p style={{ fontSize: 12, color: "#888", margin: "0 0 8px" }}>가게 검색</p>
@@ -154,8 +202,7 @@ export default function Sidebar({
                   padding: "7px 12px",
                   background: searching ? "#f5f5f5" : "#1a1a1a",
                   color: searching ? "#888" : "white",
-                  border: "none", borderRadius: 8,
-                  fontSize: 12, fontWeight: 600,
+                  border: "none", borderRadius: 8, fontSize: 12, fontWeight: 600,
                   cursor: searching ? "not-allowed" : "pointer", flexShrink: 0,
                 }}>
                   {searching ? "..." : "검색"}
@@ -164,7 +211,7 @@ export default function Sidebar({
               {message && <p style={{ fontSize: 12, color: "#E8593C", margin: "6px 0 0" }}>{message}</p>}
             </div>
 
-            {/* 내 맛집 목록 */}
+            {/* 내 맛집 — 폴더별 그룹 */}
             <div style={{ borderBottom: "1px solid #f0f0f0" }}>
               <div
                 style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 16px", cursor: "pointer" }}
@@ -177,25 +224,89 @@ export default function Sidebar({
                 </div>
                 <span style={{ fontSize: 11, color: "#aaa" }}>{showPersonal ? "▲" : "▼"}</span>
               </div>
+
               {showPersonal && (
                 <div style={{ paddingBottom: 8 }}>
                   {personalPlaces.length === 0 && (
-                    <p style={{ fontSize: 12, color: "#bbb", padding: "0 16px 8px" }}>가게를 검색해서 추가해보세요</p>
+                    <p style={{ fontSize: 12, color: "#bbb", padding: "0 16px 8px" }}>
+                      가게를 검색해서 추가해보세요
+                    </p>
                   )}
-                  {personalPlaces.map((place) => (
-                    <div key={place.id} style={{ display: "flex", alignItems: "center", padding: "6px 16px", gap: 8 }}>
-                      <span style={{ fontSize: 14, flexShrink: 0 }}>{statusEmoji(place.status)}</span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: "#1a1a1a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{place.name}</p>
-                        {place.memo && <p style={{ margin: 0, fontSize: 10, color: "#aaa", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{place.memo}</p>}
+
+                  {folderOrder.map((key) => {
+                    const places = folderGroups[key] || [];
+                    const isNone = key === "none";
+                    const folderInfo = isNone ? { name: "미분류", color: "#aaa" } : getFolderInfo(Number(key));
+                    const isCollapsed = collapsedFolders.has(key);
+
+                    return (
+                      <div key={key}>
+                        {/* 폴더 헤더 — 폴더가 여러 개일 때만 표시 */}
+                        {hasMultipleFolders && (
+                          <div
+                            style={{
+                              display: "flex", alignItems: "center", gap: 6,
+                              padding: "6px 16px 4px",
+                              cursor: "pointer",
+                              background: "#fafafa",
+                            }}
+                            onClick={() => toggleFolder(key)}
+                          >
+                            <div style={{
+                              width: 10, height: 10, borderRadius: 2,
+                              background: folderInfo.color, flexShrink: 0,
+                            }} />
+                            <span style={{ fontSize: 11, fontWeight: 700, color: "#555" }}>
+                              {folderInfo.name}
+                            </span>
+                            <span style={{ fontSize: 10, color: "#bbb" }}>({places.length})</span>
+                            <span style={{ fontSize: 10, color: "#ccc", marginLeft: "auto" }}>
+                              {isCollapsed ? "▼" : "▲"}
+                            </span>
+                          </div>
+                        )}
+
+                        {/* 맛집 목록 */}
+                        {!isCollapsed && places.map((place) => (
+                          <div key={place.id} style={{
+                            display: "flex", alignItems: "center",
+                            padding: hasMultipleFolders ? "6px 16px 6px 26px" : "6px 16px",
+                            gap: 8,
+                          }}>
+                            {/* 폴더 색상 인디케이터 */}
+                            {!isNone && (
+                              <div style={{
+                                width: 3, height: 30, borderRadius: 2,
+                                background: folderInfo.color, flexShrink: 0,
+                              }} />
+                            )}
+                            <span style={{ fontSize: 14, flexShrink: 0 }}>{statusEmoji(place.status)}</span>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{
+                                margin: 0, fontSize: 12, fontWeight: 600, color: "#1a1a1a",
+                                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                              }}>{place.name}</p>
+                              {place.memo && (
+                                <p style={{
+                                  margin: 0, fontSize: 10, color: "#aaa",
+                                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                                }}>{place.memo}</p>
+                              )}
+                            </div>
+                            {place.rating > 0 && (
+                              <span style={{ fontSize: 10, color: "#E8593C", flexShrink: 0 }}>⭐{place.rating}</span>
+                            )}
+                            <button onClick={() => onDeletePersonalPlace(place.id)} style={{
+                              fontSize: 11, padding: "3px 8px",
+                              border: "1px solid #ddd", borderRadius: 6,
+                              background: "white", color: "#888",
+                              cursor: "pointer", flexShrink: 0,
+                            }}>삭제</button>
+                          </div>
+                        ))}
                       </div>
-                      {place.rating && <span style={{ fontSize: 10, color: "#E8593C", flexShrink: 0 }}>⭐{place.rating}</span>}
-                      <button onClick={() => onDeletePersonalPlace(place.id)} style={{
-                        fontSize: 11, padding: "3px 8px", border: "1px solid #ddd", borderRadius: 6,
-                        background: "white", color: "#888", cursor: "pointer", flexShrink: 0,
-                      }}>삭제</button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -206,7 +317,9 @@ export default function Sidebar({
                 팔로잉 맛집 ({followingList.length})
               </p>
               {followingList.length === 0 ? (
-                <p style={{ fontSize: 12, color: "#bbb", padding: "0 16px" }}>팔로우한 사람이 없어요</p>
+                <p style={{ fontSize: 12, color: "#bbb", padding: "0 16px" }}>
+                  팔로우한 사람이 없어요
+                </p>
               ) : (
                 followingList.map((f, idx) => {
                   const color = getFollowingColor(idx);
@@ -234,8 +347,13 @@ export default function Sidebar({
                         {f.nickname?.[0]?.toUpperCase()}
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: "#1a1a1a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.nickname}</p>
-                        {f.place_count !== undefined && <p style={{ margin: 0, fontSize: 11, color: "#aaa" }}>맛집 {f.place_count}개</p>}
+                        <p style={{
+                          margin: 0, fontSize: 13, fontWeight: 600, color: "#1a1a1a",
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        }}>{f.nickname}</p>
+                        {f.place_count !== undefined && (
+                          <p style={{ margin: 0, fontSize: 11, color: "#aaa" }}>맛집 {f.place_count}개</p>
+                        )}
                       </div>
                       <div style={{ width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0 }} />
                     </div>
@@ -248,7 +366,11 @@ export default function Sidebar({
       </div>
 
       {pendingPlace && (
-        <SavePlaceModal place={pendingPlace} onSave={onAddPersonalPlace} onClose={() => setPendingPlace(null)} />
+        <SavePlaceModal
+          place={pendingPlace}
+          onSave={onAddPersonalPlace}
+          onClose={() => setPendingPlace(null)}
+        />
       )}
     </>
   );
