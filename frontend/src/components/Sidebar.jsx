@@ -1,21 +1,19 @@
 // src/components/Sidebar.jsx
 import { useState } from "react";
 import axios from "axios";
-import { getAccountColor } from "../App";
 import FollowTab from "./FollowTab";
 import SavePlaceModal from "./SavePlaceModal";
 import ProfilePage from "./ProfilePage";
 import NotificationTab from "./NotificationTab";
 
 export default function Sidebar({
-  accounts, setAccounts,
   selectedAccountIds, onToggleAccount,
   apiBase, onAddPersonalPlace,
   personalPlaces, showPersonal, setShowPersonal, onDeletePersonalPlace,
   unreadCount, onUnreadChange,
   selectedFollowingIds, onToggleFollowing,
-  followingList = [],       // ← App.js에서 직접 받음
-  onFollowChange,           // ← 팔로우/언팔 후 App.js 갱신용
+  followingList = [],
+  onFollowChange,
 }) {
   const [sidebarTab, setSidebarTab] = useState("my");
   const [message, setMessage] = useState("");
@@ -60,10 +58,7 @@ export default function Sidebar({
     return "📍";
   };
 
-  const FOLLOWING_COLORS = [
-    "#3B8BD4", "#1D9E75", "#BA7517",
-    "#7F77DD", "#D4537E", "#0F6E56",
-  ];
+  const FOLLOWING_COLORS = ["#3B8BD4", "#1D9E75", "#BA7517", "#7F77DD", "#D4537E", "#0F6E56"];
   const getFollowingColor = (idx) => FOLLOWING_COLORS[idx % FOLLOWING_COLORS.length];
 
   return (
@@ -118,32 +113,24 @@ export default function Sidebar({
           ))}
         </div>
 
-        {/* 팔로우 탭 */}
         {sidebarTab === "follow" && (
           <div style={{ flex: 1, overflow: "hidden" }}>
-            <FollowTab
-              onViewMap={() => {}}
-              embedded
-              onFollowChange={onFollowChange}
-            />
+            <FollowTab onViewMap={() => {}} embedded onFollowChange={onFollowChange} />
           </div>
         )}
 
-        {/* 알림 탭 */}
         {sidebarTab === "notify" && (
           <div style={{ flex: 1, overflow: "hidden" }}>
             <NotificationTab embedded onUnreadChange={onUnreadChange} />
           </div>
         )}
 
-        {/* 프로필 탭 */}
         {sidebarTab === "profile" && (
           <div style={{ flex: 1, overflow: "hidden" }}>
             <ProfilePage embedded />
           </div>
         )}
 
-        {/* 맛집 탭 */}
         {sidebarTab === "my" && (
           <div style={{ flex: 1, overflowY: "auto" }}>
 
@@ -236,7 +223,7 @@ export default function Sidebar({
               )}
             </div>
 
-            {/* 팔로잉 맛집 레이어 — App.js의 followingList 직접 사용 */}
+            {/* 팔로잉 레이어 */}
             <div style={{ padding: "8px 0" }}>
               <p style={{ fontSize: 12, color: "#888", padding: "4px 16px 8px" }}>
                 팔로잉 맛집 ({followingList.length})
@@ -257,50 +244,35 @@ export default function Sidebar({
                         padding: "8px 16px",
                         background: isSelected ? `${color}12` : "white",
                         borderLeft: `3px solid ${isSelected ? color : "transparent"}`,
-                        cursor: "pointer", gap: 10,
-                        transition: "all 0.15s",
+                        cursor: "pointer", gap: 10, transition: "all 0.15s",
                       }}
                       onClick={() => onToggleFollowing(f.id)}
                     >
-                      {/* 체크박스 */}
                       <div style={{
                         width: 16, height: 16, borderRadius: 4,
                         border: `1.5px solid ${isSelected ? color : "#ddd"}`,
-                        background: isSelected ? color : "white",
-                        flexShrink: 0,
+                        background: isSelected ? color : "white", flexShrink: 0,
                         display: "flex", alignItems: "center", justifyContent: "center",
                       }}>
                         {isSelected && <span style={{ color: "white", fontSize: 10 }}>✓</span>}
                       </div>
-
-                      {/* 아바타 */}
                       <div style={{
-                        width: 28, height: 28, borderRadius: "50%",
-                        background: color,
+                        width: 28, height: 28, borderRadius: "50%", background: color,
                         display: "flex", alignItems: "center", justifyContent: "center",
                         fontSize: 12, color: "white", fontWeight: 700, flexShrink: 0,
                       }}>
                         {f.nickname?.[0]?.toUpperCase()}
                       </div>
-
-                      {/* 닉네임 + 맛집 수 */}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{
                           margin: 0, fontSize: 13, fontWeight: 600, color: "#1a1a1a",
                           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                         }}>{f.nickname}</p>
                         {f.place_count !== undefined && (
-                          <p style={{ margin: 0, fontSize: 11, color: "#aaa" }}>
-                            맛집 {f.place_count}개
-                          </p>
+                          <p style={{ margin: 0, fontSize: 11, color: "#aaa" }}>맛집 {f.place_count}개</p>
                         )}
                       </div>
-
-                      {/* 색상 점 */}
-                      <div style={{
-                        width: 8, height: 8, borderRadius: "50%",
-                        background: color, flexShrink: 0,
-                      }} />
+                      <div style={{ width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0 }} />
                     </div>
                   );
                 })
@@ -310,7 +282,6 @@ export default function Sidebar({
         )}
       </div>
 
-      {/* 저장 모달 */}
       {pendingPlace && (
         <SavePlaceModal
           place={pendingPlace}

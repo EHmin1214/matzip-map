@@ -31,8 +31,8 @@ export default function App() {
   const [unreadCount, setUnreadCount] = useState(0);
   const mapRef = useRef(null);
 
-  const [accounts, setAccounts] = useState([]);
-  const [selectedAccountIds, setSelectedAccountIds] = useState([]);
+  const [accounts] = useState([]);                    // 블로거 크롤링 — 표시만 유지, 추가 UI 제거
+  const [selectedAccountIds] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   const [hiddenIds, setHiddenIds] = useState(new Set());
@@ -55,17 +55,10 @@ export default function App() {
   }, [user]);
 
   useEffect(() => {
-    axios.get(`${API_BASE}/accounts/`).then((res) => setAccounts(res.data));
-  }, []);
-
-  useEffect(() => {
     if (user) {
       axios.get(`${API_BASE}/personal-places/?user_id=${user.user_id}`)
         .then((res) => setPersonalPlaces(res.data))
-        .catch(() => {
-          axios.get(`${API_BASE}/personal-places/`)
-            .then((res) => setPersonalPlaces(res.data));
-        });
+        .catch(() => {});
       loadFollowingList();
     }
   }, [user, loadFollowingList]);
@@ -82,10 +75,11 @@ export default function App() {
     return () => clearInterval(interval);
   }, [user]);
 
+  // 기존 크롤링 맛집 — 선택된 계정 있을 때만 로드 (기능 유지)
   useEffect(() => {
+    if (selectedAccountIds.length === 0) { setRestaurants([]); return; }
     const params = selectedAccountIds.map((id) => `account_ids=${id}`).join("&");
-    const url = `${API_BASE}/restaurants/${params ? "?" + params : ""}`;
-    axios.get(url).then((res) => setRestaurants(res.data));
+    axios.get(`${API_BASE}/restaurants/?${params}`).then((res) => setRestaurants(res.data));
   }, [selectedAccountIds]);
 
   const handleToggleFollowing = useCallback(async (targetUserId) => {
@@ -99,9 +93,7 @@ export default function App() {
               const publicPlaces = res.data.filter((p) => p.is_public !== false);
               setFollowingPlacesMap((m) => ({ ...m, [targetUserId]: publicPlaces }));
             })
-            .catch(() => {
-              setFollowingPlacesMap((m) => ({ ...m, [targetUserId]: [] }));
-            });
+            .catch(() => setFollowingPlacesMap((m) => ({ ...m, [targetUserId]: [] })));
         }
         return [...prev, targetUserId];
       }
@@ -118,12 +110,6 @@ export default function App() {
     };
   });
 
-  const toggleAccount = (id) => {
-    setSelectedAccountIds((prev) =>
-      prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]
-    );
-  };
-
   const handleMarkerClick = useCallback(async (restaurantId, isPersonal = false) => {
     if (isPersonal) {
       const place = personalPlaces.find((p) => `personal_${p.id}` === restaurantId);
@@ -135,6 +121,17 @@ export default function App() {
     setSelectedRestaurant(res.data);
     if (isMobile) setSidebarOpen(false);
   }, [personalPlaces, isMobile]);
+
+  // ✅ 팔로잉 마커 클릭 — place 데이터 직접 받아서 패널 열기
+  const handleFollowingMarkerClick = useCallback((place) => {
+    setSelectedRestaurant({
+      ...place,
+      sources: [],
+      isPersonal: true,
+      // user_id가 있으면 남의 맛집으로 인식
+    });
+    if (isMobile) setSidebarOpen(false);
+  }, [isMobile]);
 
   const hideRestaurant = useCallback((restaurantId, isPersonal = false) => {
     if (isPersonal) {
@@ -169,8 +166,7 @@ export default function App() {
       const res = await axios.post(url, payload);
       setPersonalPlaces((prev) => {
         const exists = prev.find((p) => p.id === res.data.id);
-        if (exists) return prev;
-        return [...prev, res.data];
+        return exists ? prev : [...prev, res.data];
       });
       if (isMobile) setSidebarOpen(false);
     } catch (e) {
@@ -183,7 +179,6 @@ export default function App() {
     setPersonalPlaces((prev) => prev.filter((p) => p.id !== placeId));
   }, [user]);
 
-  // 맛집 수정 후 상태 갱신
   const handlePlaceUpdated = useCallback((updatedPlace) => {
     setPersonalPlaces((prev) =>
       prev.map((p) => p.id === updatedPlace.id ? { ...p, ...updatedPlace } : p)
@@ -261,11 +256,6 @@ export default function App() {
           flexShrink: 0,
         }}>
           <Sidebar
-            accounts={accounts}
-            setAccounts={setAccounts}
-            selectedAccountIds={selectedAccountIds}
-            onToggleAccount={toggleAccount}
-            onAccountAdded={(acc) => setAccounts((prev) => [...prev, acc])}
             apiBase={API_BASE}
             onAddPersonalPlace={addPersonalPlace}
             personalPlaces={personalPlaces}
@@ -290,6 +280,7 @@ export default function App() {
         onMarkerClick={handleMarkerClick}
         onMapReady={(map) => { mapRef.current = map; }}
         followingPlaces={followingPlaces}
+        onFollowingMarkerClick={handleFollowingMarkerClick}
       />
 
       {/* 상태별 필터 */}
