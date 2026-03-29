@@ -8,3 +8,4 @@ beautifulsoup4
 anthropic
 instaloader
 apscheduler
+bcrypt
