@@ -3,8 +3,11 @@ import { useState } from "react";
 import axios from "axios";
 import { useUser, API_BASE } from "../context/UserContext";
 
+const isMobile = () => window.innerWidth <= 768;
+
 export default function ProfilePage({ embedded = false }) {
   const { user, updateUser, logout } = useUser();
+  const mobile = isMobile();
   const [editing, setEditing] = useState(false);
   const [nickname, setNickname] = useState(user?.nickname || "");
   const [instagramUrl, setInstagramUrl] = useState(user?.instagram_url || "");
@@ -80,20 +83,22 @@ export default function ProfilePage({ embedded = false }) {
     }
   };
 
-  const handleLogout = () => {
-    if (window.confirm("로그아웃 할까요?")) logout();
-  };
-
   const containerStyle = embedded
     ? { height: "100%", overflowY: "auto", background: "white" }
-    : { position: "fixed", inset: 0, background: "#f8f8f8", overflowY: "auto", paddingBottom: 80, zIndex: 20 };
+    : {
+        position: "fixed", inset: 0, background: "#f8f8f8",
+        overflowY: "auto",
+        paddingBottom: mobile ? 80 : 0,
+        zIndex: 20,
+        WebkitOverflowScrolling: "touch",
+      };
 
   const cardStyle = {
-    background: embedded ? "#f8f8f8" : "white",
-    borderRadius: 16, padding: "20px 16px",
-    border: embedded ? "1px solid #f0f0f0" : "none",
-    boxShadow: embedded ? "none" : "0 1px 8px rgba(0,0,0,0.06)",
-    marginBottom: 16,
+    background: "white",
+    borderRadius: 16,
+    padding: mobile ? "20px 18px" : "20px 16px",
+    marginBottom: 14,
+    boxShadow: "0 1px 8px rgba(0,0,0,0.06)",
   };
 
   return (
@@ -108,35 +113,35 @@ export default function ProfilePage({ embedded = false }) {
         </div>
       )}
 
-      <div style={{ padding: embedded ? "16px 12px" : "20px 16px" }}>
+      <div style={{ padding: embedded ? "16px 12px" : mobile ? "16px" : "20px 16px" }}>
 
         {/* 프로필 카드 */}
         <div style={cardStyle}>
           {/* 아바타 + 닉네임 */}
-          <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
             <div style={{
-              width: 56, height: 56, borderRadius: "50%",
+              width: mobile ? 64 : 56, height: mobile ? 64 : 56,
+              borderRadius: "50%",
               background: "linear-gradient(135deg, #E8593C, #ff8a65)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 24, color: "white", fontWeight: 800, flexShrink: 0,
+              fontSize: mobile ? 28 : 24, color: "white", fontWeight: 800, flexShrink: 0,
             }}>
               {user.nickname?.[0]?.toUpperCase()}
             </div>
             <div>
-              <p style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#1a1a1a" }}>
+              <p style={{ margin: 0, fontSize: mobile ? 20 : 18, fontWeight: 800, color: "#1a1a1a" }}>
                 {user.nickname}
               </p>
-              {/* 링크 표시 */}
-              <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
+              <div style={{ display: "flex", gap: 12, marginTop: 6 }}>
                 {user.instagram_url && (
                   <a href={user.instagram_url} target="_blank" rel="noreferrer"
-                    style={{ fontSize: 12, color: "#E8593C", textDecoration: "none" }}>
+                    style={{ fontSize: 13, color: "#E8593C", textDecoration: "none" }}>
                     📷 Instagram
                   </a>
                 )}
                 {user.blog_url && (
                   <a href={user.blog_url} target="_blank" rel="noreferrer"
-                    style={{ fontSize: 12, color: "#3B8BD4", textDecoration: "none" }}>
+                    style={{ fontSize: 13, color: "#3B8BD4", textDecoration: "none" }}>
                     ✍️ 블로그
                   </a>
                 )}
@@ -144,22 +149,23 @@ export default function ProfilePage({ embedded = false }) {
             </div>
           </div>
 
-          {/* 공개 설정 토글 */}
+          {/* 공개 설정 */}
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "12px 0", borderTop: "1px solid #f5f5f5", borderBottom: "1px solid #f5f5f5",
+            padding: "14px 0",
+            borderTop: "1px solid #f5f5f5", borderBottom: "1px solid #f5f5f5",
             marginBottom: 16,
           }}>
             <div>
-              <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#333" }}>내 지도 공개</p>
-              <p style={{ margin: "2px 0 0", fontSize: 11, color: "#aaa" }}>
-                {isPublic ? "누구나 내 맛집을 팔로우할 수 있어요" : "나만 볼 수 있어요"}
+              <p style={{ margin: 0, fontSize: mobile ? 15 : 14, fontWeight: 700, color: "#333" }}>내 지도 공개</p>
+              <p style={{ margin: "3px 0 0", fontSize: 12, color: "#aaa" }}>
+                {isPublic ? "누구나 내 맛집을 팔로우할 수 있어요" : "비공개 — 팔로우 요청으로만 볼 수 있어요"}
               </p>
             </div>
             <Toggle value={isPublic} onChange={handlePublicToggle} />
           </div>
 
-          {/* 수정 폼 */}
+          {/* 수정 */}
           {!editing ? (
             <button
               onClick={() => {
@@ -169,10 +175,11 @@ export default function ProfilePage({ embedded = false }) {
                 setEditing(true);
               }}
               style={{
-                width: "100%", padding: "10px",
-                border: "1.5px solid #E8593C", borderRadius: 10,
+                width: "100%", padding: mobile ? "13px" : "10px",
+                border: "1.5px solid #E8593C", borderRadius: 12,
                 background: "white", color: "#E8593C",
-                fontSize: 14, fontWeight: 700, cursor: "pointer",
+                fontSize: mobile ? 15 : 14, fontWeight: 700, cursor: "pointer",
+                WebkitTapHighlightColor: "transparent",
               }}
             >
               프로필 수정
@@ -180,42 +187,46 @@ export default function ProfilePage({ embedded = false }) {
           ) : (
             <div>
               <Label>닉네임</Label>
-              <input value={nickname} onChange={(e) => setNickname(e.target.value)} style={inputStyle} />
+              <Input value={nickname} onChange={(e) => setNickname(e.target.value)} mobile={mobile} />
 
-              <Label style={{ marginTop: 10 }}>인스타그램 링크</Label>
-              <input
+              <Label style={{ marginTop: 12 }}>인스타그램 링크</Label>
+              <Input
                 value={instagramUrl}
                 onChange={(e) => setInstagramUrl(e.target.value)}
                 placeholder="https://instagram.com/your_id"
-                style={inputStyle}
+                mobile={mobile}
               />
 
-              <Label style={{ marginTop: 10 }}>블로그 링크</Label>
-              <input
+              <Label style={{ marginTop: 12 }}>블로그 링크</Label>
+              <Input
                 value={blogUrl}
                 onChange={(e) => setBlogUrl(e.target.value)}
                 placeholder="https://blog.naver.com/your_id"
-                style={inputStyle}
+                mobile={mobile}
               />
 
-              {error && <p style={{ color: "#E8593C", fontSize: 12, marginTop: 6 }}>{error}</p>}
+              {error && <p style={{ color: "#E8593C", fontSize: 13, marginTop: 8 }}>{error}</p>}
 
-              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+              <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
                 <button
                   onClick={() => { setEditing(false); setError(""); }}
                   style={{
-                    flex: 1, padding: "10px", border: "1px solid #ddd",
-                    borderRadius: 10, background: "white", color: "#888",
-                    fontSize: 13, cursor: "pointer",
+                    flex: 1, padding: mobile ? "13px" : "10px",
+                    border: "1px solid #ddd", borderRadius: 12,
+                    background: "white", color: "#888",
+                    fontSize: mobile ? 15 : 13, cursor: "pointer",
+                    WebkitTapHighlightColor: "transparent",
                   }}
                 >취소</button>
                 <button
-                  onClick={handleSave}
-                  disabled={saving}
+                  onClick={handleSave} disabled={saving}
                   style={{
-                    flex: 1, padding: "10px", border: "none", borderRadius: 10,
+                    flex: 1, padding: mobile ? "13px" : "10px",
+                    border: "none", borderRadius: 12,
                     background: saving ? "#ccc" : "#E8593C", color: "white",
-                    fontSize: 13, fontWeight: 700, cursor: saving ? "not-allowed" : "pointer",
+                    fontSize: mobile ? 15 : 13, fontWeight: 700,
+                    cursor: saving ? "not-allowed" : "pointer",
+                    WebkitTapHighlightColor: "transparent",
                   }}
                 >{saving ? "저장 중..." : "저장"}</button>
               </div>
@@ -223,7 +234,7 @@ export default function ProfilePage({ embedded = false }) {
           )}
 
           {successMsg && (
-            <p style={{ color: "#1D9E75", fontSize: 13, textAlign: "center", marginTop: 10 }}>
+            <p style={{ color: "#1D9E75", fontSize: 14, textAlign: "center", marginTop: 12 }}>
               ✓ {successMsg}
             </p>
           )}
@@ -232,44 +243,47 @@ export default function ProfilePage({ embedded = false }) {
         {/* PIN 변경 */}
         <div style={cardStyle}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <p style={{ margin: 0, fontSize: 14, fontWeight: 700, color: "#333" }}>PIN 번호 변경</p>
+            <p style={{ margin: 0, fontSize: mobile ? 15 : 14, fontWeight: 700, color: "#333" }}>PIN 번호 변경</p>
             <button
               onClick={() => { setShowPinChange(!showPinChange); setPinError(""); }}
               style={{
-                padding: "6px 12px", border: "1px solid #ddd", borderRadius: 8,
-                background: "white", fontSize: 12, color: "#888", cursor: "pointer",
+                padding: "8px 14px", minHeight: 40,
+                border: "1px solid #ddd", borderRadius: 10,
+                background: "white", fontSize: 13, color: "#888", cursor: "pointer",
+                WebkitTapHighlightColor: "transparent",
               }}
             >{showPinChange ? "취소" : "변경"}</button>
           </div>
 
           {showPinChange && (
-            <div style={{ marginTop: 14 }}>
+            <div style={{ marginTop: 16 }}>
               <Label>현재 PIN</Label>
               <input
                 type="password" inputMode="numeric" maxLength={4}
                 value={currentPin}
                 onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
                 placeholder="현재 PIN 4자리"
-                style={{ ...inputStyle, textAlign: "center", letterSpacing: 8 }}
+                style={{ ...inputBaseStyle(mobile), textAlign: "center", letterSpacing: 10 }}
               />
-              <Label style={{ marginTop: 10 }}>새 PIN</Label>
+              <Label style={{ marginTop: 12 }}>새 PIN</Label>
               <input
                 type="password" inputMode="numeric" maxLength={4}
                 value={newPin}
                 onChange={(e) => setNewPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
                 placeholder="새 PIN 4자리"
-                style={{ ...inputStyle, textAlign: "center", letterSpacing: 8 }}
+                style={{ ...inputBaseStyle(mobile), textAlign: "center", letterSpacing: 10 }}
               />
-              {pinError && <p style={{ color: "#E8593C", fontSize: 12, marginTop: 6 }}>{pinError}</p>}
+              {pinError && <p style={{ color: "#E8593C", fontSize: 13, marginTop: 8 }}>{pinError}</p>}
               <button
-                onClick={handlePinChange}
-                disabled={pinSaving}
+                onClick={handlePinChange} disabled={pinSaving}
                 style={{
-                  width: "100%", marginTop: 12, padding: "10px",
-                  border: "none", borderRadius: 10,
+                  width: "100%", marginTop: 14,
+                  padding: mobile ? "13px" : "10px",
+                  border: "none", borderRadius: 12,
                   background: pinSaving ? "#ccc" : "#E8593C",
-                  color: "white", fontSize: 13, fontWeight: 700,
+                  color: "white", fontSize: mobile ? 15 : 13, fontWeight: 700,
                   cursor: pinSaving ? "not-allowed" : "pointer",
+                  WebkitTapHighlightColor: "transparent",
                 }}
               >{pinSaving ? "변경 중..." : "PIN 변경"}</button>
             </div>
@@ -278,18 +292,17 @@ export default function ProfilePage({ embedded = false }) {
 
         {/* 로그아웃 */}
         <button
-          onClick={handleLogout}
+          onClick={() => { if (window.confirm("로그아웃 할까요?")) logout(); }}
           style={{
-            width: "100%", padding: "14px",
+            width: "100%", padding: mobile ? "15px" : "14px",
             border: "1.5px solid #ffcdd2", borderRadius: 14,
             background: "white", color: "#e53935",
-            fontSize: 14, fontWeight: 700, cursor: "pointer",
+            fontSize: mobile ? 16 : 14, fontWeight: 700, cursor: "pointer",
+            WebkitTapHighlightColor: "transparent",
           }}
         >로그아웃</button>
 
-        <p style={{ fontSize: 11, color: "#ccc", textAlign: "center", marginTop: 12 }}>
-          맛집 지도 v2.0
-        </p>
+        <p style={{ fontSize: 12, color: "#ddd", textAlign: "center", marginTop: 16 }}>맛집 지도 v2.0</p>
       </div>
     </div>
   );
@@ -298,15 +311,16 @@ export default function ProfilePage({ embedded = false }) {
 function Toggle({ value, onChange }) {
   return (
     <div onClick={onChange} style={{
-      width: 48, height: 26, borderRadius: 13,
+      width: 52, height: 30, borderRadius: 15,
       background: value ? "#E8593C" : "#ddd",
       position: "relative", cursor: "pointer",
       transition: "background 0.2s", flexShrink: 0,
+      WebkitTapHighlightColor: "transparent",
     }}>
       <div style={{
         position: "absolute", top: 3,
         left: value ? 25 : 3,
-        width: 20, height: 20, borderRadius: "50%",
+        width: 24, height: 24, borderRadius: "50%",
         background: "white", boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
         transition: "left 0.2s",
       }} />
@@ -316,14 +330,26 @@ function Toggle({ value, onChange }) {
 
 function Label({ children, style }) {
   return (
-    <p style={{ margin: "0 0 4px", fontSize: 12, fontWeight: 600, color: "#888", ...style }}>
+    <p style={{ margin: "0 0 6px", fontSize: 13, fontWeight: 600, color: "#888", ...style }}>
       {children}
     </p>
   );
 }
 
-const inputStyle = {
-  width: "100%", padding: "10px 12px",
-  border: "1.5px solid #f0f0f0", borderRadius: 10,
-  fontSize: 13, outline: "none", boxSizing: "border-box",
-};
+function Input({ value, onChange, placeholder, mobile }) {
+  return (
+    <input
+      value={value} onChange={onChange} placeholder={placeholder}
+      style={inputBaseStyle(mobile)}
+      onFocus={(e) => e.target.style.borderColor = "#E8593C"}
+      onBlur={(e) => e.target.style.borderColor = "#f0f0f0"}
+    />
+  );
+}
+
+const inputBaseStyle = (mobile) => ({
+  width: "100%", padding: mobile ? "13px 14px" : "10px 12px",
+  border: "1.5px solid #f0f0f0", borderRadius: 12,
+  fontSize: mobile ? 15 : 13, outline: "none",
+  boxSizing: "border-box", WebkitAppearance: "none",
+});
