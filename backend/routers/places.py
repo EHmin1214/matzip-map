@@ -144,6 +144,8 @@ class NotificationResponse(BaseModel):
 
 def _parse_photo_urls(p: PersonalPlace) -> list[str]:
     """photo_urls JSON 파싱. photo_url만 있으면 [photo_url] 반환."""
+    import logging
+    logger = logging.getLogger(__name__)
     urls = []
     if p.photo_urls:
         try:
@@ -152,6 +154,7 @@ def _parse_photo_urls(p: PersonalPlace) -> list[str]:
             pass
     if not urls and p.photo_url:
         urls = [p.photo_url]
+    logger.info(f"[_parse_photo_urls] place={p.id} photo_url={p.photo_url} photo_urls_raw={p.photo_urls} parsed={urls}")
     return urls
 
 

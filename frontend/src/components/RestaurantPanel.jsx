@@ -137,7 +137,7 @@ export default function RestaurantPanel({
       { folder_id: updated.folder_id, status: updated.status, rating: updated.rating, memo: updated.memo, photo_url: updated.photo_url, photo_urls: updated.photo_urls, instagram_post_url: updated.instagram_post_url }
     );
     const updatedPlace = res.data;
-    console.log("[EditSave] response photo_urls:", updatedPlace.photo_urls);
+    console.log("[EditSave] full response:", JSON.stringify(updatedPlace));
     setR((prev) => ({ ...prev, ...updatedPlace }));
     if (onPlaceUpdated) onPlaceUpdated({ ...r, ...updatedPlace });
   };
