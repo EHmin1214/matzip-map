@@ -5,8 +5,8 @@ const FL = "'Manrope', -apple-system, sans-serif";
 const TABS = [
   { id: "map",     icon: "map",           label: "홈" },
   { id: "search",  icon: "search",        label: "검색" },
-  { id: "follow",  icon: "group",         label: "팔로우" },
-  { id: "updates", icon: "auto_stories",  label: "업데이트" },
+  { id: "feed",          icon: "auto_stories",  label: "피드" },
+  { id: "notifications", icon: "notifications", label: "알림" },
   { id: "profile", icon: null,            label: "프로필" },
 ];
 
@@ -26,7 +26,7 @@ export default function BottomTabBar({ activeTab, onTabChange, unreadCount = 0, 
     }}>
       {TABS.map((tab) => {
         const isActive = activeTab === tab.id;
-        const hasUnread = tab.id === "updates" && unreadCount > 0;
+        const hasUnread = tab.id === "notifications" && unreadCount > 0;
         const isProfile = tab.id === "profile";
         return (
           <button
@@ -50,7 +50,14 @@ export default function BottomTabBar({ activeTab, onTabChange, unreadCount = 0, 
               }} />
             )}
 
-            {isProfile ? (
+            {isProfile && !userNickname ? (
+              <span className="material-symbols-outlined" style={{
+                fontSize: 22, marginBottom: 2,
+                fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24",
+              }}>
+                login
+              </span>
+            ) : isProfile ? (
               <div style={{
                 width: 24, height: 24, borderRadius: "50%",
                 background: isActive
@@ -63,7 +70,7 @@ export default function BottomTabBar({ activeTab, onTabChange, unreadCount = 0, 
                 border: isActive ? "2px solid #655d54" : "2px solid transparent",
                 transition: "all 0.2s",
               }}>
-                {userNickname?.[0]?.toUpperCase() || "?"}
+                {userNickname?.[0]?.toUpperCase()}
               </div>
             ) : (
               <span className="material-symbols-outlined" style={{
@@ -81,7 +88,7 @@ export default function BottomTabBar({ activeTab, onTabChange, unreadCount = 0, 
               fontWeight: isActive ? 700 : 400,
               letterSpacing: "0.06em", textTransform: "uppercase",
             }}>
-              {tab.label}
+              {isProfile && !userNickname ? "로그인" : tab.label}
             </span>
           </button>
         );

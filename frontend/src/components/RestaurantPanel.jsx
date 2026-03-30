@@ -131,13 +131,11 @@ export default function RestaurantPanel({
   };
 
   const handleEditSave = async (updated) => {
-    console.log("[EditSave] sending photo_urls:", updated.photo_urls);
     const res = await axios.patch(
       `${API_BASE}/personal-places/${r.id}?user_id=${user.user_id}`,
       { folder_id: updated.folder_id, status: updated.status, rating: updated.rating, memo: updated.memo, photo_url: updated.photo_url, photo_urls: updated.photo_urls, instagram_post_url: updated.instagram_post_url }
     );
     const updatedPlace = res.data;
-    console.log("[EditSave] full response:", JSON.stringify(updatedPlace));
     setR((prev) => ({ ...prev, ...updatedPlace }));
     if (onPlaceUpdated) onPlaceUpdated({ ...r, ...updatedPlace });
   };

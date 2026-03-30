@@ -1,5 +1,5 @@
 // src/components/ProfilePage.jsx
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import { useUser, API_BASE } from "../context/UserContext";
 import { subscribePush, unsubscribePush, isPushSubscribed } from "../utils/pushNotifications";
@@ -353,6 +353,14 @@ export default function ProfilePage({ personalPlaces = [], onViewMap }) {
   const [pushLoading, setPushLoading] = useState(false);
   const pushSupported = "PushManager" in window;
 
+  // ── 팔로우 관리 state ──
+  const [followingList, setFollowingList] = useState([]);
+  const [followerList, setFollowerList]   = useState([]);
+  const [followSearch, setFollowSearch]   = useState("");
+  const [followSearchResults, setFollowSearchResults] = useState([]);
+  const [followSearching, setFollowSearching] = useState(false);
+  const [followActionLoading, setFollowActionLoading] = useState(null);
+
   useEffect(() => {
     isPushSubscribed().then(setPushEnabled);
   }, []);
@@ -369,6 +377,45 @@ export default function ProfilePage({ personalPlaces = [], onViewMap }) {
       }
     } catch (e) {}
     setPushLoading(false);
+  };
+
+  // ── 팔로우 목록 불러오기 ──
+  const fetchFollowLists = useCallback(() => {
+    if (!user) return;
+    axios.get(`${API_BASE}/follows/${user.user_id}/following`)
+      .then((res) => setFollowingList(res.data)).catch(() => {});
+    axios.get(`${API_BASE}/follows/${user.user_id}/followers`)
+      .then((res) => setFollowerList(res.data)).catch(() => {});
+  }, [user]);
+
+  useEffect(() => { fetchFollowLists(); }, [fetchFollowLists]);
+
+  const handleFollowSearch = async () => {
+    if (!followSearch.trim()) return;
+    setFollowSearching(true);
+    try {
+      const res = await axios.get(`${API_BASE}/users/search?q=${encodeURIComponent(followSearch.trim())}`);
+      const results = Array.isArray(res.data) ? res.data : (res.data ? [res.data] : []);
+      setFollowSearchResults(results.filter((u) => u.id !== user.user_id));
+    } catch {
+      setFollowSearchResults([]);
+    } finally { setFollowSearching(false); }
+  };
+
+  const handleFollow = async (targetId) => {
+    setFollowActionLoading(targetId);
+    try {
+      await axios.post(`${API_BASE}/follows/${targetId}?follower_id=${user.user_id}`);
+      fetchFollowLists();
+    } catch {} finally { setFollowActionLoading(null); }
+  };
+
+  const handleUnfollow = async (targetId) => {
+    setFollowActionLoading(targetId);
+    try {
+      await axios.delete(`${API_BASE}/follows/${targetId}?follower_id=${user.user_id}`);
+      fetchFollowLists();
+    } catch {} finally { setFollowActionLoading(null); }
   };
 
   if (!user) return null;
@@ -639,6 +686,188 @@ export default function ProfilePage({ personalPlaces = [], onViewMap }) {
         {/* ── 큐레이션 리스트 ─────────────────────────────── */}
         <Card>
           <CuratedLists personalPlaces={personalPlaces} />
+        </Card>
+
+        {/* ── 팔로우 관리 ──────────────────────────────── */}
+        <Card>
+          <p style={{
+            margin: "0 0 14px", fontFamily: FL, fontSize: 9, fontWeight: 700,
+            textTransform: "uppercase", letterSpacing: "0.15em", color: C.outlineVariant,
+          }}>
+            팔로우 — {followingList.length} 팔로잉 · {followerList.length} 팔로워
+          </p>
+
+          {/* 사용자 검색 */}
+          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+            <input
+              value={followSearch}
+              onChange={(e) => setFollowSearch(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleFollowSearch()}
+              placeholder="닉네임으로 검색"
+              style={{
+                flex: 1, padding: "9px 12px",
+                background: C.surfaceLow, border: "none", borderRadius: 8,
+                fontFamily: FL, fontSize: 12, color: C.onSurface,
+                outline: "none", boxSizing: "border-box",
+              }}
+            />
+            <button
+              onClick={handleFollowSearch}
+              disabled={followSearching}
+              style={{
+                padding: "9px 14px", border: "none", borderRadius: 8,
+                background: C.primary, color: "#fff6ef",
+                fontFamily: FL, fontSize: 11, fontWeight: 700,
+                cursor: followSearching ? "not-allowed" : "pointer",
+                opacity: followSearching ? 0.6 : 1,
+              }}
+            >
+              {followSearching ? "…" : "검색"}
+            </button>
+          </div>
+
+          {/* 검색 결과 */}
+          {followSearchResults.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <p style={{
+                margin: "0 0 8px", fontFamily: FL, fontSize: 10, fontWeight: 600,
+                color: C.onSurfaceVariant,
+              }}>
+                검색 결과
+              </p>
+              {followSearchResults.map((u) => {
+                const alreadyFollowing = followingList.some((f) => f.id === u.id || f.user_id === u.id);
+                return (
+                  <div key={u.id} style={{
+                    display: "flex", alignItems: "center", justifyContent: "space-between",
+                    padding: "8px 10px", borderRadius: 8,
+                    background: C.surfaceLow, marginBottom: 4,
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{
+                        width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+                        background: `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontFamily: FH, fontStyle: "italic",
+                        fontSize: 13, color: "#fff6ef", fontWeight: 700,
+                      }}>
+                        {u.nickname?.[0]?.toUpperCase()}
+                      </div>
+                      <span style={{ fontFamily: FL, fontSize: 13, fontWeight: 600, color: C.onSurface }}>
+                        {u.nickname}
+                      </span>
+                    </div>
+                    {alreadyFollowing ? (
+                      <span style={{ fontFamily: FL, fontSize: 10, color: C.outlineVariant }}>팔로잉</span>
+                    ) : (
+                      <button
+                        onClick={() => handleFollow(u.id)}
+                        disabled={followActionLoading === u.id}
+                        style={{
+                          padding: "5px 12px", border: "none", borderRadius: 6,
+                          background: C.primaryContainer, color: C.primary,
+                          fontFamily: FL, fontSize: 11, fontWeight: 700,
+                          cursor: followActionLoading === u.id ? "not-allowed" : "pointer",
+                          opacity: followActionLoading === u.id ? 0.6 : 1,
+                        }}
+                      >
+                        팔로우
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* 팔로잉 목록 */}
+          {followingList.length > 0 && (
+            <div style={{ marginBottom: 14 }}>
+              <p style={{
+                margin: "0 0 8px", fontFamily: FL, fontSize: 10, fontWeight: 600,
+                color: C.onSurfaceVariant,
+              }}>
+                팔로잉
+              </p>
+              {followingList.map((u) => (
+                <div key={u.id || u.user_id} style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "8px 10px", borderRadius: 8,
+                  background: C.surfaceLow, marginBottom: 4,
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{
+                      width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+                      background: `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontFamily: FH, fontStyle: "italic",
+                      fontSize: 13, color: "#fff6ef", fontWeight: 700,
+                    }}>
+                      {u.nickname?.[0]?.toUpperCase()}
+                    </div>
+                    <span style={{ fontFamily: FL, fontSize: 13, fontWeight: 600, color: C.onSurface }}>
+                      {u.nickname}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => handleUnfollow(u.id || u.user_id)}
+                    disabled={followActionLoading === (u.id || u.user_id)}
+                    style={{
+                      padding: "5px 12px",
+                      border: "1px solid rgba(158,66,44,0.2)",
+                      borderRadius: 6, background: "none",
+                      color: C.error, fontFamily: FL, fontSize: 11, fontWeight: 600,
+                      cursor: followActionLoading === (u.id || u.user_id) ? "not-allowed" : "pointer",
+                      opacity: followActionLoading === (u.id || u.user_id) ? 0.6 : 1,
+                    }}
+                  >
+                    언팔로우
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 팔로워 목록 */}
+          {followerList.length > 0 && (
+            <div>
+              <p style={{
+                margin: "0 0 8px", fontFamily: FL, fontSize: 10, fontWeight: 600,
+                color: C.onSurfaceVariant,
+              }}>
+                팔로워
+              </p>
+              {followerList.map((u) => (
+                <div key={u.id || u.user_id} style={{
+                  display: "flex", alignItems: "center",
+                  padding: "8px 10px", borderRadius: 8,
+                  background: C.surfaceLow, marginBottom: 4, gap: 10,
+                }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
+                    background: `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontFamily: FH, fontStyle: "italic",
+                    fontSize: 13, color: "#fff6ef", fontWeight: 700,
+                  }}>
+                    {u.nickname?.[0]?.toUpperCase()}
+                  </div>
+                  <span style={{ fontFamily: FL, fontSize: 13, fontWeight: 600, color: C.onSurface }}>
+                    {u.nickname}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {followingList.length === 0 && followerList.length === 0 && followSearchResults.length === 0 && (
+            <p style={{
+              fontFamily: FH, fontStyle: "italic", fontSize: 13,
+              color: C.outlineVariant, margin: 0, textAlign: "center",
+            }}>
+              닉네임을 검색해서 팔로우해보세요
+            </p>
+          )}
         </Card>
 
         {/* ── 나의 기록 피드 ──────────────────────────────── */}

@@ -7,9 +7,9 @@ import Sidebar from "./components/Sidebar";
 import RestaurantPanel from "./components/RestaurantPanel";
 import AuthScreen from "./components/AuthScreen";
 import BottomTabBar from "./components/BottomTabBar";
-import FollowTab from "./components/FollowTab";
 import ProfilePage from "./components/ProfilePage";
-import UpdatesTab from "./components/UpdatesTab";
+import FeedTab from "./components/FeedTab";
+import NotificationTab from "./components/NotificationTab";
 import SearchTab from "./components/SearchTab";
 import LocationButton from "./components/LocationButton";
 import MapFilter from "./components/MapFilter";
@@ -252,10 +252,10 @@ export default function App() {
   };
 
   const renderPanel = (tab) => {
-    if (tab === "search")  return <SearchTab onPlaceAdded={addPlace} personalPlaces={personalPlaces} />;
-    if (tab === "follow")  return <FollowTab onViewMap={() => setActiveTab("map")} onFollowChange={loadFollowingList} />;
-    if (tab === "updates") return <UpdatesTab onPlaceClick={handleActivityPlaceClick} onUnreadChange={setUnreadCount} unreadCount={unreadCount} />;
-    if (tab === "profile") return <ProfilePage personalPlaces={personalPlaces} onViewMap={() => setActiveTab("map")} />;
+    if (tab === "search")        return <SearchTab onPlaceAdded={addPlace} personalPlaces={personalPlaces} />;
+    if (tab === "feed")          return <FeedTab personalPlaces={personalPlaces} onPlaceClick={handleActivityPlaceClick} />;
+    if (tab === "notifications") return <NotificationTab onUnreadChange={setUnreadCount} />;
+    if (tab === "profile")       return <ProfilePage personalPlaces={personalPlaces} onViewMap={() => setActiveTab("map")} />;
     return null;
   };
 
@@ -398,10 +398,7 @@ export default function App() {
         <>
           {/* 사이드바 (항상 표시) */}
           <Sidebar
-            activeTab={activeTab} onTabChange={(tab) => {
-              setActiveTab(tab);
-              // 지도 탭으로 돌아올 때 패널 닫기
-            }}
+            activeTab={activeTab} onTabChange={handleTabChange}
             personalPlaces={personalPlaces}
             showPersonal={showPersonal} setShowPersonal={setShowPersonal}
             onDeletePersonalPlace={deletePersonalPlace}

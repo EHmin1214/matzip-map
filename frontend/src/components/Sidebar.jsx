@@ -20,8 +20,8 @@ const FL = "'Manrope', -apple-system, sans-serif";
 const NAV_ITEMS = [
   { id: "map",     icon: "map",          label: "홈" },
   { id: "search",  icon: "search",       label: "검색" },
-  { id: "follow",  icon: "group",        label: "팔로우" },
-  { id: "updates", icon: "auto_stories", label: "업데이트" },
+  { id: "feed",          icon: "auto_stories",  label: "피드" },
+  { id: "notifications", icon: "notifications", label: "알림" },
 ];
 
 const FOLLOWING_COLORS = ["#3B8BD4","#1D9E75","#BA7517","#7F77DD","#D4537E","#0F6E56"];
@@ -106,7 +106,7 @@ export default function Sidebar({
       <nav style={{ display: "flex", flexDirection: "column", gap: 0, marginBottom: 10 }}>
         {NAV_ITEMS.map((item) => {
           const isActive = activeTab === item.id;
-          const hasUnread = item.id === "updates" && unreadCount > 0;
+          const hasUnread = item.id === "notifications" && unreadCount > 0;
           return (
             <button
               key={item.id}
