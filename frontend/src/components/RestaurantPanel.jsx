@@ -67,14 +67,14 @@ export default function RestaurantPanel({
   }, [r?.id, r?.isPersonal, user?.user_id]);
 
   useEffect(() => {
-    if (!isOthersPlace || !r.id) return;
+    if (!r.isPersonal || !r.id) return;
     axios.get(`${API_BASE}/places/${r.id}/comments`)
       .then((res) => setComments(res.data)).catch(() => {});
-  }, [r?.id, isOthersPlace]);
+  }, [r?.id, r?.isPersonal]);
 
   useEffect(() => {
     if (!r) return;
-    setLiked(false); setLikeCount(0);
+    setLiked(false); setLikeCount(r.like_count || 0);
     setComments([]); setShowComments(false); setNeighbors([]);
     setGalleryIdx(0);
   }, [r?.id]); // eslint-disable-line
@@ -91,7 +91,7 @@ export default function RestaurantPanel({
   };
 
   const handleLike = async () => {
-    if (!user || !isOthersPlace) return;
+    if (!user || !r.isPersonal || !r.id) return;
     try {
       const res = await axios.post(`${API_BASE}/places/${r.id}/like?user_id=${user.user_id}`);
       setLiked(res.data.liked);
@@ -321,68 +321,88 @@ export default function RestaurantPanel({
     </div>
   ) : null;
 
-  const SocialBlock = isOthersPlace ? (
+  const SocialBlock = r.isPersonal && r.id ? (
     <div style={{ marginTop: 4 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+      {/* 액션 바 — 피드 스타일 */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
         <button onClick={handleLike} style={{
-          display: "flex", alignItems: "center", gap: 5,
-          background: liked ? C.primaryContainer : C.surfaceLow,
-          border: "none", borderRadius: 7, padding: "7px 14px",
-          fontFamily: FL, fontSize: 12, fontWeight: 600,
-          color: liked ? C.primary : C.outlineVariant,
-          cursor: "pointer", transition: "all 0.15s",
+          display: "flex", alignItems: "center", gap: 4,
+          background: "none", border: "none", cursor: "pointer", padding: 0,
+          color: liked ? "#D4537E" : C.onSurfaceVariant, transition: "color 0.15s",
         }}>
           <span className="material-symbols-outlined" style={{
-            fontSize: 15, fontVariationSettings: liked ? "'FILL' 1" : "'FILL' 0",
+            fontSize: 22, fontVariationSettings: liked ? "'FILL' 1" : "'FILL' 0",
           }}>favorite</span>
-          {likeCount > 0 ? likeCount : "좋아요"}
         </button>
         <button onClick={() => setShowComments(!showComments)} style={{
-          display: "flex", alignItems: "center", gap: 5,
-          background: showComments ? C.container : C.surfaceLow,
-          border: "none", borderRadius: 7, padding: "7px 14px",
-          fontFamily: FL, fontSize: 12, fontWeight: 600,
-          color: C.onSurfaceVariant, cursor: "pointer",
+          display: "flex", alignItems: "center", gap: 4,
+          background: "none", border: "none", cursor: "pointer", padding: 0,
+          color: C.onSurfaceVariant,
         }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 15 }}>chat_bubble_outline</span>
-          댓글 {comments.length > 0 ? comments.length : ""}
+          <span className="material-symbols-outlined" style={{ fontSize: 22 }}>chat_bubble_outline</span>
+        </button>
+        <button onClick={handleCenterMap} style={{
+          display: "flex", alignItems: "center", gap: 4,
+          background: "none", border: "none", cursor: "pointer", padding: 0,
+          color: C.onSurfaceVariant,
+        }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 22 }}>location_on</span>
         </button>
       </div>
+
+      {/* 좋아요 수 */}
+      {likeCount > 0 && (
+        <p style={{ margin: "0 0 4px", fontFamily: FL, fontSize: 12, fontWeight: 700, color: C.onSurface }}>
+          좋아요 {likeCount}개
+        </p>
+      )}
+
+      {/* 댓글 미리보기 */}
+      {comments.length > 0 && !showComments && (
+        <button onClick={() => setShowComments(true)} style={{
+          background: "none", border: "none", cursor: "pointer", padding: 0,
+          fontFamily: FL, fontSize: 12, color: C.outlineVariant, marginBottom: 4,
+        }}>
+          댓글 {comments.length}개 모두 보기
+        </button>
+      )}
+
+      {/* 댓글 펼침 */}
       {showComments && (
-        <div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
-            {comments.map((c) => (
-              <div key={c.id} style={{ background: C.surfaceLow, borderRadius: 8, padding: "10px 12px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                  <p style={{ margin: "0 0 3px", fontFamily: FL, fontSize: 11, fontWeight: 600, color: C.onSurface }}>{c.author_nickname}</p>
-                  {c.user_id === user?.user_id && (
-                    <button onClick={() => handleDeleteComment(c.id)} style={{
-                      background: "none", border: "none", fontFamily: FL, fontSize: 9,
-                      color: C.outlineVariant, cursor: "pointer", padding: 0,
-                    }}>삭제</button>
-                  )}
-                </div>
-                <p style={{ margin: 0, fontFamily: FL, fontSize: 12, color: C.onSurfaceVariant, lineHeight: 1.5 }}>{c.content}</p>
-              </div>
-            ))}
-          </div>
-          <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ marginTop: 6 }}>
+          {comments.map((c) => (
+            <div key={c.id} style={{ marginBottom: 4, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <p style={{ margin: 0, fontFamily: FL, fontSize: 12, color: C.onSurface, lineHeight: 1.5, flex: 1 }}>
+                <span style={{ fontWeight: 700 }}>{c.author_nickname}</span>{" "}
+                <span style={{ color: C.onSurfaceVariant }}>{c.content}</span>
+              </p>
+              {c.user_id === user?.user_id && (
+                <button onClick={() => handleDeleteComment(c.id)} style={{
+                  background: "none", border: "none", fontFamily: FL, fontSize: 9,
+                  color: C.outlineVariant, cursor: "pointer", padding: "0 0 0 8px", flexShrink: 0,
+                }}>삭제</button>
+              )}
+            </div>
+          ))}
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
             <input
               value={commentInput}
               onChange={(e) => setCommentInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleComment()}
-              placeholder="댓글 달기"
+              placeholder="댓글 달기..."
               style={{
-                flex: 1, padding: "9px 12px", background: C.surfaceLow, border: "none", borderRadius: 7,
-                fontFamily: FL, fontSize: 13, color: C.onSurface, outline: "none",
+                flex: 1, padding: "8px 0",
+                background: "none", border: "none", borderBottom: `1px solid ${C.container}`,
+                fontFamily: FL, fontSize: 12, color: C.onSurface, outline: "none",
               }}
             />
-            <button onClick={handleComment} disabled={submittingComment} style={{
-              padding: "9px 14px", background: C.primary, color: "#fff6ef",
-              border: "none", borderRadius: 7, fontFamily: FL, fontSize: 11, fontWeight: 600,
-              cursor: submittingComment ? "not-allowed" : "pointer",
-              opacity: submittingComment ? 0.6 : 1,
-            }}>올리기</button>
+            {commentInput.trim() && (
+              <button onClick={handleComment} disabled={submittingComment} style={{
+                background: "none", border: "none", cursor: "pointer",
+                fontFamily: FL, fontSize: 12, fontWeight: 700, color: C.primary,
+                padding: "8px 0", opacity: submittingComment ? 0.5 : 1,
+              }}>게시</button>
+            )}
           </div>
         </div>
       )}
@@ -404,7 +424,7 @@ export default function RestaurantPanel({
             position: "fixed",
             bottom: 64,
             left: 0, right: 0,
-            height: sheetMode === "full" ? "calc(100vh - 64px)" : peekHeight,
+            height: sheetMode === "full" ? "80vh" : peekHeight,
             background: C.bg,
             borderRadius: "18px 18px 0 0",
             boxShadow: "0 -8px 40px rgba(47,52,48,0.12)",
