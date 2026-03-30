@@ -23,7 +23,6 @@ const NAV_ITEMS = [
   { id: "search",  icon: "search",       label: "검색" },
   { id: "follow",  icon: "group",        label: "팔로우" },
   { id: "updates", icon: "auto_stories", label: "업데이트" },
-  { id: "profile", icon: "person_pin",   label: "프로필" },
 ];
 
 const FOLLOWING_COLORS = ["#3B8BD4","#1D9E75","#BA7517","#7F77DD","#D4537E","#0F6E56"];
@@ -68,7 +67,14 @@ export default function Sidebar({
       .then((res) => setFolders(res.data)).catch(() => {});
   }, [user]);
 
-  const savedPlaceIds = new Set(personalPlaces.map((p) => p.naver_place_id).filter(Boolean));
+  const isAlreadySaved = (place) => {
+    if (place.naver_place_id) {
+      if (personalPlaces.some((p) => p.naver_place_id === place.naver_place_id)) return true;
+    }
+    return personalPlaces.some((p) =>
+      p.name === place.name && p.address === place.address
+    );
+  };
 
   const searchPlace = async () => {
     if (!searchQuery.trim()) return;
@@ -78,7 +84,7 @@ export default function Sidebar({
       const results = Array.isArray(res.data) ? res.data : res.data ? [res.data] : [];
       if (results.length === 0) { setMessage("가게를 찾을 수 없어요"); setTimeout(() => setMessage(""), 2500); return; }
       const place = results[0];
-      if (place.naver_place_id && savedPlaceIds.has(place.naver_place_id)) {
+      if (isAlreadySaved(place)) {
         setMessage(`'${place.name}' 은(는) 이미 추가된 장소예요`); setTimeout(() => setMessage(""), 3000);
       } else {
         setPendingPlace(place); setSearchQuery("");
@@ -404,14 +410,21 @@ export default function Sidebar({
             + New Entry
           </button>
 
-          {/* 유저 카드 — tonal surface instead of border */}
+          {/* 유저 카드 — 클릭하면 프로필 */}
           {user && (
-            <div style={{
-              display: "flex", alignItems: "center", gap: 10,
-              padding: "10px 12px",
-              background: C.surfaceLow,
-              borderRadius: 8,
-            }}>
+            <div
+              onClick={() => onTabChange("profile")}
+              style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "10px 12px",
+                background: activeTab === "profile" ? C.primaryContainer : C.surfaceLow,
+                borderRadius: 8,
+                cursor: "pointer",
+                transition: "background 0.15s",
+              }}
+              onMouseEnter={(e) => { if (activeTab !== "profile") e.currentTarget.style.background = C.container; }}
+              onMouseLeave={(e) => { if (activeTab !== "profile") e.currentTarget.style.background = C.surfaceLow; }}
+            >
               <div style={{
                 width: 30, height: 30, borderRadius: "50%",
                 background: `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`,
@@ -424,8 +437,8 @@ export default function Sidebar({
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{
                   margin: 0, fontFamily: FL, fontSize: 11, fontWeight: 600,
-                  color: C.onSurface, overflow: "hidden",
-                  textOverflow: "ellipsis", whiteSpace: "nowrap",
+                  color: activeTab === "profile" ? C.primary : C.onSurface,
+                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                 }}>
                   {user.nickname}
                 </p>
@@ -433,6 +446,9 @@ export default function Sidebar({
                   Personal Curator
                 </p>
               </div>
+              <span className="material-symbols-outlined" style={{ fontSize: 16, color: C.outlineVariant }}>
+                chevron_right
+              </span>
             </div>
           )}
         </div>

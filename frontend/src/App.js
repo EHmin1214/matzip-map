@@ -307,7 +307,7 @@ export default function App() {
             />
           )}
 
-          <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} unreadCount={unreadCount} />
+          <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} unreadCount={unreadCount} userNickname={user?.nickname} />
         </>
       )}
 
@@ -363,22 +363,22 @@ export default function App() {
               }}
             />
 
-            {/* 지도 위 컨트롤 — 우측 세로 스택 */}
+            {/* 지도 위 컨트롤 — 우측 하단 세로 스택 */}
             <div style={{
               position: "absolute",
-              right: 14, top: 14,
+              right: 14, bottom: 14,
               display: "flex", flexDirection: "column",
               alignItems: "flex-end", gap: 8,
               zIndex: 26,
             }}>
               <RefreshButton onRefresh={handleRefresh} />
-              <LocationButton map={mapRef.current} />
               <MapFilter
                 activeFilter={activeFilter} onFilterChange={setActiveFilter}
                 followingList={[]} selectedFollowingIds={selectedFollowingIds}
                 onToggleFollowing={handleToggleFollowing}
                 showPersonal={showPersonal} onTogglePersonal={() => setShowPersonal((v) => !v)}
               />
+              <LocationButton map={mapRef.current} />
             </div>
           </div>
 

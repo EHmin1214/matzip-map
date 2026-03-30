@@ -1,16 +1,16 @@
 // src/components/BottomTabBar.jsx
+const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
 
-// 5개 탭 — 알림+피드 → updates 하나로
 const TABS = [
   { id: "map",     icon: "map",           label: "지도" },
   { id: "search",  icon: "search",        label: "검색" },
   { id: "follow",  icon: "group",         label: "팔로우" },
   { id: "updates", icon: "auto_stories",  label: "업데이트" },
-  { id: "profile", icon: "person_pin",    label: "프로필" },
+  { id: "profile", icon: null,            label: "프로필" },
 ];
 
-export default function BottomTabBar({ activeTab, onTabChange, unreadCount = 0 }) {
+export default function BottomTabBar({ activeTab, onTabChange, unreadCount = 0, userNickname }) {
   return (
     <nav style={{
       position: "fixed", bottom: 0, left: 0, right: 0,
@@ -27,6 +27,7 @@ export default function BottomTabBar({ activeTab, onTabChange, unreadCount = 0 }
       {TABS.map((tab) => {
         const isActive = activeTab === tab.id;
         const hasUnread = tab.id === "updates" && unreadCount > 0;
+        const isProfile = tab.id === "profile";
         return (
           <button
             key={tab.id}
@@ -41,7 +42,6 @@ export default function BottomTabBar({ activeTab, onTabChange, unreadCount = 0 }
               WebkitTapHighlightColor: "transparent",
             }}
           >
-            {/* 알림 배지 */}
             {hasUnread && (
               <div style={{
                 position: "absolute", top: 2, right: "calc(50% - 20px)",
@@ -50,17 +50,32 @@ export default function BottomTabBar({ activeTab, onTabChange, unreadCount = 0 }
               }} />
             )}
 
-            {/* 아이콘 */}
-            <span className="material-symbols-outlined" style={{
-              fontSize: 22, marginBottom: 2,
-              fontVariationSettings: isActive
-                ? "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24"
-                : "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24",
-            }}>
-              {tab.icon}
-            </span>
+            {isProfile ? (
+              <div style={{
+                width: 24, height: 24, borderRadius: "50%",
+                background: isActive
+                  ? "linear-gradient(135deg, #595149, #655d54)"
+                  : "rgba(47,52,48,0.12)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontFamily: FH, fontStyle: "italic",
+                fontSize: 11, color: isActive ? "#fff6ef" : "rgba(47,52,48,0.45)",
+                fontWeight: 700, marginBottom: 2,
+                border: isActive ? "2px solid #655d54" : "2px solid transparent",
+                transition: "all 0.2s",
+              }}>
+                {userNickname?.[0]?.toUpperCase() || "?"}
+              </div>
+            ) : (
+              <span className="material-symbols-outlined" style={{
+                fontSize: 22, marginBottom: 2,
+                fontVariationSettings: isActive
+                  ? "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24"
+                  : "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24",
+              }}>
+                {tab.icon}
+              </span>
+            )}
 
-            {/* 라벨 */}
             <span style={{
               fontFamily: FL, fontSize: 9,
               fontWeight: isActive ? 700 : 400,
