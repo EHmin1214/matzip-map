@@ -27,7 +27,7 @@ const myMarker = ({ name, status, shared = false, folderColor }) => {
   const dotColor = STATUS_DOT[status] || MY_PRIMARY;
   const bg = folderColor || MY_PRIMARY;
   return `
-    <div style="
+    <div class="map-pill" style="
       display:inline-flex;align-items:center;gap:5px;
       background:${bg};
       color:#fff6ef;
@@ -54,7 +54,7 @@ const myMarker = ({ name, status, shared = false, folderColor }) => {
 
 // 팔로잉 마커 — 프로필 아바타 + 이름
 const followingMarker = ({ name, color, nickname }) => `
-  <div style="
+  <div class="map-pill" style="
     display:inline-flex;align-items:center;gap:5px;
     background:${color};
     color:white;
@@ -80,7 +80,7 @@ const followingMarker = ({ name, color, nickname }) => `
 
 // 블로거 맛집 마커
 const blogMarker = ({ name, color }) => `
-  <div style="
+  <div class="map-pill" style="
     display:inline-flex;align-items:center;
     background:${color};
     color:white;
@@ -108,12 +108,49 @@ export default function MapView({
   const hasFitBounds = useRef(false);
   const activeMarkerRef = useRef(null);
 
+  // 마커 DOM 컨테이너 z-index 설정 (네이버 지도 내부 래퍼까지 올림)
+  const setMarkerZ = (marker, z) => {
+    try {
+      marker.setZIndex(z);
+      const el = marker.getElement?.();
+      if (el) {
+        el.style.zIndex = z;
+        // 네이버 지도는 마커를 여러 겹의 div로 감쌈 — 가장 가까운 position:absolute 부모까지
+        let parent = el.parentElement;
+        for (let i = 0; i < 3 && parent; i++) {
+          if (parent.style.position === "absolute" || getComputedStyle(parent).position === "absolute") {
+            parent.style.zIndex = z;
+            break;
+          }
+          parent = parent.parentElement;
+        }
+      }
+    } catch (e) {}
+  };
+
   const bringToFront = (marker) => {
-    // Reset ALL markers to base zIndex, then set clicked one high
-    const allMarkers = [...markersRef.current, ...personalMarkersRef.current, ...followingMarkersRef.current];
-    allMarkers.forEach((m) => { try { m.setZIndex(1); } catch (e) {} });
-    try { marker.setZIndex(100); } catch (e) {}
+    // 이전 활성 마커 초기화
+    if (activeMarkerRef.current && activeMarkerRef.current !== marker) {
+      setMarkerZ(activeMarkerRef.current, "");
+    }
+    // 클릭된 마커: 맵에서 제거 후 재추가 → 렌더링 최상위 + DOM z-index
+    try {
+      const map = mapInstance.current;
+      marker.setMap(null);
+      marker.setMap(map);
+      requestAnimationFrame(() => setMarkerZ(marker, 9999));
+    } catch (e) {}
     activeMarkerRef.current = marker;
+  };
+
+  // 마커에 hover 이벤트 — 부모 컨테이너 z-index 올리기/내리기
+  const addHoverZ = (marker) => {
+    window.naver.maps.Event.addListener(marker, "mouseover", () => {
+      if (marker !== activeMarkerRef.current) setMarkerZ(marker, 5000);
+    });
+    window.naver.maps.Event.addListener(marker, "mouseout", () => {
+      if (marker !== activeMarkerRef.current) setMarkerZ(marker, "");
+    });
   };
 
   const getFolderColor = (folderId) => {
@@ -221,6 +258,7 @@ export default function MapView({
         panToPlace(r.lat, r.lng, marker);
         onMarkerClick(r.id, false);
       });
+      addHoverZ(marker);
       markersRef.current.push(marker);
     });
 
@@ -263,6 +301,7 @@ export default function MapView({
         panToPlace(r.lat, r.lng, marker);
         onMarkerClick(`personal_${r.id}`, true);
       });
+      addHoverZ(marker);
       personalMarkersRef.current.push(marker);
     });
   }, [personalPlaces, followingPlaces, folders, mapReady]); // eslint-disable-line
@@ -298,6 +337,7 @@ export default function MapView({
           panToPlace(r.lat, r.lng, marker);
           if (onFollowingMarkerClick) onFollowingMarkerClick({ ...r, ownerNickname: nickname, ownerUserId: userId });
         });
+        addHoverZ(marker);
         followingMarkersRef.current.push(marker);
       });
     });
@@ -305,6 +345,10 @@ export default function MapView({
 
   return (
     <div style={{ width: "100%", height: "100%", position: "relative" }}>
+      <style>{`
+        .map-pill { transition: transform 0.1s; }
+        .map-pill:hover { transform: scale(1.03); }
+      `}</style>
       <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
       {!mapReady && (
         <div style={{
