@@ -102,12 +102,14 @@ export default function RestaurantPanel({
     }
   };
 
+  const [heartAnim, setHeartAnim] = useState(false);
   const handleLike = async () => {
     if (!user || !r.isPersonal || !r.id) return;
     try {
       const res = await axios.post(`${API_BASE}/places/${r.id}/like?user_id=${user.user_id}`);
       setLiked(res.data.liked);
       setLikeCount(res.data.like_count);
+      if (res.data.liked) { setHeartAnim(true); setTimeout(() => setHeartAnim(false), 300); }
       if (onDataChange) onDataChange();
     } catch (e) {}
   };
@@ -134,7 +136,9 @@ export default function RestaurantPanel({
   const handleDeleteComment = async (commentId) => {
     try {
       await axios.delete(`${API_BASE}/comments/${commentId}?user_id=${user.user_id}`);
-      setComments((prev) => prev.filter((c) => c.id !== commentId));
+      // Re-fetch threaded comments to get correct structure
+      const updated = await axios.get(`${API_BASE}/places/${r.id}/comments`);
+      setComments(updated.data);
       if (onDataChange) onDataChange();
     } catch (e) {}
   };
@@ -350,7 +354,8 @@ export default function RestaurantPanel({
           background: "none", border: "none", cursor: "pointer", padding: 0,
           color: liked ? "#D4537E" : C.onSurfaceVariant, transition: "color 0.15s",
         }}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill={liked ? "#D4537E" : "none"} stroke={liked ? "#D4537E" : "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill={liked ? "#D4537E" : "none"} stroke={liked ? "#D4537E" : "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+            style={{ transition: "transform 0.3s cubic-bezier(0.17,0.89,0.32,1.49)", transform: heartAnim ? "scale(1.3)" : "scale(1)" }}>
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
           </svg>
         </button>
