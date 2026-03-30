@@ -23,9 +23,10 @@ const isMobile = () => window.innerWidth <= 768;
 
 const SUGGESTIONS = ["조용한 카페", "이자카야", "브런치", "빵집", "스시"];
 
-export default function SearchTab({ onPlaceAdded }) {
+export default function SearchTab({ onPlaceAdded, personalPlaces = [] }) {
   const { user } = useUser();
   const mobile = isMobile();
+  const savedPlaceIds = new Set(personalPlaces.map((p) => p.naver_place_id).filter(Boolean));
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState([]);
@@ -82,7 +83,7 @@ export default function SearchTab({ onPlaceAdded }) {
         </header>
       )}
 
-      <main style={{ maxWidth: 960, margin: "0 auto", padding: mobile ? "20px 16px" : "48px 40px" }}>
+      <main style={{ maxWidth: 960, margin: "0 auto", padding: mobile ? "20px 16px" : "32px 28px" }}>
 
         {/* 에디토리얼 헤더 */}
         <div style={{
@@ -91,7 +92,7 @@ export default function SearchTab({ onPlaceAdded }) {
         }}>
           <div style={{ maxWidth: 480 }}>
             <h2 style={{
-              fontFamily: FH, fontSize: mobile ? 36 : 52,
+              fontFamily: FH, fontSize: mobile ? 36 : 40,
               fontWeight: 400, color: C.onSurface,
               margin: "0 0 12px", letterSpacing: "-0.02em", lineHeight: 1.1,
             }}>Discovery</h2>
@@ -205,7 +206,7 @@ export default function SearchTab({ onPlaceAdded }) {
                 onMouseLeave={(e) => e.currentTarget.style.background = C.containerLowest}
               >
                 {idx === 0 && (
-                  <div style={{ padding: "24px 32px 0" }}>
+                  <div style={{ padding: "20px 24px 0" }}>
                     <span style={{
                       fontFamily: FL, fontSize: 9, fontWeight: 600,
                       textTransform: "uppercase", letterSpacing: "0.2em",
@@ -216,8 +217,8 @@ export default function SearchTab({ onPlaceAdded }) {
                   </div>
                 )}
 
-                <div style={{ padding: mobile ? "20px" : idx === 0 ? "24px 32px 32px" : "20px 32px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16 }}>
+                <div style={{ padding: mobile ? "16px" : idx === 0 ? "16px 24px 24px" : "14px 24px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       {place.category && (
                         <p style={{ margin: "0 0 6px", fontFamily: FL, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.15em", color: "#a8a29e" }}>
@@ -226,7 +227,7 @@ export default function SearchTab({ onPlaceAdded }) {
                       )}
                       <h3 style={{
                         margin: "0 0 4px", fontFamily: FH,
-                        fontSize: idx === 0 ? (mobile ? 24 : 36) : (mobile ? 18 : 22),
+                        fontSize: idx === 0 ? (mobile ? 22 : 24) : (mobile ? 16 : 18),
                         fontWeight: 400, color: C.onSurface, letterSpacing: "-0.01em",
                       }}>
                         {place.name}
@@ -242,8 +243,12 @@ export default function SearchTab({ onPlaceAdded }) {
                           {place.address}
                         </p>
                       )}
-                      {place.naver_place_url && (
-                        <a href={place.naver_place_url} target="_blank" rel="noreferrer" style={{
+                      {(place.naver_place_id || place.naver_place_url) && (
+                        <a
+                          href={place.naver_place_id && /^\d+$/.test(place.naver_place_id)
+                            ? `https://map.naver.com/v5/entry/place/${place.naver_place_id}`
+                            : place.naver_place_url || `https://map.naver.com/v5/search/${encodeURIComponent(place.name)}`}
+                          target="_blank" rel="noreferrer" style={{
                           padding: "5px 12px", background: C.container,
                           borderRadius: 4, fontFamily: FL, fontSize: 9,
                           fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em",
@@ -254,24 +259,37 @@ export default function SearchTab({ onPlaceAdded }) {
                       )}
                     </div>
 
-                    <button
-                      onClick={() => setPendingPlace(place)}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 8,
-                        padding: idx === 0 ? (mobile ? "14px 24px" : "14px 28px") : "10px 18px",
-                        background: C.primary, color: "#fff6ef",
-                        border: "none", borderRadius: 6,
-                        fontFamily: FL, fontSize: 11, fontWeight: 700,
-                        textTransform: "uppercase", letterSpacing: "0.1em",
-                        cursor: "pointer", transition: "background 0.15s",
-                        flexShrink: 0,
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.background = C.primaryDim}
-                      onMouseLeave={(e) => e.currentTarget.style.background = C.primary}
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
-                      {idx === 0 ? "Add to My Space" : "추가"}
-                    </button>
+                    {place.naver_place_id && savedPlaceIds.has(place.naver_place_id) ? (
+                      <span style={{
+                        display: "flex", alignItems: "center", gap: 6,
+                        padding: "10px 18px",
+                        background: C.container, borderRadius: 6,
+                        fontFamily: FL, fontSize: 11, fontWeight: 600,
+                        color: C.outlineVariant, flexShrink: 0,
+                      }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: 14 }}>check_circle</span>
+                        이미 저장됨
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => setPendingPlace(place)}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 8,
+                          padding: idx === 0 ? (mobile ? "12px 20px" : "12px 24px") : "10px 18px",
+                          background: C.primary, color: "#fff6ef",
+                          border: "none", borderRadius: 6,
+                          fontFamily: FL, fontSize: 11, fontWeight: 700,
+                          textTransform: "uppercase", letterSpacing: "0.1em",
+                          cursor: "pointer", transition: "background 0.15s",
+                          flexShrink: 0,
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = C.primaryDim}
+                        onMouseLeave={(e) => e.currentTarget.style.background = C.primary}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
+                        {idx === 0 ? "Add to My Space" : "추가"}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

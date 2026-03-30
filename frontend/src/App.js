@@ -25,7 +25,7 @@ export function getAccountColor(accountId, accounts) {
 
 // ── 레이아웃 상수 ─────────────────────────────────────────────
 const SIDEBAR_W = 240;   // 사이드바 너비
-const PANEL_W   = 360;   // 슬라이드 패널 너비 (데스크탑)
+const PANEL_W   = 480;   // 슬라이드 패널 너비 (데스크탑)
 
 export default function App() {
   const { user, loading } = useUser();
@@ -186,10 +186,10 @@ export default function App() {
   if (!user) return <AuthScreen />;
 
   const renderPanel = (tab) => {
-    if (tab === "search")  return <SearchTab onPlaceAdded={addPlace} />;
+    if (tab === "search")  return <SearchTab onPlaceAdded={addPlace} personalPlaces={personalPlaces} />;
     if (tab === "follow")  return <FollowTab onViewMap={() => setActiveTab("map")} onFollowChange={loadFollowingList} />;
     if (tab === "updates") return <UpdatesTab onPlaceClick={handleActivityPlaceClick} onUnreadChange={setUnreadCount} unreadCount={unreadCount} />;
-    if (tab === "profile") return <ProfilePage />;
+    if (tab === "profile") return <ProfilePage personalPlaces={personalPlaces} onViewMap={() => setActiveTab("map")} />;
     return null;
   };
 
@@ -276,6 +276,13 @@ export default function App() {
             followingList={followingList}
             onFollowChange={loadFollowingList}
             sidebarWidth={SIDEBAR_W}
+            onPlaceSelect={(place) => {
+              setSelectedRestaurant({ ...place, sources: [], isPersonal: true });
+              setActiveTab("map");
+              if (mapRef.current && window.naver) {
+                mapRef.current.panTo(new window.naver.maps.LatLng(place.lat, place.lng), { duration: 280 });
+              }
+            }}
           />
 
           {/* 지도 — 항상 전체 화면 뒤에서 렌더 */}

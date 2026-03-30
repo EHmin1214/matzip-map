@@ -238,7 +238,11 @@ class PlaceResolver:
             address=item.get("roadAddress") or item.get("address", ""),
             lat=lat,
             lng=lng,
-            naver_place_url=f"https://map.naver.com/v5/search/{queried_name}",
+            naver_place_url=(
+                f"https://map.naver.com/v5/entry/place/{naver_place_id}"
+                if place_id_match
+                else f"https://map.naver.com/v5/search/{queried_name}"
+            ),
             source_post_url=post.post_url,
             source_post_title=post.title,
             source_author_id=post.author_id,

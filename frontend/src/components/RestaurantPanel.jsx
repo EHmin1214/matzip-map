@@ -290,9 +290,11 @@ export default function RestaurantPanel({
           </div>
 
           {/* ── 네이버 지도 링크 ────────────────────────────── */}
-          {r.naver_place_url && (
+          {(r.naver_place_id || r.naver_place_url) && (
             <a
-              href={r.naver_place_url}
+              href={r.naver_place_id && /^\d+$/.test(r.naver_place_id)
+                ? `https://map.naver.com/v5/entry/place/${r.naver_place_id}`
+                : r.naver_place_url || `https://map.naver.com/v5/search/${encodeURIComponent(r.name)}`}
               target="_blank"
               rel="noreferrer"
               style={{

@@ -1,5 +1,6 @@
 // src/components/SavePlaceModal.jsx
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import axios from "axios";
 import { useUser, API_BASE } from "../context/UserContext";
 
@@ -85,7 +86,7 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
 
   if (!place) return null;
 
-  return (
+  return createPortal(
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&family=Manrope:wght@400;500;600;700&display=swap');
@@ -325,7 +326,8 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
           </div>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }
 

@@ -160,7 +160,7 @@ export default function MapView({
         position: new window.naver.maps.LatLng(r.lat, r.lng),
         map: mapInstance.current,
         title: r.name,
-        icon: { content: blogMarker({ name: r.name, color }), anchor: new window.naver.maps.Point(0, 0) },
+        icon: { content: blogMarker({ name: r.name, color }), anchor: new window.naver.maps.Point(6, 12) },
       });
       window.naver.maps.Event.addListener(marker, "click", () => {
         panToPlace(r.lat, r.lng);
@@ -199,7 +199,7 @@ export default function MapView({
         title: r.name,
         icon: {
           content: myMarker({ name: r.name, status: r.status, shared: sharedWith.length > 0 }),
-          anchor: new window.naver.maps.Point(0, 0),
+          anchor: new window.naver.maps.Point(6, 12),
         },
         zIndex: sharedWith.length > 0 ? 10 : 5,
       });
@@ -233,7 +233,7 @@ export default function MapView({
           title: `${nickname}: ${r.name}`,
           icon: {
             content: followingMarker({ name: r.name, color }),
-            anchor: new window.naver.maps.Point(0, 0),
+            anchor: new window.naver.maps.Point(6, 12),
           },
         });
         window.naver.maps.Event.addListener(marker, "click", () => {

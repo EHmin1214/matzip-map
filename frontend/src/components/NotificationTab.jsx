@@ -38,21 +38,41 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
   const mobile = isMobile();
   const [notifications, setNotifications] = useState([]);
   const [requests, setRequests] = useState([]);
+  const [following, setFollowing] = useState([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState(null);
+  const [followLoading, setFollowLoading] = useState(null);
 
   const fetchAll = useCallback(() => {
     if (!user) return;
     Promise.all([
       axios.get(`${API_BASE}/notifications/?user_id=${user.user_id}`),
       axios.get(`${API_BASE}/follows/requests/${user.user_id}`),
-    ]).then(([n, r]) => {
+      axios.get(`${API_BASE}/follows/${user.user_id}/following`),
+    ]).then(([n, r, f]) => {
       setNotifications(n.data);
       setRequests(r.data);
+      setFollowing(f.data);
       const unread = n.data.filter((x) => !x.is_read).length;
       if (onUnreadChange) onUnreadChange(unread);
     }).catch(() => {}).finally(() => setLoading(false));
   }, [user, onUnreadChange]);
+
+  const getFollowStatus = (targetId) => {
+    const f = following.find((f) => f.id === targetId);
+    return f ? (f.status || "accepted") : "none";
+  };
+
+  const handleFollowBack = async (targetId) => {
+    if (!user) return;
+    setFollowLoading(targetId);
+    try {
+      await axios.post(`${API_BASE}/follows/${targetId}?follower_id=${user.user_id}`);
+      const res = await axios.get(`${API_BASE}/follows/${user.user_id}/following`);
+      setFollowing(res.data);
+    } catch (e) {}
+    finally { setFollowLoading(null); }
+  };
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -171,6 +191,8 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
               notifications.map((n) => {
                 const ti = TYPE_ICON[n.type] || TYPE_ICON.follow;
                 const isUnread = !n.is_read;
+                const isFollowType = n.type === "follow" || n.type === "follow_accepted";
+                const actorFollowStatus = isFollowType && n.actor_id ? getFollowStatus(n.actor_id) : "none";
                 return (
                   <div key={n.id} style={{
                     display: "flex", alignItems: "flex-start", gap: 16,
@@ -199,11 +221,52 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
                     </div>
                     <div style={{ flex: 1 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-                        <p style={{ margin: 0, fontFamily: FH, fontSize: mobile ? 14 : 15, color: isUnread ? C.onSurface : "#78716c", lineHeight: 1.6 }}>
-                          <b style={{ color: C.onSurface }}>{n.actor_nickname}</b>{TYPE_LABEL[n.type] || "새 알림"}
-                          {n.target_place_name && <span style={{ fontStyle: "italic" }}> — {n.target_place_name}</span>}
-                        </p>
-                        <span style={{ fontFamily: FL, fontSize: 9, color: "#a8a29e", whiteSpace: "nowrap" }}>{formatTime(n.created_at)}</span>
+                        <div style={{ flex: 1 }}>
+                          <p style={{ margin: 0, fontFamily: FH, fontSize: mobile ? 14 : 15, color: isUnread ? C.onSurface : "#78716c", lineHeight: 1.6 }}>
+                            <b style={{ color: C.onSurface }}>{n.actor_nickname}</b>{TYPE_LABEL[n.type] || "새 알림"}
+                            {n.target_place_name && <span style={{ fontStyle: "italic" }}> — {n.target_place_name}</span>}
+                          </p>
+                          <span style={{ fontFamily: FL, fontSize: 9, color: "#a8a29e" }}>{formatTime(n.created_at)}</span>
+                        </div>
+                        {isFollowType && n.actor_id && n.actor_id !== user?.user_id && (
+                          actorFollowStatus === "accepted" ? (
+                            <span style={{
+                              padding: "5px 10px", borderRadius: 6,
+                              border: "1px solid rgba(101,93,84,0.15)",
+                              fontFamily: FL, fontSize: 10, fontWeight: 600,
+                              color: C.primary, flexShrink: 0,
+                              letterSpacing: "0.08em",
+                            }}>
+                              팔로잉
+                            </span>
+                          ) : actorFollowStatus === "pending" ? (
+                            <span style={{
+                              padding: "5px 10px", borderRadius: 6,
+                              border: "1px solid rgba(101,93,84,0.15)",
+                              fontFamily: FL, fontSize: 10, fontWeight: 600,
+                              color: "#afb3ae", flexShrink: 0,
+                              letterSpacing: "0.08em",
+                            }}>
+                              신청됨
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => handleFollowBack(n.actor_id)}
+                              disabled={followLoading === n.actor_id}
+                              style={{
+                                padding: "5px 12px", borderRadius: 6,
+                                background: `linear-gradient(to bottom, ${C.primary}, ${C.primaryDim})`,
+                                border: "none",
+                                fontFamily: FL, fontSize: 10, fontWeight: 700,
+                                textTransform: "uppercase", letterSpacing: "0.08em",
+                                color: "#fff6ef", cursor: followLoading === n.actor_id ? "not-allowed" : "pointer",
+                                flexShrink: 0, transition: "opacity 0.15s",
+                              }}
+                            >
+                              팔로우
+                            </button>
+                          )
+                        )}
                       </div>
                       {n.comment_content && (
                         <div style={{ marginTop: 8, padding: "10px 14px", background: C.container, borderRadius: 6, borderLeft: `2px solid ${C.primaryContainer}` }}>

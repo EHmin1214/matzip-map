@@ -52,6 +52,7 @@ export default function Sidebar({
   followingList = [],
   onFollowChange,
   sidebarWidth = 240,
+  onPlaceSelect,
 }) {
   const { user } = useUser();
   const [pendingPlace, setPendingPlace] = useState(null);
@@ -59,6 +60,7 @@ export default function Sidebar({
   const [searching, setSearching] = useState(false);
   const [message, setMessage] = useState("");
   const [folders, setFolders] = useState([]);
+  const [placeFilter, setPlaceFilter] = useState("");
 
   useEffect(() => {
     if (!user) return;
@@ -257,13 +259,40 @@ export default function Sidebar({
 
             {/* 내 맛집 목록 — Rule of Silence: spacing instead of dividers */}
             {showPersonal && (
-              <div style={{ marginBottom: 16, maxHeight: 180, overflowY: "auto" }}>
-                {personalPlaces.slice(0, 20).map((p) => (
-                  <div key={p.id} style={{
-                    display: "flex", alignItems: "center", gap: 8,
-                    padding: "5px 4px",
-                    /* No divider lines — use vertical spacing only */
-                  }}>
+              <div style={{ marginBottom: 16 }}>
+                {personalPlaces.length > 5 && (
+                  <div style={{ position: "relative", marginBottom: 6 }}>
+                    <span className="material-symbols-outlined" style={{
+                      position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)",
+                      fontSize: 13, color: C.outlineVariant, pointerEvents: "none",
+                    }}>search</span>
+                    <input
+                      value={placeFilter}
+                      onChange={(e) => setPlaceFilter(e.target.value)}
+                      placeholder="내 맛집 검색..."
+                      style={{
+                        width: "100%", padding: "6px 8px 6px 28px",
+                        background: C.surfaceLow, border: "none", borderRadius: 6,
+                        fontFamily: FL, fontSize: 11, color: C.onSurface,
+                        outline: "none", boxSizing: "border-box",
+                      }}
+                    />
+                  </div>
+                )}
+                <div style={{ maxHeight: 180, overflowY: "auto" }}>
+                {personalPlaces
+                  .filter((p) => !placeFilter || p.name.toLowerCase().includes(placeFilter.toLowerCase()))
+                  .slice(0, 30).map((p) => (
+                  <div key={p.id}
+                    onClick={() => onPlaceSelect && onPlaceSelect(p)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 8,
+                      padding: "5px 4px", borderRadius: 6,
+                      cursor: "pointer", transition: "background 0.12s",
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = C.surfaceLow}
+                    onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                  >
                     <div style={{
                       width: 3, height: 18, borderRadius: 2,
                       background: getFolderColor(p.folder_id), flexShrink: 0,
@@ -277,7 +306,7 @@ export default function Sidebar({
                       {p.name}
                     </p>
                     <button
-                      onClick={() => onDeletePersonalPlace(p.id)}
+                      onClick={(e) => { e.stopPropagation(); onDeletePersonalPlace(p.id); }}
                       style={{
                         background: "none", border: "none",
                         fontFamily: FL, fontSize: 9, color: C.outlineVariant,
@@ -291,6 +320,7 @@ export default function Sidebar({
                     </button>
                   </div>
                 ))}
+                </div>
               </div>
             )}
 

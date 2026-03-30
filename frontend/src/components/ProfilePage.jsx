@@ -1,5 +1,5 @@
 // src/components/ProfilePage.jsx
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useUser, API_BASE } from "../context/UserContext";
 
@@ -91,7 +91,128 @@ function Card({ children, style = {} }) {
   );
 }
 
-export default function ProfilePage() {
+// ── 미니 맵 ─────────────────────────────────────────────────
+function MiniMap({ places, onViewMap }) {
+  const mapRef = useRef(null);
+  const mapInstance = useRef(null);
+
+  useEffect(() => {
+    if (!mapRef.current || places.length === 0) return;
+    const check = setInterval(() => {
+      if (window.naver?.maps) {
+        clearInterval(check);
+        const bounds = new window.naver.maps.LatLngBounds();
+        places.forEach((p) => bounds.extend(new window.naver.maps.LatLng(p.lat, p.lng)));
+
+        mapInstance.current = new window.naver.maps.Map(mapRef.current, {
+          center: bounds.getCenter(),
+          zoom: 12,
+          mapTypeControl: false,
+          scaleControl: false,
+          logoControl: false,
+          mapDataControl: false,
+          zoomControl: false,
+          draggable: false,
+          scrollWheel: false,
+          keyboardShortcuts: false,
+          disableDoubleTapZoom: true,
+          disableDoubleClickZoom: true,
+          disableTwoFingerTapZoom: true,
+        });
+
+        if (places.length > 1) {
+          mapInstance.current.fitBounds(bounds, { padding: 30 });
+        } else {
+          mapInstance.current.setZoom(14);
+        }
+
+        const STATUS_DOT = {
+          want_to_go: "#BA7517", visited: "#1D9E75",
+          want_revisit: "#D4537E", not_recommended: "#afb3ae",
+        };
+
+        places.forEach((p) => {
+          const color = STATUS_DOT[p.status] || "#655d54";
+          new window.naver.maps.Marker({
+            position: new window.naver.maps.LatLng(p.lat, p.lng),
+            map: mapInstance.current,
+            icon: {
+              content: `<div style="width:8px;height:8px;border-radius:50%;background:${color};border:1.5px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.2);"></div>`,
+              anchor: new window.naver.maps.Point(4, 4),
+            },
+          });
+        });
+      }
+    }, 100);
+    return () => {
+      clearInterval(check);
+      if (mapInstance.current) mapInstance.current.destroy();
+    };
+  }, [places]);
+
+  const STATUS_EMOJI = { want_to_go: "🔖", visited: "✅", want_revisit: "❤️", not_recommended: "👎" };
+  const counts = {};
+  places.forEach((p) => { counts[p.status] = (counts[p.status] || 0) + 1; });
+
+  return (
+    <Card>
+      <p style={{
+        margin: "0 0 12px", fontFamily: FL, fontSize: 9, fontWeight: 700,
+        textTransform: "uppercase", letterSpacing: "0.15em", color: C.outlineVariant,
+      }}>
+        나의 공간 지도
+      </p>
+
+      {places.length > 0 ? (
+        <>
+          <div
+            ref={mapRef}
+            style={{
+              width: "100%", height: 160, borderRadius: 10,
+              overflow: "hidden", background: C.surfaceLow, marginBottom: 12,
+            }}
+          />
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 12 }}>
+            {Object.entries(counts).map(([status, count]) => (
+              <span key={status} style={{
+                fontFamily: FL, fontSize: 11, color: C.onSurfaceVariant,
+                display: "flex", alignItems: "center", gap: 4,
+              }}>
+                {STATUS_EMOJI[status] || "📍"} {count}
+              </span>
+            ))}
+            <span style={{ fontFamily: FL, fontSize: 11, color: C.outlineVariant }}>
+              총 {places.length}곳
+            </span>
+          </div>
+        </>
+      ) : (
+        <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 13, color: C.outlineVariant, margin: "0 0 12px" }}>
+          아직 저장된 공간이 없어요
+        </p>
+      )}
+
+      <button
+        onClick={onViewMap}
+        style={{
+          width: "100%", padding: "10px",
+          border: "1px solid rgba(101,93,84,0.15)",
+          borderRadius: 8, background: "none",
+          fontFamily: FL, fontSize: 11, fontWeight: 700,
+          textTransform: "uppercase", letterSpacing: "0.08em",
+          color: C.primary, cursor: "pointer",
+          transition: "background 0.15s",
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.background = C.primaryContainer}
+        onMouseLeave={(e) => e.currentTarget.style.background = "none"}
+      >
+        지도에서 보기
+      </button>
+    </Card>
+  );
+}
+
+export default function ProfilePage({ personalPlaces = [], onViewMap }) {
   const { user, updateUser, logout } = useUser();
   const mobile = isMobile();
   const [editing, setEditing]       = useState(false);
@@ -163,10 +284,9 @@ export default function ProfilePage() {
 
   return (
     <div style={{
-      flex: 1, minHeight: "100vh",
-      background: C.bg, overflowY: "auto",
-      paddingBottom: mobile ? 80 : 0,
-      WebkitOverflowScrolling: "touch",
+      flex: 1, minHeight: "100%",
+      background: C.bg,
+      paddingBottom: mobile ? 80 : 48,
     }}>
       <div style={{
         maxWidth: 520,
@@ -328,6 +448,9 @@ export default function ProfilePage() {
             </p>
           )}
         </Card>
+
+        {/* ── 미니 맵 ──────────────────────────────────────── */}
+        <MiniMap places={personalPlaces} onViewMap={onViewMap} />
 
         {/* ── PIN 변경 ─────────────────────────────────────── */}
         <Card>

@@ -15,3 +15,10 @@ root.render(
 );
 
 reportWebVitals();
+
+// PWA 서비스워커 등록
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}

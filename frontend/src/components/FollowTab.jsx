@@ -147,16 +147,15 @@ function ProfileSheet({ userData, onClose, followStatus, onFollowToggle, loading
               disabled={loadingFollow}
               style={{
                 width: "100%", padding: "11px",
-                background: isFollowing ? "transparent" : `linear-gradient(to bottom, ${C.primary}, ${C.primaryDim})`,
-                /* Ghost Border Fallback for unfollow — 15% opacity */
-                border: isFollowing ? `1px solid rgba(101,93,84,0.15)` : "none",
+                background: isFollowing ? "transparent" : isPending ? "transparent" : `linear-gradient(to bottom, ${C.primary}, ${C.primaryDim})`,
+                border: (isFollowing || isPending) ? `1px solid rgba(101,93,84,0.15)` : "none",
                 borderRadius: 8,
                 fontFamily: FL, fontSize: 11, fontWeight: 700,
                 textTransform: "uppercase", letterSpacing: "0.1em",
-                color: isFollowing ? C.error : "#fff6ef",
+                color: isFollowing ? C.error : isPending ? C.outlineVariant : "#fff6ef",
                 cursor: loadingFollow ? "not-allowed" : "pointer",
                 marginBottom: 20,
-                transition: "opacity 0.15s",
+                transition: "all 0.3s cubic-bezier(0.16,1,0.3,1)",
               }}
               onMouseEnter={(e) => { if (!loadingFollow) e.currentTarget.style.opacity = "0.85"; }}
               onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}
@@ -568,6 +567,7 @@ export default function FollowTab({ onViewMap, onFollowChange }) {
                         color: getFollowStatus(searchResult.id) !== "none" ? C.onSurfaceVariant : "#fff6ef",
                         cursor: loadingFollow ? "not-allowed" : "pointer",
                         flexShrink: 0,
+                        transition: "all 0.3s cubic-bezier(0.16,1,0.3,1)",
                       }}
                     >
                       {getFollowStatus(searchResult.id) === "accepted" ? "언팔로우"
@@ -658,6 +658,7 @@ export default function FollowTab({ onViewMap, onFollowChange }) {
                             color: isPendingBack ? C.outlineVariant : "#fff6ef",
                             cursor: loadingFollow ? "not-allowed" : "pointer",
                             flexShrink: 0,
+                            transition: "all 0.3s cubic-bezier(0.16,1,0.3,1)",
                           }}
                         >
                           {isPendingBack ? "신청됨" : "팔로우"}

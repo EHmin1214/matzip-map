@@ -111,6 +111,7 @@ class CommentResponse(BaseModel):
 class NotificationResponse(BaseModel):
     id: int
     type: str
+    actor_id: int
     actor_nickname: str
     target_place_id: int | None
     target_place_name: str | None
@@ -443,6 +444,7 @@ def list_notifications(user_id: int, db: Session = Depends(get_db)):
             if n.target_place_id else None
         result.append(NotificationResponse(
             id=n.id, type=n.type,
+            actor_id=n.actor_id,
             actor_nickname=actor.nickname if actor else "알 수 없음",
             target_place_id=n.target_place_id,
             target_place_name=place.name if place else None,
