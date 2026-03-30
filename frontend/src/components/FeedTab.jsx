@@ -128,6 +128,25 @@ function FeedCard({ item, mobile, onPlaceClick, onDataChange }) {
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState([]);
   const [commentInput, setCommentInput] = useState("");
+  const [replyTo, setReplyTo] = useState(null); // { id, author_nickname }
+  const commentInputRef = useRef(null);
+
+  // Sync like count when item prop changes (e.g. after onDataChange refresh)
+  useEffect(() => { setLikeCount(item.like_count || 0); }, [item.like_count]);
+  // Fetch liked status for current user (also re-fetch when like_count changes from parent)
+  useEffect(() => {
+    if (!user || !item.place_id) return;
+    axios.get(`${API_BASE}/places/${item.place_id}/like-status?user_id=${user.user_id}`)
+      .then((res) => { setLiked(res.data.liked); setLikeCount(res.data.like_count); })
+      .catch(() => {});
+  }, [item.place_id, item.like_count, user?.user_id]); // eslint-disable-line
+  // Re-fetch comments when item changes and comments are open
+  useEffect(() => {
+    if (showComments && item.place_id) {
+      axios.get(`${API_BASE}/places/${item.place_id}/comments`)
+        .then((res) => setComments(res.data)).catch(() => {});
+    }
+  }, [item.comment_count]); // eslint-disable-line
   const [submitting, setSubmitting] = useState(false);
   const [galleryIdx, setGalleryIdx] = useState(0);
   const galleryUrls = item.photo_urls?.length ? item.photo_urls : (item.photo_url ? [item.photo_url] : []);
@@ -158,9 +177,13 @@ function FeedCard({ item, mobile, onPlaceClick, onDataChange }) {
     try {
       const res = await axios.post(`${API_BASE}/places/${item.place_id}/comments`, {
         content: commentInput.trim(), user_id: user.user_id,
+        parent_id: replyTo?.id || null,
       });
-      setComments((prev) => [...prev, res.data]);
+      // Re-fetch full threaded comments
+      const updated = await axios.get(`${API_BASE}/places/${item.place_id}/comments`);
+      setComments(updated.data);
       setCommentInput("");
+      setReplyTo(null);
       if (onDataChange) onDataChange();
     } catch (e) {
       alert(e.response?.data?.detail || "댓글 작성 실패");
@@ -292,9 +315,9 @@ function FeedCard({ item, mobile, onPlaceClick, onDataChange }) {
             background: "none", border: "none", cursor: "pointer", padding: 0,
             color: liked ? "#D4537E" : C.onSurfaceVariant, transition: "color 0.15s",
           }}>
-            <span className="material-symbols-outlined" style={{
-              fontSize: 22, fontVariationSettings: liked ? "'FILL' 1" : "'FILL' 0",
-            }}>favorite</span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill={liked ? "#D4537E" : "none"} stroke={liked ? "#D4537E" : "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
           </button>
           <button onClick={toggleComments} style={{
             display: "flex", alignItems: "center", gap: 4,
@@ -379,19 +402,30 @@ function FeedCard({ item, mobile, onPlaceClick, onDataChange }) {
         {showComments && (
           <div style={{ marginTop: 6 }}>
             {comments.map((c) => (
-              <div key={c.id} style={{ marginBottom: 4 }}>
-                <p style={{ margin: 0, fontFamily: FL, fontSize: 12, color: C.onSurface, lineHeight: 1.5 }}>
-                  <span style={{ fontWeight: 700 }}>{c.author_nickname}</span>{" "}
-                  <span style={{ color: C.onSurfaceVariant }}>{c.content}</span>
-                </p>
-              </div>
+              <CommentThread key={c.id} comment={c} depth={0} user={user}
+                onReply={(c) => { setReplyTo(c); setTimeout(() => commentInputRef.current?.focus(), 0); }}
+              />
             ))}
-            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            {/* Reply indicator */}
+            {replyTo && (
+              <div style={{
+                display: "flex", alignItems: "center", gap: 6, padding: "4px 0",
+                fontFamily: FL, fontSize: 11, color: C.outlineVariant,
+              }}>
+                <span>{replyTo.author_nickname}에게 답글</span>
+                <button onClick={() => setReplyTo(null)} style={{
+                  background: "none", border: "none", cursor: "pointer",
+                  fontFamily: FL, fontSize: 11, color: C.outlineVariant, padding: 0,
+                }}>✕</button>
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 8, marginTop: replyTo ? 0 : 8 }}>
               <input
+                ref={commentInputRef}
                 value={commentInput}
                 onChange={(e) => setCommentInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleComment()}
-                placeholder="댓글 달기..."
+                placeholder={replyTo ? `${replyTo.author_nickname}에게 답글 달기...` : "댓글 달기..."}
                 style={{
                   flex: 1, padding: "8px 0",
                   background: "none", border: "none", borderBottom: `1px solid ${C.container}`,
@@ -417,6 +451,32 @@ function FeedCard({ item, mobile, onPlaceClick, onDataChange }) {
         </p>
       </div>
     </article>
+  );
+}
+
+function CommentThread({ comment, depth, user, onReply }) {
+  const FL = "'Manrope', -apple-system, sans-serif";
+  const C_onSurface = "#2f3430";
+  const C_onSurfaceVariant = "#5c605c";
+  const C_outlineVariant = "#afb3ae";
+  return (
+    <>
+      <div style={{ marginBottom: 4, paddingLeft: depth * 20 }}>
+        <p style={{ margin: 0, fontFamily: FL, fontSize: 12, color: C_onSurface, lineHeight: 1.5 }}>
+          <span style={{ fontWeight: 700 }}>{comment.author_nickname}</span>{" "}
+          <span style={{ color: C_onSurfaceVariant }}>{comment.content}</span>
+        </p>
+        {user && (
+          <button onClick={() => onReply({ id: comment.id, author_nickname: comment.author_nickname })} style={{
+            background: "none", border: "none", cursor: "pointer", padding: 0,
+            fontFamily: FL, fontSize: 10, color: C_outlineVariant, marginTop: 1,
+          }}>답글 달기</button>
+        )}
+      </div>
+      {comment.replies?.map((r) => (
+        <CommentThread key={r.id} comment={r} depth={depth + 1} user={user} onReply={onReply} />
+      ))}
+    </>
   );
 }
 

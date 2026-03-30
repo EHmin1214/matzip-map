@@ -179,9 +179,12 @@ class PlaceComment(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     place_id: Mapped[int] = mapped_column(Integer, ForeignKey("personal_places.id"), nullable=False)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    parent_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("place_comments.id"), nullable=True)
     content: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     place: Mapped["PersonalPlace"] = relationship("PersonalPlace", back_populates="comments")
+    replies: Mapped[list["PlaceComment"]] = relationship("PlaceComment", back_populates="parent", cascade="all, delete-orphan")
+    parent: Mapped["PlaceComment | None"] = relationship("PlaceComment", back_populates="replies", remote_side=[id])
 
 
 class Notification(Base):

@@ -112,6 +112,7 @@ class ActivityResponse(BaseModel):
 class CommentCreate(BaseModel):
     content: str
     user_id: int
+    parent_id: int | None = None
 
 
 class CommentResponse(BaseModel):
@@ -120,6 +121,8 @@ class CommentResponse(BaseModel):
     user_id: int
     author_nickname: str
     content: str
+    parent_id: int | None = None
+    replies: list["CommentResponse"] = []
     created_at: datetime
 
     class Config:
@@ -424,25 +427,41 @@ def toggle_like(place_id: int, user_id: int, db: Session = Depends(get_db)):
         return {"liked": True, "like_count": len(place.likes)}
 
 
+@router.get("/places/{place_id}/like-status")
+def get_like_status(place_id: int, user_id: int, db: Session = Depends(get_db)):
+    existing = db.query(PlaceLike).filter(
+        PlaceLike.place_id == place_id, PlaceLike.user_id == user_id,
+    ).first()
+    place = db.query(PersonalPlace).filter(PersonalPlace.id == place_id).first()
+    return {"liked": existing is not None, "like_count": len(place.likes) if place else 0}
+
+
 # ══ 댓글 ══════════════════════════════════════════════════════
+
+def _build_comment_response(c, db: Session) -> CommentResponse:
+    author = db.query(User).filter(User.id == c.user_id).first()
+    replies = []
+    for r in sorted(c.replies, key=lambda x: x.created_at):
+        replies.append(_build_comment_response(r, db))
+    return CommentResponse(
+        id=c.id, place_id=c.place_id, user_id=c.user_id,
+        author_nickname=author.nickname if author else "알 수 없음",
+        content=c.content, parent_id=c.parent_id,
+        replies=replies, created_at=c.created_at,
+    )
+
 
 @router.get("/places/{place_id}/comments", response_model=list[CommentResponse])
 def list_comments(place_id: int, db: Session = Depends(get_db)):
     place = db.query(PersonalPlace).filter(PersonalPlace.id == place_id).first()
     if not place:
         raise HTTPException(status_code=404, detail="맛집을 찾을 수 없습니다.")
+    # Only fetch top-level comments (no parent); replies are nested via relationship
     comments = db.query(PlaceComment).filter(
-        PlaceComment.place_id == place_id
+        PlaceComment.place_id == place_id,
+        PlaceComment.parent_id == None,
     ).order_by(PlaceComment.created_at.asc()).all()
-    result = []
-    for c in comments:
-        author = db.query(User).filter(User.id == c.user_id).first()
-        result.append(CommentResponse(
-            id=c.id, place_id=c.place_id, user_id=c.user_id,
-            author_nickname=author.nickname if author else "알 수 없음",
-            content=c.content, created_at=c.created_at,
-        ))
-    return result
+    return [_build_comment_response(c, db) for c in comments]
 
 
 @router.post("/places/{place_id}/comments", response_model=CommentResponse, status_code=201)
@@ -465,8 +484,21 @@ def create_comment(place_id: int, body: CommentCreate, db: Session = Depends(get
     if not body.content.strip():
         raise HTTPException(status_code=400, detail="댓글 내용을 입력해주세요.")
 
-    comment = PlaceComment(place_id=place_id, user_id=body.user_id, content=body.content.strip())
+    # Validate parent_id if replying
+    if body.parent_id:
+        parent = db.query(PlaceComment).filter(
+            PlaceComment.id == body.parent_id, PlaceComment.place_id == place_id,
+        ).first()
+        if not parent:
+            raise HTTPException(status_code=404, detail="원댓글을 찾을 수 없습니다.")
+
+    comment = PlaceComment(
+        place_id=place_id, user_id=body.user_id,
+        content=body.content.strip(), parent_id=body.parent_id,
+    )
     db.add(comment)
+
+    # Notify place owner
     if place.user_id:
         _create_notification(db, place.user_id, body.user_id, "comment", place_id)
         actor = db.query(User).filter(User.id == body.user_id).first()
@@ -474,15 +506,16 @@ def create_comment(place_id: int, body: CommentCreate, db: Session = Depends(get
             send_push_to_user(db, place.user_id,
                 "나의 공간", f"{actor.nickname}님이 '{place.name}'에 댓글을 남겼어요",
                 url=f"/?place={place_id}", tag=f"comment-{place_id}")
+
+    # Notify parent comment author if it's a reply
+    if body.parent_id:
+        parent_comment = db.query(PlaceComment).filter(PlaceComment.id == body.parent_id).first()
+        if parent_comment and parent_comment.user_id != body.user_id:
+            _create_notification(db, parent_comment.user_id, body.user_id, "comment", place_id)
+
     db.commit()
     db.refresh(comment)
-
-    author = db.query(User).filter(User.id == body.user_id).first()
-    return CommentResponse(
-        id=comment.id, place_id=comment.place_id, user_id=comment.user_id,
-        author_nickname=author.nickname if author else "알 수 없음",
-        content=comment.content, created_at=comment.created_at,
-    )
+    return _build_comment_response(comment, db)
 
 
 @router.delete("/comments/{comment_id}", status_code=204)
