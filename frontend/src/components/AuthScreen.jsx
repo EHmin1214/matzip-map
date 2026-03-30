@@ -17,13 +17,34 @@ const C = {
 const FONT_HEADLINE = "'Noto Serif', Georgia, serif";
 const FONT_LABEL    = "'Manrope', -apple-system, sans-serif";
 
+const KAKAO_KEY = process.env.REACT_APP_KAKAO_JS_KEY || "";
+
 export default function AuthScreen() {
-  const { login, register } = useUser();
+  const { login, register, kakaoLogin } = useUser();
   const [mode, setMode] = useState("login");
   const [nickname, setNickname] = useState("");
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const handleKakaoLogin = () => {
+    if (!window.Kakao) { setError("카카오 SDK 로딩 실패"); return; }
+    if (!window.Kakao.isInitialized() && KAKAO_KEY) {
+      window.Kakao.init(KAKAO_KEY);
+    }
+    if (!window.Kakao.isInitialized()) { setError("카카오 앱 키가 설정되지 않았어요"); return; }
+    setLoading(true);
+    window.Kakao.Auth.login({
+      success: async (authObj) => {
+        try {
+          await kakaoLogin(authObj.access_token);
+        } catch (e) {
+          setError(e.response?.data?.detail || "카카오 로그인 실패");
+        } finally { setLoading(false); }
+      },
+      fail: () => { setError("카카오 로그인이 취소됐어요"); setLoading(false); },
+    });
+  };
 
   const handleSubmit = async () => {
     setError("");
@@ -186,6 +207,32 @@ export default function AuthScreen() {
             onMouseLeave={(e) => { if (!loading) e.currentTarget.style.background = C.primary; }}
           >
             {loading ? "처리 중..." : mode === "login" ? "시작하기" : "계정 만들기"}
+          </button>
+
+          {/* 구분선 */}
+          <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "24px 0" }}>
+            <div style={{ flex: 1, height: 1, background: `${C.outline}33` }} />
+            <span style={{ fontFamily: FONT_LABEL, fontSize: 11, color: C.outline }}>또는</span>
+            <div style={{ flex: 1, height: 1, background: `${C.outline}33` }} />
+          </div>
+
+          {/* 카카오 로그인 */}
+          <button
+            onClick={handleKakaoLogin}
+            disabled={loading}
+            style={{
+              width: "100%", padding: "14px",
+              background: "#FEE500", color: "#191919",
+              border: "none", borderRadius: 12,
+              fontFamily: FONT_LABEL, fontSize: 14, fontWeight: 700,
+              cursor: loading ? "not-allowed" : "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              transition: "opacity 0.15s",
+              opacity: loading ? 0.6 : 1,
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#191919" d="M9 1C4.58 1 1 3.79 1 7.21c0 2.17 1.45 4.08 3.64 5.18l-.93 3.44c-.08.3.26.54.52.37l4.12-2.74c.21.02.43.03.65.03 4.42 0 8-2.79 8-6.28S13.42 1 9 1z"/></svg>
+            카카오로 시작하기
           </button>
 
           {/* 모드 전환 */}

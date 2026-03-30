@@ -4,7 +4,9 @@ routers/users.py
 blog_url 필드 추가.
 """
 
+import os
 import bcrypt
+import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -117,6 +119,92 @@ def get_profile(nickname: str, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="유저를 찾을 수 없습니다.")
     return _to_response(user, db)
+
+
+@router.get("/{nickname}/public-places")
+def get_public_places(nickname: str, db: Session = Depends(get_db)):
+    """비회원도 볼 수 있는 공개 장소 목록."""
+    user = db.query(User).filter(User.nickname == nickname).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="유저를 찾을 수 없습니다.")
+    if not user.is_public:
+        raise HTTPException(status_code=403, detail="비공개 프로필입니다.")
+    places = db.query(PersonalPlace).filter(
+        PersonalPlace.user_id == user.id,
+        PersonalPlace.is_public == True,
+    ).order_by(PersonalPlace.created_at.desc()).all()
+    return [
+        {
+            "id": p.id, "name": p.name, "address": p.address,
+            "lat": p.lat, "lng": p.lng, "category": p.category,
+            "status": p.status, "rating": p.rating, "memo": p.memo,
+            "photo_url": p.photo_url,
+            "naver_place_url": p.naver_place_url,
+            "created_at": p.created_at,
+        }
+        for p in places
+    ]
+
+
+class KakaoLoginRequest(BaseModel):
+    access_token: str
+
+
+@router.post("/kakao-login", response_model=LoginResponse)
+def kakao_login(body: KakaoLoginRequest, db: Session = Depends(get_db)):
+    """카카오 access_token으로 로그인/자동회원가입."""
+    # 카카오 API로 사용자 정보 조회
+    try:
+        r = httpx.get(
+            "https://kapi.kakao.com/v2/user/me",
+            headers={"Authorization": f"Bearer {body.access_token}"},
+            timeout=5,
+        )
+        r.raise_for_status()
+        kakao_data = r.json()
+    except Exception:
+        raise HTTPException(status_code=401, detail="카카오 인증 실패")
+
+    kakao_id = str(kakao_data.get("id", ""))
+    if not kakao_id:
+        raise HTTPException(status_code=401, detail="카카오 사용자 정보를 가져올 수 없습니다")
+
+    kakao_nickname = (
+        kakao_data.get("properties", {}).get("nickname")
+        or kakao_data.get("kakao_account", {}).get("profile", {}).get("nickname")
+        or f"user_{kakao_id[-4:]}"
+    )
+
+    # 기존 유저 찾기 (kakao_id로)
+    user = db.query(User).filter(User.kakao_id == kakao_id).first()
+    if user:
+        return LoginResponse(
+            user_id=user.id, nickname=user.nickname,
+            instagram_url=user.instagram_url, blog_url=user.blog_url,
+            is_public=user.is_public,
+        )
+
+    # 신규 유저 — 닉네임 중복 처리
+    base_nick = kakao_nickname[:10]
+    nick = base_nick
+    suffix = 1
+    while db.query(User).filter(User.nickname == nick).first():
+        nick = f"{base_nick}{suffix}"
+        suffix += 1
+
+    user = User(
+        nickname=nick,
+        pin_hash=_hash_pin("0000"),  # 카카오 유저는 PIN 사용 안 함
+        kakao_id=kakao_id,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return LoginResponse(
+        user_id=user.id, nickname=user.nickname,
+        instagram_url=user.instagram_url, blog_url=user.blog_url,
+        is_public=user.is_public,
+    )
 
 
 @router.patch("/{user_id}", response_model=LoginResponse)

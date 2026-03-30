@@ -158,7 +158,7 @@ export default function RestaurantPanel({
   };
 
   const handleShare = () => {
-    const url = `${window.location.origin}?place=${r.id}`;
+    const url = `${API_BASE}/og/place/${r.id}`;
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);

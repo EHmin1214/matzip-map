@@ -38,6 +38,14 @@ export function UserProvider({ children }) {
     return userData;
   };
 
+  const kakaoLogin = async (accessToken) => {
+    const res = await axios.post(`${API_BASE}/users/kakao-login`, { access_token: accessToken });
+    const userData = res.data;
+    setUser(userData);
+    localStorage.setItem("matzip_user", JSON.stringify(userData));
+    return userData;
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem("matzip_user");
@@ -50,7 +58,7 @@ export function UserProvider({ children }) {
   };
 
   return (
-    <UserContext.Provider value={{ user, loading, login, register, logout, updateUser }}>
+    <UserContext.Provider value={{ user, loading, login, register, kakaoLogin, logout, updateUser }}>
       {children}
     </UserContext.Provider>
   );

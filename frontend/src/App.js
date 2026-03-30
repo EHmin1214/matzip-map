@@ -14,6 +14,9 @@ import SearchTab from "./components/SearchTab";
 import LocationButton from "./components/LocationButton";
 import MapFilter from "./components/MapFilter";
 import RefreshButton from "./components/RefreshButton";
+import PublicProfile from "./components/PublicProfile";
+import PublicListPage from "./components/PublicListPage";
+import OnboardingGuide from "./components/OnboardingGuide";
 import "./App.css";
 
 export const ACCOUNT_COLORS = ["#E8593C","#3B8BD4","#1D9E75","#BA7517","#7F77DD","#D4537E","#0F6E56","#993C1D"];
@@ -33,6 +36,7 @@ export default function App() {
   const [unreadCount, setUnreadCount] = useState(0);
   const mapRef = useRef(null);
 
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const [accounts] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
@@ -52,7 +56,13 @@ export default function App() {
   const loadPersonalPlaces = useCallback(() => {
     if (!user) return Promise.resolve();
     return axios.get(`${API_BASE}/personal-places/?user_id=${user.user_id}`)
-      .then((res) => setPersonalPlaces(res.data)).catch(() => {});
+      .then((res) => {
+        setPersonalPlaces(res.data);
+        // 첫 사용자 온보딩: 장소 0개 + 이전에 안 봤으면
+        if (res.data.length === 0 && !localStorage.getItem("matzip_onboarded")) {
+          setShowOnboarding(true);
+        }
+      }).catch(() => {});
   }, [user]);
 
   const loadFollowingList = useCallback(() => {
@@ -211,6 +221,16 @@ export default function App() {
     </div>
   );
 
+  // 공개 라우트 — 비회원 접근 가능
+  const profileMatch = window.location.pathname.match(/^\/@(.+)$/);
+  if (profileMatch) {
+    return <PublicProfile nickname={decodeURIComponent(profileMatch[1])} />;
+  }
+  const listMatch = window.location.pathname.match(/^\/list\/(\d+)$/);
+  if (listMatch) {
+    return <PublicListPage listId={parseInt(listMatch[1])} />;
+  }
+
   if (!user) return <AuthScreen />;
 
   const renderPanel = (tab) => {
@@ -221,8 +241,19 @@ export default function App() {
     return null;
   };
 
+  const dismissOnboarding = () => {
+    setShowOnboarding(false);
+    localStorage.setItem("matzip_onboarded", "1");
+  };
+
   return (
     <div className="app">
+      {showOnboarding && (
+        <OnboardingGuide
+          onStart={() => { dismissOnboarding(); setActiveTab("search"); }}
+          onDismiss={dismissOnboarding}
+        />
+      )}
 
       {/* ─── 모바일 ──────────────────────────────────────────── */}
       {isMobile && (

@@ -91,6 +91,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     nickname: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)
     pin_hash: Mapped[str] = mapped_column(String(200), nullable=False)
+    kakao_id: Mapped[str | None] = mapped_column(String(50), unique=True, nullable=True)
     instagram_url: Mapped[str | None] = mapped_column(String(200), nullable=True)
     blog_url: Mapped[str | None] = mapped_column(String(200), nullable=True)
     is_public: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -201,6 +202,31 @@ class Notification(Base):
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     user: Mapped["User"] = relationship("User", foreign_keys=[user_id], back_populates="notifications")
+
+
+class CuratedList(Base):
+    """큐레이션 리스트 — 테마별 장소 모음."""
+    __tablename__ = "curated_lists"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    title: Mapped[str] = mapped_column(String(100), nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_public: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    items: Mapped[list["CuratedListItem"]] = relationship("CuratedListItem", back_populates="curated_list", cascade="all, delete-orphan")
+    user: Mapped["User"] = relationship("User")
+
+
+class CuratedListItem(Base):
+    __tablename__ = "curated_list_items"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    list_id: Mapped[int] = mapped_column(Integer, ForeignKey("curated_lists.id", ondelete="CASCADE"), nullable=False)
+    place_id: Mapped[int] = mapped_column(Integer, ForeignKey("personal_places.id", ondelete="CASCADE"), nullable=False)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    order: Mapped[int] = mapped_column(Integer, default=0)
+    curated_list: Mapped["CuratedList"] = relationship("CuratedList", back_populates="items")
+    place: Mapped["PersonalPlace"] = relationship("PersonalPlace")
+    __table_args__ = (UniqueConstraint("list_id", "place_id", name="uq_list_place"),)
 
 
 class PushSubscription(Base):

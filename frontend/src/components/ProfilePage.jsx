@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useUser, API_BASE } from "../context/UserContext";
 import { subscribePush, unsubscribePush, isPushSubscribed } from "../utils/pushNotifications";
+import CuratedLists from "./CuratedLists";
 
 const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
@@ -507,6 +508,29 @@ export default function ProfilePage({ personalPlaces = [], onViewMap }) {
             <Toggle value={isPublic} onChange={handlePublicToggle} />
           </div>
 
+          {/* 내 프로필 공유 링크 */}
+          {isPublic && (
+            <button
+              onClick={() => {
+                const url = `${API_BASE}/og/@${user.nickname}`;
+                navigator.clipboard.writeText(url).then(() => {
+                  setSuccessMsg("프로필 링크가 복사됐어요!");
+                  setTimeout(() => setSuccessMsg(""), 2500);
+                });
+              }}
+              style={{
+                width: "100%", padding: "12px 14px",
+                background: C.primaryContainer, border: "none", borderRadius: 8,
+                cursor: "pointer", marginBottom: 16,
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                fontFamily: FL, fontSize: 12, fontWeight: 700, color: C.primary,
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>share</span>
+              내 프로필 링크 복사
+            </button>
+          )}
+
           {/* 푸시 알림 설정 */}
           {pushSupported && (
             <div style={{
@@ -611,6 +635,11 @@ export default function ProfilePage({ personalPlaces = [], onViewMap }) {
 
         {/* ── 미니 맵 ──────────────────────────────────────── */}
         <MiniMap places={personalPlaces} onViewMap={onViewMap} />
+
+        {/* ── 큐레이션 리스트 ─────────────────────────────── */}
+        <Card>
+          <CuratedLists personalPlaces={personalPlaces} />
+        </Card>
 
         {/* ── 나의 기록 피드 ──────────────────────────────── */}
         {personalPlaces.length > 0 && (
