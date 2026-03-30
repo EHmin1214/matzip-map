@@ -1,13 +1,6 @@
 // src/components/MapView.jsx
-// 마커 디자인: 미니멀, 세련됨. 범례 제거.
+// 마커: 미니멀 — 이름 + 상태 도트만. 이모지/아바타 스택 제거.
 import { useEffect, useRef, useState } from "react";
-
-const STATUS_EMOJI = {
-  want_to_go:      "🔖",
-  visited:         "✅",
-  want_revisit:    "❤️",
-  not_recommended: "👎",
-};
 
 const FOLLOWING_COLORS = [
   "#3B8BD4", "#1D9E75", "#BA7517",
@@ -15,86 +8,80 @@ const FOLLOWING_COLORS = [
 ];
 const getFollowingColor = (idx) => FOLLOWING_COLORS[idx % FOLLOWING_COLORS.length];
 
-const MY_COLOR = "#655d54"; // primary
+const MY_PRIMARY = "#655d54";
+const MY_DIM     = "#595149";
+
+const STATUS_DOT = {
+  want_to_go:      "#BA7517",   // 황금 — 가고싶어요
+  visited:         "#1D9E75",   // 초록 — 가봤어요
+  want_revisit:    "#D4537E",   // 핑크 — 또가고싶어요
+  not_recommended: "#afb3ae",   // 회색 — 별로
+};
 
 const isSameLocation = (a, b, threshold = 0.0001) =>
   Math.abs(a.lat - b.lat) < threshold && Math.abs(a.lng - b.lng) < threshold;
 
-// ── 마커 HTML ─────────────────────────────────────────────────
+/* ── 마커 HTML ───────────────────────────────────────────── */
 
-// 내 맛집 마커 — 작고 세련된 필
-const myMarker = ({ name, emoji, shared, avatars = [] }) => {
-  const avatarStack = avatars.slice(0, 2).map(({ initial, color }) => `
-    <div style="
-      width:12px;height:12px;border-radius:50%;
-      background:${color};
-      display:inline-flex;align-items:center;justify-content:center;
-      font-size:7px;color:white;font-weight:800;
-      border:1.5px solid white;margin-left:-3px;
-      font-family:'Manrope',sans-serif;
-    ">${initial}</div>
-  `).join("");
-
+// 내 맛집 — 작은 rounded pill, 상태 색상 도트
+const myMarker = ({ name, status, shared = false }) => {
+  const dotColor = STATUS_DOT[status] || MY_PRIMARY;
   return `
     <div style="
-      display:inline-flex;align-items:center;gap:4px;
-      background:${MY_COLOR};
+      display:inline-flex;align-items:center;gap:5px;
+      background:${MY_PRIMARY};
       color:#fff6ef;
-      padding:4px ${avatars.length > 0 ? "7px 4px 6px" : "9px"};
-      border-radius:8px;
+      padding:4px 9px 4px 6px;
+      border-radius:6px;
       font-family:'Manrope',sans-serif;
       font-size:11px;font-weight:600;
       white-space:nowrap;
-      box-shadow:0 1px 8px rgba(101,93,84,0.28);
+      box-shadow:0 2px 10px rgba(101,93,84,0.22);
       cursor:pointer;
       letter-spacing:0.01em;
-      ${shared ? "outline:2px solid rgba(255,255,255,0.6);" : ""}
+      ${shared ? "outline:1.5px solid rgba(255,246,239,0.5);outline-offset:1px;" : ""}
     ">
-      ${emoji ? `<span style="font-size:11px;line-height:1;">${emoji}</span>` : ""}
+      <span style="
+        width:6px;height:6px;border-radius:50%;
+        background:${dotColor};flex-shrink:0;
+        display:inline-block;
+      "></span>
       <span>${name}</span>
-      ${avatarStack ? `<div style="display:flex;align-items:center;margin-left:1px;">${avatarStack}</div>` : ""}
     </div>
   `;
 };
 
-// 팔로잉 마커 — 아바타 원형 + 이름 pill
-const followingMarker = ({ name, initial, color, emoji = "" }) => `
+// 팔로잉 마커 — 컬러 pill
+const followingMarker = ({ name, color }) => `
   <div style="
-    display:inline-flex;align-items:center;gap:5px;
+    display:inline-flex;align-items:center;gap:4px;
     background:${color};
     color:white;
-    padding:3px 9px 3px 3px;
-    border-radius:20px;
+    padding:4px 9px;
+    border-radius:6px;
     font-family:'Manrope',sans-serif;
     font-size:11px;font-weight:600;
     white-space:nowrap;
-    box-shadow:0 1px 8px rgba(0,0,0,0.16);
+    box-shadow:0 2px 10px rgba(0,0,0,0.15);
     cursor:pointer;
-    border:2px solid white;
+    letter-spacing:0.01em;
   ">
-    <div style="
-      width:18px;height:18px;border-radius:50%;
-      background:rgba(255,255,255,0.22);
-      display:flex;align-items:center;justify-content:center;
-      font-size:9px;font-weight:800;flex-shrink:0;
-    ">${initial}</div>
-    ${emoji ? `<span style="font-size:11px;">${emoji}</span>` : ""}
     <span>${name}</span>
   </div>
 `;
 
-// 블로거 맛집 마커 — 심플한 색상 pill
+// 블로거 맛집 마커
 const blogMarker = ({ name, color }) => `
   <div style="
     display:inline-flex;align-items:center;
     background:${color};
     color:white;
-    padding:4px 10px;
-    border-radius:8px;
+    padding:4px 9px;
+    border-radius:6px;
     font-family:'Manrope',sans-serif;
     font-size:11px;font-weight:600;
     white-space:nowrap;
-    box-shadow:0 1px 8px rgba(0,0,0,0.18);
+    box-shadow:0 2px 10px rgba(0,0,0,0.15);
     cursor:pointer;
     letter-spacing:0.01em;
   ">${name}</div>
@@ -138,7 +125,7 @@ export default function MapView({
     return () => clearInterval(check);
   }, []); // eslint-disable-line
 
-  // 마커 클릭 후 지도 이동 (패널 공간 확보)
+  // 마커 클릭 시 지도 이동
   const panToPlace = (lat, lng) => {
     if (!mapInstance.current || !window.naver) return;
     const isMobile = window.innerWidth <= 768;
@@ -165,7 +152,10 @@ export default function MapView({
         title: r.name,
         icon: { content: blogMarker({ name: r.name, color }), anchor: new window.naver.maps.Point(0, 0) },
       });
-      window.naver.maps.Event.addListener(marker, "click", () => { panToPlace(r.lat, r.lng); onMarkerClick(r.id, false); });
+      window.naver.maps.Event.addListener(marker, "click", () => {
+        panToPlace(r.lat, r.lng);
+        onMarkerClick(r.id, false);
+      });
       markersRef.current.push(marker);
     });
 
@@ -177,7 +167,7 @@ export default function MapView({
     }
   }, [restaurants, accounts, mapReady]); // eslint-disable-line
 
-  // 내 맛집 마커 (공유 클러스터 포함)
+  // 내 맛집 마커 (공유 표시 포함)
   useEffect(() => {
     if (!mapReady) return;
     personalMarkersRef.current.forEach((m) => m.setMap(null));
@@ -188,7 +178,6 @@ export default function MapView({
     );
 
     personalPlaces.forEach((r) => {
-      const emoji = STATUS_EMOJI[r.status] || "";
       const sharedWith = allFollowing.filter((fp) => {
         if (r.naver_place_id && fp.naver_place_id) return r.naver_place_id === fp.naver_place_id;
         return isSameLocation(r, fp);
@@ -199,24 +188,20 @@ export default function MapView({
         map: mapInstance.current,
         title: r.name,
         icon: {
-          content: myMarker({
-            name: r.name, emoji,
-            shared: sharedWith.length > 0,
-            avatars: sharedWith.slice(0, 2).map(({ _nickname, _colorIdx }) => ({
-              initial: _nickname?.[0]?.toUpperCase() || "?",
-              color: getFollowingColor(_colorIdx),
-            })),
-          }),
+          content: myMarker({ name: r.name, status: r.status, shared: sharedWith.length > 0 }),
           anchor: new window.naver.maps.Point(0, 0),
         },
         zIndex: sharedWith.length > 0 ? 10 : 5,
       });
-      window.naver.maps.Event.addListener(marker, "click", () => { panToPlace(r.lat, r.lng); onMarkerClick(`personal_${r.id}`, true); });
+      window.naver.maps.Event.addListener(marker, "click", () => {
+        panToPlace(r.lat, r.lng);
+        onMarkerClick(`personal_${r.id}`, true);
+      });
       personalMarkersRef.current.push(marker);
     });
   }, [personalPlaces, followingPlaces, mapReady]); // eslint-disable-line
 
-  // 팔로잉 마커 (겹치는 건 내 마커에 표시)
+  // 팔로잉 마커
   useEffect(() => {
     if (!mapReady) return;
     followingMarkersRef.current.forEach((m) => m.setMap(null));
@@ -224,7 +209,6 @@ export default function MapView({
 
     followingPlaces.forEach(({ userId, nickname, colorIdx, places }) => {
       const color = getFollowingColor(colorIdx);
-      const initial = nickname?.[0]?.toUpperCase() || "?";
 
       places.forEach((r) => {
         const isDup = personalPlaces.some((p) => {
@@ -238,7 +222,7 @@ export default function MapView({
           map: mapInstance.current,
           title: `${nickname}: ${r.name}`,
           icon: {
-            content: followingMarker({ name: r.name, initial, color, emoji: STATUS_EMOJI[r.status] || "" }),
+            content: followingMarker({ name: r.name, color }),
             anchor: new window.naver.maps.Point(0, 0),
           },
         });
@@ -252,17 +236,17 @@ export default function MapView({
   }, [followingPlaces, personalPlaces, mapReady]); // eslint-disable-line
 
   return (
-    <div style={{ flex: 1, height: "100vh", position: "relative" }}>
+    <div style={{ width: "100%", height: "100%", position: "relative" }}>
       <div ref={mapRef} style={{ width: "100%", height: "100%" }} />
       {!mapReady && (
         <div style={{
           position: "absolute", inset: 0,
           display: "flex", alignItems: "center", justifyContent: "center",
           background: "#f4f4f0",
-          fontFamily: "'Manrope', sans-serif", fontSize: 13,
-          color: "#a8a29e", letterSpacing: "0.05em",
+          fontFamily: "'Manrope', sans-serif", fontSize: 12,
+          color: "#a8a29e", letterSpacing: "0.08em",
         }}>
-          불러오는 중...
+          불러오는 중…
         </div>
       )}
     </div>

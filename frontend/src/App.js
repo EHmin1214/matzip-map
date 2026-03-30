@@ -23,6 +23,10 @@ export function getAccountColor(accountId, accounts) {
   return ACCOUNT_COLORS[index % ACCOUNT_COLORS.length] || "#888";
 }
 
+// ── 레이아웃 상수 ─────────────────────────────────────────────
+const SIDEBAR_W = 240;   // 사이드바 너비
+const PANEL_W   = 360;   // 슬라이드 패널 너비 (데스크탑)
+
 export default function App() {
   const { user, loading } = useUser();
   const [activeTab, setActiveTab] = useState("map");
@@ -41,8 +45,9 @@ export default function App() {
   const [followingList, setFollowingList] = useState([]);
 
   const isMobile = window.innerWidth <= 768;
-  const SIDEBAR_W = 256;
+  const showMap = activeTab === "map";
 
+  // ── 데이터 로드 ────────────────────────────────────────────
   const loadPersonalPlaces = useCallback(() => {
     if (!user) return Promise.resolve();
     return axios.get(`${API_BASE}/personal-places/?user_id=${user.user_id}`)
@@ -161,18 +166,26 @@ export default function App() {
 
   const filteredPersonalPlaces = activeFilter ? personalPlaces.filter((p) => p.status === activeFilter) : personalPlaces;
   const visibleRestaurants = restaurants.filter((r) => !hiddenIds.has(r.id));
-  const showMap = activeTab === "map";
 
+  // ── 로딩 ──────────────────────────────────────────────────
   if (loading) return (
-    <div style={{ position: "fixed", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: "#faf9f6", flexDirection: "column", gap: 12 }}>
-      <h1 style={{ fontFamily: "'Noto Serif', Georgia, serif", fontStyle: "italic", fontSize: 28, color: "#655d54", margin: 0 }}>나의 공간</h1>
-      <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.2em", color: "#a8a29e", margin: 0 }}>The Curated Archive</p>
+    <div style={{
+      position: "fixed", inset: 0,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      background: "#faf9f6", flexDirection: "column", gap: 10,
+    }}>
+      <h1 style={{ fontFamily: "'Noto Serif', Georgia, serif", fontStyle: "italic", fontSize: 26, color: "#655d54", margin: 0, letterSpacing: "-0.02em" }}>
+        나의 공간
+      </h1>
+      <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.25em", color: "#c7c4bf", margin: 0 }}>
+        The Curated Archive
+      </p>
     </div>
   );
 
   if (!user) return <AuthScreen />;
 
-  const renderTab = (tab) => {
+  const renderPanel = (tab) => {
     if (tab === "search")  return <SearchTab onPlaceAdded={addPlace} />;
     if (tab === "follow")  return <FollowTab onViewMap={() => setActiveTab("map")} onFollowChange={loadFollowingList} />;
     if (tab === "updates") return <UpdatesTab onPlaceClick={handleActivityPlaceClick} onUnreadChange={setUnreadCount} unreadCount={unreadCount} />;
@@ -183,10 +196,10 @@ export default function App() {
   return (
     <div className="app">
 
-      {/* ─── 모바일 ────────────────────────────────────────── */}
+      {/* ─── 모바일 ──────────────────────────────────────────── */}
       {isMobile && (
         <>
-          {/* 지도 항상 뒤에 */}
+          {/* 지도 항상 렌더 (뒤) */}
           <div style={{ position: "fixed", inset: 0, zIndex: 1 }}>
             <MapView
               restaurants={visibleRestaurants}
@@ -199,7 +212,7 @@ export default function App() {
             />
           </div>
 
-          {/* 지도 오버레이 UI */}
+          {/* 지도 오버레이 컨트롤 */}
           {showMap && (
             <div style={{ position: "fixed", inset: 0, zIndex: 20, pointerEvents: "none" }}>
               <div style={{ pointerEvents: "auto" }}>
@@ -215,10 +228,10 @@ export default function App() {
             </div>
           )}
 
-          {/* 탭 콘텐츠 (지도 위) */}
+          {/* 비지도 탭 콘텐츠 */}
           {!showMap && (
-            <div style={{ position: "fixed", inset: 0, zIndex: 20, paddingBottom: 64, overflowY: "auto" }}>
-              {renderTab(activeTab)}
+            <div style={{ position: "fixed", inset: 0, zIndex: 20, paddingBottom: 64, overflowY: "auto", background: "#faf9f6" }}>
+              {renderPanel(activeTab)}
             </div>
           )}
 
@@ -236,11 +249,15 @@ export default function App() {
         </>
       )}
 
-      {/* ─── 데스크탑 ────────────────────────────────────────── */}
+      {/* ─── 데스크탑 ─────────────────────────────────────────── */}
       {!isMobile && (
         <>
+          {/* 사이드바 (항상 표시) */}
           <Sidebar
-            activeTab={activeTab} onTabChange={setActiveTab}
+            activeTab={activeTab} onTabChange={(tab) => {
+              setActiveTab(tab);
+              // 지도 탭으로 돌아올 때 패널 닫기
+            }}
             apiBase={API_BASE}
             onAddPersonalPlace={addPersonalPlace}
             personalPlaces={personalPlaces}
@@ -251,43 +268,62 @@ export default function App() {
             onToggleFollowing={handleToggleFollowing}
             followingList={followingList}
             onFollowChange={loadFollowingList}
+            sidebarWidth={SIDEBAR_W}
           />
 
-          <div style={{ marginLeft: SIDEBAR_W, flex: 1, minHeight: "100vh", display: "flex", position: "relative" }}>
-            {/* 지도 항상 렌더 */}
-            <div style={{ position: showMap ? "relative" : "fixed", inset: showMap ? "auto" : 0, width: "100%", flex: showMap ? 1 : undefined, zIndex: showMap ? 1 : -1, opacity: showMap ? 1 : 0 }}>
-              <MapView
-                restaurants={visibleRestaurants}
-                personalPlaces={showPersonal ? filteredPersonalPlaces : []}
-                accounts={accounts}
-                onMarkerClick={handleMarkerClick}
-                onMapReady={(map) => { mapRef.current = map; }}
-                followingPlaces={followingPlaces}
-                onFollowingMarkerClick={handleFollowingMarkerClick}
-              />
-              {showMap && (
-                <>
-                  <MapFilter
-                    activeFilter={activeFilter} onFilterChange={setActiveFilter} sidebarWidth={0}
-                    followingList={[]} selectedFollowingIds={selectedFollowingIds}
-                    onToggleFollowing={handleToggleFollowing}
-                    showPersonal={showPersonal} onTogglePersonal={() => setShowPersonal((v) => !v)}
-                  />
-                  <RefreshButton onRefresh={handleRefresh} />
-                  <LocationButton map={mapRef.current} />
-                </>
-              )}
-            </div>
+          {/* 지도 — 항상 전체 화면 뒤에서 렌더 */}
+          <div style={{
+            position: "fixed",
+            left: SIDEBAR_W, right: 0, top: 0, bottom: 0,
+            zIndex: 1,
+          }}>
+            <MapView
+              restaurants={visibleRestaurants}
+              personalPlaces={showPersonal ? filteredPersonalPlaces : []}
+              accounts={accounts}
+              onMarkerClick={(id, isPersonal) => {
+                handleMarkerClick(id, isPersonal);
+                // 마커 클릭 시 지도 탭으로 이동
+                setActiveTab("map");
+              }}
+              onMapReady={(map) => { mapRef.current = map; }}
+              followingPlaces={followingPlaces}
+              onFollowingMarkerClick={(place) => {
+                handleFollowingMarkerClick(place);
+                setActiveTab("map");
+              }}
+            />
 
-            {/* 다른 탭 콘텐츠 */}
-            {!showMap && (
-              <div style={{ flex: 1, display: "flex", minHeight: "100vh" }}>
-                {renderTab(activeTab)}
-              </div>
-            )}
+            {/* 지도 위 컨트롤 — 지도 탭이거나 패널 열려있을 때 */}
+            <MapFilter
+              activeFilter={activeFilter} onFilterChange={setActiveFilter}
+              sidebarWidth={!showMap ? PANEL_W : 0}
+              followingList={[]} selectedFollowingIds={selectedFollowingIds}
+              onToggleFollowing={handleToggleFollowing}
+              showPersonal={showPersonal} onTogglePersonal={() => setShowPersonal((v) => !v)}
+            />
+            <RefreshButton onRefresh={handleRefresh} />
+            <LocationButton map={mapRef.current} />
           </div>
 
-          {/* 지도 위 상세 패널 */}
+          {/* 슬라이드 패널 — 비지도 탭일 때 */}
+          {!showMap && (
+            <div style={{
+              position: "fixed",
+              left: SIDEBAR_W, top: 0,
+              width: PANEL_W, height: "100vh",
+              background: "#faf9f6",
+              zIndex: 30,
+              boxShadow: "4px 0 32px rgba(47,52,48,0.10)",
+              overflowY: "auto",
+              WebkitOverflowScrolling: "touch",
+              animation: "slideInPanel 0.22s cubic-bezier(0.16,1,0.3,1)",
+            }}>
+              {renderPanel(activeTab)}
+            </div>
+          )}
+
+          {/* 상세 패널 — 지도 탭에서 마커 클릭 시 */}
           {selectedRestaurant && showMap && (
             <RestaurantPanel
               restaurant={selectedRestaurant} accounts={accounts}
@@ -298,6 +334,13 @@ export default function App() {
           )}
         </>
       )}
+
+      <style>{`
+        @keyframes slideInPanel {
+          from { opacity: 0; transform: translateX(-16px); }
+          to   { opacity: 1; transform: translateX(0); }
+        }
+      `}</style>
     </div>
   );
 }

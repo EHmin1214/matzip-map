@@ -5,10 +5,63 @@ import { getAccountColor } from "../App";
 import { useUser, API_BASE } from "../context/UserContext";
 import SavePlaceModal from "./SavePlaceModal";
 
+const FH = "'Noto Serif', Georgia, serif";
+const FL = "'Manrope', -apple-system, sans-serif";
+const C = {
+  primary:          "#655d54",
+  primaryDim:       "#595149",
+  primaryContainer: "#ede0d5",
+  bg:               "#faf9f6",
+  surfaceLow:       "#f4f4f0",
+  surfaceLowest:    "#ffffff",
+  container:        "#edeeea",
+  onSurface:        "#2f3430",
+  onSurfaceVariant: "#5c605c",
+  outlineVariant:   "#afb3ae",
+  error:            "#9e422c",
+};
+
 const isMobile = () => window.innerWidth <= 768;
 
+const STATUS_LABEL = {
+  want_to_go:      "가고 싶어요",
+  visited:         "가봤어요",
+  want_revisit:    "또 가고 싶어요",
+  not_recommended: "별로였어요",
+};
+const STATUS_COLOR = {
+  want_to_go:      { bg: "#FEF3CD", color: "#BA7517" },
+  visited:         { bg: "#E0F4EC", color: "#1D9E75" },
+  want_revisit:    { bg: "#FCE4EE", color: "#D4537E" },
+  not_recommended: { bg: C.surfaceLow, color: C.outlineVariant },
+};
+
+// ── 아이콘 버튼 ─────────────────────────────────────────────
+function IconBtn({ icon, onClick, title, danger = false, size = 32 }) {
+  return (
+    <button
+      onClick={onClick}
+      title={title}
+      style={{
+        width: size, height: size,
+        background: danger ? "rgba(158,66,44,0.07)" : C.surfaceLow,
+        border: "none", borderRadius: "50%",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        cursor: "pointer", flexShrink: 0,
+        color: danger ? C.error : C.onSurfaceVariant,
+        transition: "background 0.15s",
+        WebkitTapHighlightColor: "transparent",
+      }}
+      onMouseEnter={(e) => e.currentTarget.style.background = danger ? "rgba(158,66,44,0.12)" : C.container}
+      onMouseLeave={(e) => e.currentTarget.style.background = danger ? "rgba(158,66,44,0.07)" : C.surfaceLow}
+    >
+      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>{icon}</span>
+    </button>
+  );
+}
+
 export default function RestaurantPanel({
-  restaurant, accounts, onClose, onHide, apiBase, sidebarWidth = 280,
+  restaurant, accounts, onClose, onHide, apiBase, sidebarWidth = 240,
   onPlaceUpdated, mapInstance,
 }) {
   const { user } = useUser();
@@ -30,23 +83,20 @@ export default function RestaurantPanel({
   useEffect(() => { setR(restaurant); }, [restaurant?.id]);
 
   const isPersonalMine = r.isPersonal && (!r.user_id || (user && r.user_id === user.user_id));
-  const isOthersPlace = r.isPersonal && r.user_id && user && r.user_id !== user.user_id;
+  const isOthersPlace  = r.isPersonal && r.user_id && user && r.user_id !== user.user_id;
 
   useEffect(() => {
     if (!r.isPersonal || !r.id) return;
     axios.get(`${API_BASE}/places/${r.id}/neighbors?viewer_id=${user?.user_id || ""}`)
-      .then((res) => setNeighbors(res.data))
-      .catch(() => {});
+      .then((res) => setNeighbors(res.data)).catch(() => {});
   }, [r?.id, r?.isPersonal, user?.user_id]);
 
   useEffect(() => {
     if (!isOthersPlace || !r.id) return;
     axios.get(`${API_BASE}/places/${r.id}/comments`)
-      .then((res) => setComments(res.data))
-      .catch(() => {});
+      .then((res) => setComments(res.data)).catch(() => {});
   }, [r?.id, isOthersPlace]);
 
-  // 지도 중심 이동
   const handleCenterMap = () => {
     if (!mapInstance || !r.lat || !r.lng || !window.naver) return;
     mapInstance.setCenter(new window.naver.maps.LatLng(r.lat, r.lng));
@@ -73,9 +123,7 @@ export default function RestaurantPanel({
       setCommentInput("");
     } catch (e) {
       alert(e.response?.data?.detail || "댓글 작성 실패");
-    } finally {
-      setSubmittingComment(false);
-    }
+    } finally { setSubmittingComment(false); }
   };
 
   const handleDeleteComment = async (commentId) => {
@@ -88,13 +136,7 @@ export default function RestaurantPanel({
   const handleEditSave = async (updated) => {
     const res = await axios.patch(
       `${API_BASE}/personal-places/${r.id}?user_id=${user.user_id}`,
-      {
-        folder_id: updated.folder_id,
-        status: updated.status,
-        rating: updated.rating,
-        memo: updated.memo,
-        instagram_post_url: updated.instagram_post_url,
-      }
+      { folder_id: updated.folder_id, status: updated.status, rating: updated.rating, memo: updated.memo, instagram_post_url: updated.instagram_post_url }
     );
     const updatedPlace = res.data;
     setR((prev) => ({ ...prev, ...updatedPlace }));
@@ -120,7 +162,6 @@ export default function RestaurantPanel({
     if (!r.isPersonal) checkAds();
   }, [r?.id]); // eslint-disable-line
 
-  // 스와이프 닫기
   const handleTouchStart = (e) => { touchStartY.current = e.touches[0].clientY; };
   const handleTouchEnd = (e) => {
     if (touchStartY.current === null) return;
@@ -130,17 +171,12 @@ export default function RestaurantPanel({
   };
 
   const verdictInfo = adResult ? {
-    clean:      { label: "✅ 광고 적음",  color: "#1D9E75", bg: "#E1F5EE" },
-    suspicious: { label: "⚠️ 광고 의심",  color: "#BA7517", bg: "#FAEEDA" },
-    heavy_ad:   { label: "🚨 광고 많음",  color: "#993C1D", bg: "#FAECE7" },
+    clean:      { label: "광고 적음",  color: "#1D9E75", bg: "#E0F4EC" },
+    suspicious: { label: "광고 의심",  color: "#BA7517", bg: "#FEF3CD" },
+    heavy_ad:   { label: "광고 많음",  color: "#9e422c", bg: "#FAE8E4" },
   }[adResult.verdict] : null;
 
-  const STATUS_LABEL = {
-    want_to_go:      "🔖 가고 싶어요",
-    visited:         "✅ 가봤어요",
-    want_revisit:    "❤️ 또 가고 싶어요",
-    not_recommended: "👎 별로였어요",
-  };
+  const statusStyle = r.status ? STATUS_COLOR[r.status] : null;
 
   return (
     <>
@@ -149,316 +185,318 @@ export default function RestaurantPanel({
         onTouchEnd={mobile ? handleTouchEnd : undefined}
         style={{
           position: "fixed",
-          bottom: mobile ? 60 : 0,
+          bottom: mobile ? 64 : 0,
           left: mobile ? 0 : sidebarWidth,
           right: 0,
-          background: "white",
-          borderRadius: mobile ? "20px 20px 0 0" : "16px 16px 0 0",
-          boxShadow: "0 -4px 24px rgba(0,0,0,0.15)",
-          zIndex: 20,
-          maxHeight: mobile ? "62vh" : "55vh",
+          background: C.bg,
+          borderRadius: mobile ? "18px 18px 0 0" : "14px 14px 0 0",
+          /* Ambient shadow */
+          boxShadow: "0 -8px 40px rgba(47,52,48,0.10)",
+          zIndex: 30,
+          maxHeight: mobile ? "60vh" : "52vh",
           overflowY: "auto",
-          transition: "left 0.3s ease",
           WebkitOverflowScrolling: "touch",
+          transition: "left 0.2s ease",
         }}
       >
         {/* 스와이프 핸들 */}
         {mobile && (
           <div style={{ display: "flex", justifyContent: "center", padding: "10px 0 4px", cursor: "grab" }}>
-            <div style={{ width: 36, height: 4, background: "#ddd", borderRadius: 2 }} />
+            <div style={{ width: 32, height: 3, background: C.container, borderRadius: 2 }} />
           </div>
         )}
 
-        <div style={{ padding: mobile ? "8px 20px 24px" : "20px 24px" }}>
-          {/* 헤더 */}
-          <div style={{ display: "flex", alignItems: "flex-start", marginBottom: 12 }}>
+        <div style={{ padding: mobile ? "6px 20px 24px" : "18px 24px 20px" }}>
+
+          {/* ── 헤더 ──────────────────────────────────────── */}
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 14 }}>
             <div style={{ flex: 1 }}>
-              <p style={{ margin: "0 0 2px", fontSize: 11, color: "#E8593C", fontWeight: 600 }}>
-                {r.category || "맛집"}
-              </p>
-              <h2 style={{ margin: 0, fontSize: mobile ? 18 : 20, fontWeight: 700, color: "#1a1a1a" }}>
+              {/* 카테고리 */}
+              {r.category && (
+                <p style={{
+                  margin: "0 0 3px",
+                  fontFamily: FL, fontSize: 10, fontWeight: 700,
+                  textTransform: "uppercase", letterSpacing: "0.12em",
+                  color: C.primary,
+                }}>
+                  {r.category}
+                </p>
+              )}
+
+              {/* 이름 */}
+              <h2 style={{
+                margin: "0 0 4px",
+                fontFamily: FH, fontSize: mobile ? 20 : 22,
+                fontWeight: 700, color: C.onSurface,
+                letterSpacing: "-0.01em",
+              }}>
                 {r.name}
               </h2>
-              <p style={{ margin: "4px 0 0", fontSize: 13, color: "#888" }}>
-                📍 {r.address || "주소 정보 없음"}
-              </p>
 
-              {isPersonalMine && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 8 }}>
-                  {r.status && (
-                    <span style={{ fontSize: 12, padding: "4px 10px", background: "#fff0ed", color: "#E8593C", borderRadius: 20, fontWeight: 600 }}>
-                      {STATUS_LABEL[r.status] || r.status}
+              {/* 주소 */}
+              {r.address && (
+                <p style={{
+                  margin: 0, fontFamily: FL, fontSize: 12,
+                  color: C.outlineVariant,
+                }}>
+                  {r.address}
+                </p>
+              )}
+
+              {/* 내 기록 태그 */}
+              {isPersonalMine && r.status && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
+                  <span style={{
+                    fontFamily: FL, fontSize: 11, fontWeight: 600,
+                    padding: "4px 10px", borderRadius: 5,
+                    background: statusStyle?.bg || C.surfaceLow,
+                    color: statusStyle?.color || C.onSurfaceVariant,
+                  }}>
+                    {STATUS_LABEL[r.status] || r.status}
+                  </span>
+                  {r.rating > 0 && (
+                    <span style={{
+                      fontFamily: FL, fontSize: 11, padding: "4px 10px",
+                      background: C.primaryContainer, color: C.primary,
+                      borderRadius: 5, fontWeight: 600,
+                    }}>
+                      {"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}
                     </span>
                   )}
-                  {r.rating > 0 && <span style={{ fontSize: 13, color: "#E8593C" }}>{"⭐".repeat(r.rating)}</span>}
-                  {r.memo && <span style={{ fontSize: 12, color: "#888" }}>💬 {r.memo}</span>}
-                  {r.instagram_post_url && (
-                    <a href={r.instagram_post_url} target="_blank" rel="noreferrer"
-                      style={{ fontSize: 12, color: "#E8593C", textDecoration: "none" }}>
-                      📷 인스타 포스트
-                    </a>
+                  {r.memo && (
+                    <span style={{
+                      fontFamily: FH, fontStyle: "italic",
+                      fontSize: 12, color: C.onSurfaceVariant,
+                      padding: "4px 0",
+                    }}>
+                      "{r.memo}"
+                    </span>
                   )}
                 </div>
               )}
             </div>
 
-            {/* 버튼들 */}
-            <div style={{ display: "flex", gap: 6, flexShrink: 0, marginLeft: 8 }}>
-              {/* 지도 중심 이동 버튼 */}
-              <button onClick={handleCenterMap} title="지도에서 보기"
-                style={{
-                  background: "#f0f7ff", border: "none", borderRadius: "50%",
-                  width: mobile ? 40 : 32, height: mobile ? 40 : 32,
-                  cursor: "pointer", fontSize: mobile ? 16 : 14,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  WebkitTapHighlightColor: "transparent",
-                }}>🎯</button>
-
+            {/* ── 액션 버튼들 (Material Icons, clean) ──────── */}
+            <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+              <IconBtn icon="near_me" onClick={handleCenterMap} title="지도에서 보기" size={mobile ? 38 : 32} />
               {isPersonalMine && (
-                <button onClick={() => setEditModalOpen(true)}
-                  style={{
-                    background: "#fff0ed", border: "none", borderRadius: "50%",
-                    width: mobile ? 40 : 32, height: mobile ? 40 : 32,
-                    cursor: "pointer", fontSize: mobile ? 16 : 14,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    WebkitTapHighlightColor: "transparent",
-                  }}>✏️</button>
+                <IconBtn icon="edit" onClick={() => setEditModalOpen(true)} title="수정" size={mobile ? 38 : 32} />
               )}
               {!isOthersPlace && (
-                <button onClick={() => onHide(r.id, r.isPersonal)}
-                  style={{
-                    background: "#f5f5f5", border: "none", borderRadius: "50%",
-                    width: mobile ? 40 : 32, height: mobile ? 40 : 32,
-                    cursor: "pointer", fontSize: mobile ? 16 : 14,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    color: "#888", WebkitTapHighlightColor: "transparent",
-                  }}>🗑</button>
+                <IconBtn icon="delete_outline" onClick={() => onHide(r.id, r.isPersonal)} title="삭제" danger size={mobile ? 38 : 32} />
               )}
-              <button onClick={onClose}
-                style={{
-                  background: "#f5f5f5", border: "none", borderRadius: "50%",
-                  width: mobile ? 40 : 32, height: mobile ? 40 : 32,
-                  cursor: "pointer", fontSize: mobile ? 18 : 16,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  WebkitTapHighlightColor: "transparent",
-                }}>×</button>
+              <IconBtn icon="close" onClick={onClose} title="닫기" size={mobile ? 38 : 32} />
             </div>
           </div>
 
-          {/* 네이버 지도 + 지도 이동 버튼 */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
-            {r.naver_place_url && (
-              <a href={r.naver_place_url} target="_blank" rel="noreferrer" style={{
+          {/* ── 네이버 지도 링크 ────────────────────────────── */}
+          {r.naver_place_url && (
+            <a
+              href={r.naver_place_url}
+              target="_blank"
+              rel="noreferrer"
+              style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
-                padding: mobile ? "10px 16px" : "7px 14px",
-                background: "#03C75A", color: "white", borderRadius: 10,
-                fontSize: 13, fontWeight: 600, textDecoration: "none",
+                padding: mobile ? "9px 16px" : "7px 14px",
+                background: "#03C75A", color: "white",
+                borderRadius: 8,
+                fontFamily: FL, fontSize: 12, fontWeight: 600,
+                textDecoration: "none", marginBottom: 14,
                 WebkitTapHighlightColor: "transparent",
-              }}>
-                🗺️ 네이버 지도
-              </a>
-            )}
-          </div>
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 15 }}>map</span>
+              네이버 지도
+            </a>
+          )}
 
-          {/* 이웃 */}
+          {/* ── 이웃이 같이 저장 ─────────────────────────────── */}
           {neighbors.length > 0 && (
             <div style={{ marginBottom: 16 }}>
-              <p style={{ fontSize: 12, color: "#888", margin: "0 0 8px", fontWeight: 600 }}>
-                함께 저장한 이웃 ({neighbors.length})
+              <p style={{
+                fontFamily: FL, fontSize: 9, fontWeight: 700,
+                textTransform: "uppercase", letterSpacing: "0.15em",
+                color: C.outlineVariant, margin: "0 0 8px",
+              }}>
+                함께 저장한 이웃 {neighbors.length}명
               </p>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {neighbors.map((n) => (
                   <div key={n.user_id} style={{
                     display: "flex", alignItems: "center", gap: 6,
-                    background: "#f8f8f8", borderRadius: 20,
-                    padding: "6px 12px", border: "1px solid #f0f0f0",
+                    background: C.surfaceLow, borderRadius: 6,
+                    padding: "5px 10px",
                   }}>
                     <div style={{
-                      width: 22, height: 22, borderRadius: "50%",
-                      background: "linear-gradient(135deg, #3B8BD4, #7F77DD)",
+                      width: 20, height: 20, borderRadius: "50%",
+                      background: `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`,
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 10, color: "white", fontWeight: 700,
+                      fontSize: 9, color: "white", fontWeight: 700, flexShrink: 0,
+                      fontFamily: FL,
                     }}>
                       {n.nickname?.[0]?.toUpperCase()}
                     </div>
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "#555" }}>{n.nickname}</span>
-                    <span style={{ fontSize: 12 }}>
-                      {n.status === "want_to_go" ? "🔖" : n.status === "visited" ? "✅" : n.status === "want_revisit" ? "❤️" : "👎"}
+                    <span style={{ fontFamily: FL, fontSize: 11, color: C.onSurfaceVariant }}>
+                      {n.nickname}
                     </span>
-                    {n.rating > 0 && <span style={{ fontSize: 11, color: "#E8593C" }}>⭐{n.rating}</span>}
+                    {n.memo && (
+                      <span style={{
+                        fontFamily: FH, fontStyle: "italic",
+                        fontSize: 11, color: C.outlineVariant,
+                      }}>
+                        "{n.memo}"
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* 좋아요 + 댓글 */}
+          {/* ── 광고 체크 ──────────────────────────────────── */}
+          {!r.isPersonal && (
+            <div style={{ marginBottom: 12 }}>
+              {adLoading ? (
+                <p style={{ fontFamily: FL, fontSize: 11, color: C.outlineVariant }}>
+                  광고 확인 중…
+                </p>
+              ) : verdictInfo ? (
+                <span style={{
+                  display: "inline-flex", alignItems: "center", gap: 5,
+                  fontFamily: FL, fontSize: 11, fontWeight: 600,
+                  padding: "4px 10px", borderRadius: 5,
+                  background: verdictInfo.bg, color: verdictInfo.color,
+                }}>
+                  {verdictInfo.label}
+                </span>
+              ) : null}
+            </div>
+          )}
+
+          {/* ── 좋아요 / 댓글 (타인 장소) ───────────────────── */}
           {isOthersPlace && (
-            <div style={{ marginBottom: 16 }}>
-              <div style={{ display: "flex", gap: 10, marginBottom: 12 }}>
-                <button onClick={handleLike} style={{
-                  display: "flex", alignItems: "center", gap: 6,
-                  padding: mobile ? "10px 18px" : "8px 16px", minHeight: 44,
-                  background: liked ? "#fff0ed" : "#f5f5f5",
-                  border: `1.5px solid ${liked ? "#E8593C" : "#eee"}`,
-                  borderRadius: 22, cursor: "pointer", fontSize: 14, fontWeight: 600,
-                  color: liked ? "#E8593C" : "#888",
-                  WebkitTapHighlightColor: "transparent",
-                }}>
-                  {liked ? "❤️" : "🤍"} {likeCount > 0 ? likeCount : "좋아요"}
+            <div style={{ marginTop: 8 }}>
+              {r.instagram_post_url && (
+                <a href={r.instagram_post_url} target="_blank" rel="noreferrer"
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 5,
+                    fontFamily: FL, fontSize: 12, color: C.primary,
+                    fontWeight: 600, textDecoration: "none", marginBottom: 12,
+                  }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>photo_camera</span>
+                  인스타 포스트
+                </a>
+              )}
+
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+                <button
+                  onClick={handleLike}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 5,
+                    background: liked ? C.primaryContainer : C.surfaceLow,
+                    border: "none", borderRadius: 7, padding: "7px 14px",
+                    fontFamily: FL, fontSize: 12, fontWeight: 600,
+                    color: liked ? C.primary : C.outlineVariant,
+                    cursor: "pointer", transition: "all 0.15s",
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{
+                    fontSize: 15,
+                    fontVariationSettings: liked ? "'FILL' 1" : "'FILL' 0",
+                  }}>
+                    favorite
+                  </span>
+                  {likeCount > 0 ? likeCount : "좋아요"}
                 </button>
-                <button onClick={() => setShowComments(!showComments)} style={{
-                  display: "flex", alignItems: "center", gap: 6,
-                  padding: mobile ? "10px 18px" : "8px 16px", minHeight: 44,
-                  background: showComments ? "#f0f4ff" : "#f5f5f5",
-                  border: `1.5px solid ${showComments ? "#3B8BD4" : "#eee"}`,
-                  borderRadius: 22, cursor: "pointer", fontSize: 14, fontWeight: 600,
-                  color: showComments ? "#3B8BD4" : "#888",
-                  WebkitTapHighlightColor: "transparent",
-                }}>
-                  💬 {comments.length > 0 ? comments.length : "댓글"}
+
+                <button
+                  onClick={() => setShowComments(!showComments)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 5,
+                    background: showComments ? C.container : C.surfaceLow,
+                    border: "none", borderRadius: 7, padding: "7px 14px",
+                    fontFamily: FL, fontSize: 12, fontWeight: 600,
+                    color: C.onSurfaceVariant, cursor: "pointer",
+                    transition: "background 0.15s",
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 15 }}>chat_bubble_outline</span>
+                  댓글 {comments.length > 0 ? comments.length : ""}
                 </button>
               </div>
 
               {showComments && (
-                <div style={{ background: "#f8f8f8", borderRadius: 14, padding: 14 }}>
-                  {comments.length === 0 ? (
-                    <p style={{ fontSize: 13, color: "#bbb", textAlign: "center", padding: "8px 0" }}>첫 댓글을 남겨보세요!</p>
-                  ) : (
-                    <div style={{ marginBottom: 12, maxHeight: 160, overflowY: "auto" }}>
-                      {comments.map((c) => (
-                        <div key={c.id} style={{ display: "flex", gap: 8, marginBottom: 10, alignItems: "flex-start" }}>
-                          <div style={{
-                            width: 30, height: 30, borderRadius: "50%", background: "#E8593C", color: "white",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            fontSize: 13, fontWeight: 700, flexShrink: 0,
-                          }}>
-                            {c.author_nickname?.[0]?.toUpperCase()}
-                          </div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                              <span style={{ fontSize: 13, fontWeight: 700, color: "#333" }}>{c.author_nickname}</span>
-                              <span style={{ fontSize: 10, color: "#ccc" }}>{formatTime(c.created_at)}</span>
-                              {user && c.user_id === user.user_id && (
-                                <button onClick={() => handleDeleteComment(c.id)}
-                                  style={{ background: "none", border: "none", fontSize: 11, color: "#ccc", cursor: "pointer", marginLeft: "auto", padding: "4px 8px" }}>
-                                  삭제
-                                </button>
-                              )}
-                            </div>
-                            <p style={{ margin: "3px 0 0", fontSize: 13, color: "#444" }}>{c.content}</p>
-                          </div>
+                <div>
+                  {/* Rule of Silence: gap spacing instead of dividers */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+                    {comments.map((c) => (
+                      <div key={c.id} style={{ background: C.surfaceLow, borderRadius: 8, padding: "10px 12px" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                          <p style={{ margin: "0 0 3px", fontFamily: FL, fontSize: 11, fontWeight: 600, color: C.onSurface }}>
+                            {c.nickname}
+                          </p>
+                          {c.user_id === user?.user_id && (
+                            <button
+                              onClick={() => handleDeleteComment(c.id)}
+                              style={{
+                                background: "none", border: "none",
+                                fontFamily: FL, fontSize: 9,
+                                color: C.outlineVariant, cursor: "pointer", padding: 0,
+                              }}
+                            >
+                              삭제
+                            </button>
+                          )}
                         </div>
-                      ))}
-                    </div>
-                  )}
+                        <p style={{ margin: 0, fontFamily: FL, fontSize: 12, color: C.onSurfaceVariant, lineHeight: 1.5 }}>
+                          {c.content}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                   <div style={{ display: "flex", gap: 8 }}>
-                    <input value={commentInput}
+                    <input
+                      value={commentInput}
                       onChange={(e) => setCommentInput(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleComment()}
-                      placeholder="댓글 입력..."
+                      placeholder="댓글 달기"
                       style={{
-                        flex: 1, padding: "10px 14px",
-                        border: "1.5px solid #eee", borderRadius: 22,
-                        fontSize: 14, outline: "none", WebkitAppearance: "none",
+                        flex: 1, padding: "9px 12px",
+                        background: C.surfaceLow, border: "none", borderRadius: 7,
+                        fontFamily: FL, fontSize: 13, color: C.onSurface,
+                        outline: "none",
                       }}
-                      onFocus={(e) => e.target.style.borderColor = "#E8593C"}
-                      onBlur={(e) => e.target.style.borderColor = "#eee"}
                     />
-                    <button onClick={handleComment} disabled={submittingComment || !commentInput.trim()}
+                    <button
+                      onClick={handleComment}
+                      disabled={submittingComment}
                       style={{
-                        padding: "10px 16px", minHeight: 44,
-                        background: commentInput.trim() ? "#E8593C" : "#eee",
-                        color: commentInput.trim() ? "white" : "#aaa",
-                        border: "none", borderRadius: 22,
-                        fontSize: 14, fontWeight: 700, cursor: "pointer",
-                        WebkitTapHighlightColor: "transparent",
-                      }}>
-                      {submittingComment ? "..." : "전송"}
+                        padding: "9px 14px",
+                        background: `linear-gradient(to bottom, ${C.primary}, ${C.primaryDim})`,
+                        color: "#fff6ef", border: "none", borderRadius: 7,
+                        fontFamily: FL, fontSize: 11, fontWeight: 600,
+                        cursor: submittingComment ? "not-allowed" : "pointer",
+                        opacity: submittingComment ? 0.6 : 1,
+                      }}
+                    >
+                      올리기
                     </button>
                   </div>
                 </div>
               )}
             </div>
           )}
-
-          {/* 광고 분석 */}
-          {!r.isPersonal && (
-            <div style={{ marginBottom: 16 }}>
-              <p style={{ fontSize: 12, color: "#888", margin: "0 0 8px", fontWeight: 600 }}>광고 분석</p>
-              {adLoading && (
-                <div style={{ background: "#f5f5f5", borderRadius: 12, padding: "14px 16px", fontSize: 13, color: "#888", display: "flex", alignItems: "center", gap: 8 }}>
-                  ⏳ 블로그 분석 중...
-                </div>
-              )}
-              {!adLoading && adResult && verdictInfo && (
-                <div style={{ background: verdictInfo.bg, borderRadius: 12, padding: "14px 16px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: verdictInfo.color }}>{verdictInfo.label}</span>
-                    <span style={{ fontSize: 11, color: verdictInfo.color }}>블로그 {adResult.total_posts}개</span>
-                  </div>
-                  <div style={{ display: "flex", gap: 2, height: 8, borderRadius: 4, overflow: "hidden", marginBottom: 8 }}>
-                    {adResult.ad_count > 0 && <div style={{ flex: adResult.ad_count, background: "#E24B4A" }} />}
-                    {adResult.suspicious_count > 0 && <div style={{ flex: adResult.suspicious_count, background: "#EF9F27" }} />}
-                    {adResult.genuine_count > 0 && <div style={{ flex: adResult.genuine_count, background: "#1D9E75" }} />}
-                  </div>
-                  <div style={{ display: "flex", gap: 12, fontSize: 11, color: "#555" }}>
-                    <span>🔴 {adResult.ad_count}</span>
-                    <span>🟡 {adResult.suspicious_count}</span>
-                    <span>🟢 {adResult.genuine_count}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* 소개 블로거 */}
-          {r.sources && r.sources.length > 0 && (
-            <div>
-              <p style={{ fontSize: 12, color: "#888", margin: "0 0 8px", fontWeight: 600 }}>소개한 블로거 ({r.sources.length})</p>
-              {r.sources.map((s, i) => {
-                const acc = accounts.find(a => a.author_id === s.author_id);
-                const color = acc ? getAccountColor(acc.id, accounts) : "#888";
-                return (
-                  <a key={i} href={s.post_url} target="_blank" rel="noreferrer" style={{
-                    display: "flex", alignItems: "center",
-                    padding: mobile ? "12px 14px" : "10px 12px", marginBottom: 8,
-                    background: "#fafafa", borderRadius: 12,
-                    textDecoration: "none", border: "1px solid #f0f0f0", minHeight: 44,
-                  }}>
-                    <div style={{
-                      width: 34, height: 34, borderRadius: "50%", background: color, color: "white",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 14, fontWeight: 700, marginRight: 12, flexShrink: 0,
-                    }}>
-                      {(s.author_name || "?")[0]}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: "#1a1a1a" }}>{s.author_name || s.author_id}</p>
-                      <p style={{ margin: 0, fontSize: 12, color: "#aaa", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{s.post_title}</p>
-                    </div>
-                    <span style={{ fontSize: 18, color: "#ddd" }}>›</span>
-                  </a>
-                );
-              })}
-            </div>
-          )}
         </div>
       </div>
 
       {editModalOpen && (
-        <SavePlaceModal place={r} onSave={handleEditSave} onClose={() => setEditModalOpen(false)} editMode />
+        <SavePlaceModal
+          place={r}
+          editMode
+          onSave={(updated) => { handleEditSave(updated); setEditModalOpen(false); }}
+          onClose={() => setEditModalOpen(false)}
+        />
       )}
     </>
   );
-}
-
-function formatTime(dateStr) {
-  if (!dateStr) return "";
-  const date = new Date(dateStr);
-  const diff = Math.floor((new Date() - date) / 1000);
-  if (diff < 60) return "방금 전";
-  if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
-  return `${Math.floor(diff / 86400)}일 전`;
 }
