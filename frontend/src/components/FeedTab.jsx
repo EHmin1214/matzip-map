@@ -28,14 +28,38 @@ export default function FeedTab({ personalPlaces = [], onPlaceClick, onDataChang
   const mobile = isMobile();
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const pullStartY = useRef(null);
+  const feedRef = useRef(null);
+
+  const loadActivities = () => {
+    if (!user) return Promise.resolve();
+    return axios.get(`${API_BASE}/activity-feed?user_id=${user.user_id}&limit=50`)
+      .then((res) => setActivities(res.data))
+      .catch(() => {});
+  };
 
   useEffect(() => {
     if (!user) return;
-    axios.get(`${API_BASE}/activity-feed?user_id=${user.user_id}&limit=50`)
-      .then((res) => setActivities(res.data))
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [user]);
+    loadActivities().finally(() => setLoading(false));
+  }, [user]); // eslint-disable-line
+
+  // Pull-to-refresh (mobile)
+  const handleTouchStart = (e) => {
+    if (!mobile) return;
+    const el = feedRef.current;
+    if (el && el.scrollTop <= 0) pullStartY.current = e.touches[0].clientY;
+  };
+  const handleTouchEnd = (e) => {
+    if (pullStartY.current === null) return;
+    const diff = e.changedTouches[0].clientY - pullStartY.current;
+    pullStartY.current = null;
+    if (diff > 80 && !refreshing) {
+      setRefreshing(true);
+      Promise.all([loadActivities(), onDataChange?.()].filter(Boolean))
+        .finally(() => setRefreshing(false));
+    }
+  };
 
   // Combine personal places (isOwn) with activity feed, sort by created_at desc
   const combinedFeed = (() => {
@@ -102,7 +126,14 @@ export default function FeedTab({ personalPlaces = [], onPlaceClick, onDataChang
   }
 
   return (
-    <div style={{ background: C.bg, minHeight: "100%" }}>
+    <div ref={feedRef} onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}
+      style={{ background: C.bg, minHeight: "100%" }}>
+      {/* Pull-to-refresh indicator */}
+      {refreshing && (
+        <div style={{ textAlign: "center", padding: "12px 0" }}>
+          <p style={{ fontFamily: FL, fontSize: 11, color: C.outlineVariant, margin: 0 }}>새로고침 중...</p>
+        </div>
+      )}
       <div style={{ maxWidth: 560, margin: "0 auto", padding: mobile ? "16px 0" : "32px 0" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: mobile ? 2 : 16 }}>
           {combinedFeed.map((item, idx) => (
@@ -116,6 +147,15 @@ export default function FeedTab({ personalPlaces = [], onPlaceClick, onDataChang
           </p>
         </div>
       </div>
+      <style>{`
+        @keyframes heartPop {
+          0% { transform: scale(0); opacity: 0; }
+          15% { transform: scale(1.2); opacity: 0.9; }
+          30% { transform: scale(0.95); opacity: 0.9; }
+          45% { transform: scale(1.05); opacity: 0.8; }
+          100% { transform: scale(1); opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 }
@@ -130,6 +170,21 @@ function FeedCard({ item, mobile, onPlaceClick, onDataChange }) {
   const [commentInput, setCommentInput] = useState("");
   const [replyTo, setReplyTo] = useState(null); // { id, author_nickname }
   const commentInputRef = useRef(null);
+  const [doubleTapHeart, setDoubleTapHeart] = useState(false);
+  const lastTap = useRef(0);
+
+  const handleDoubleTap = () => {
+    const now = Date.now();
+    if (now - lastTap.current < 300) {
+      // Double tap detected
+      if (!liked && user) {
+        handleLike();
+        setDoubleTapHeart(true);
+        setTimeout(() => setDoubleTapHeart(false), 800);
+      }
+    }
+    lastTap.current = now;
+  };
 
   // Sync like count when item prop changes (e.g. after onDataChange refresh)
   useEffect(() => { setLikeCount(item.like_count || 0); }, [item.like_count]);
@@ -246,13 +301,26 @@ function FeedCard({ item, mobile, onPlaceClick, onDataChange }) {
 
       {/* Photo gallery */}
       {galleryUrls.length > 0 ? (
-        <div style={{ position: "relative" }}>
+        <div style={{ position: "relative" }} onClick={handleDoubleTap}>
           <AdaptiveImage
             src={galleryUrls[galleryIdx]}
             alt={item.place_name}
-            onClick={handlePlaceClick}
-            clickable={!!onPlaceClick}
+            onClick={() => {}}
+            clickable={false}
           />
+          {/* Double-tap heart overlay */}
+          {doubleTapHeart && (
+            <div style={{
+              position: "absolute", inset: 0,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              pointerEvents: "none",
+            }}>
+              <svg width="80" height="80" viewBox="0 0 24 24" fill="#D4537E" stroke="none"
+                style={{ opacity: 0.9, animation: "heartPop 0.8s ease-out forwards" }}>
+                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+              </svg>
+            </div>
+          )}
           {galleryUrls.length > 1 && (
             <>
               {galleryIdx > 0 && (
@@ -290,11 +358,12 @@ function FeedCard({ item, mobile, onPlaceClick, onDataChange }) {
           )}
         </div>
       ) : (
-        <div onClick={handlePlaceClick}
+        <div onClick={(e) => { handleDoubleTap(); handlePlaceClick(); }}
           style={{
             padding: mobile ? "32px 20px" : "40px 24px",
             background: `linear-gradient(135deg, ${C.primaryDim}18, ${C.primary}10)`,
             cursor: onPlaceClick ? "pointer" : "default",
+            position: "relative",
           }}>
           <p style={{ margin: 0, fontFamily: FH, fontStyle: "italic", fontSize: mobile ? 22 : 26, color: C.primary, textAlign: "center", lineHeight: 1.3 }}>
             {item.place_name}

@@ -264,12 +264,15 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [] }) {
                       <span style={{
                         display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                         padding: "10px 18px",
-                        background: C.container, borderRadius: 6,
-                        fontFamily: FL, fontSize: 11, fontWeight: 600,
+                        background: "none",
+                        border: "1px solid rgba(101,93,84,0.15)",
+                        borderRadius: 8,
+                        fontFamily: FL, fontSize: 12, fontWeight: 600,
                         color: C.outlineVariant,
+                        width: "100%", boxSizing: "border-box",
                       }}>
                         <span className="material-symbols-outlined" style={{ fontSize: 14 }}>check_circle</span>
-                        이미 저장됨
+                        추가된 공간
                       </span>
                     ) : (
                       <button
