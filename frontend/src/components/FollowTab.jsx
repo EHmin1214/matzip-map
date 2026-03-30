@@ -19,7 +19,7 @@ const C = {
   outlineVariant:   "#afb3ae",
   error:            "#9e422c",
 };
-const STATUS_EMOJI = { want_to_go: "🔖", visited: "✅", want_revisit: "❤️", not_recommended: "👎" };
+const STATUS_EMOJI = { want_to_go: "🔖", visited: "✅", want_revisit: "❤️" };
 const isMobile = () => window.innerWidth <= 768;
 
 // ── 아바타 ────────────────────────────────────────────────────
@@ -44,7 +44,7 @@ function PlaceMiniMap({ places, expanded, onToggle }) {
 
   const STATUS_DOT = {
     want_to_go: "#BA7517", visited: "#1D9E75",
-    want_revisit: "#D4537E", not_recommended: "#afb3ae",
+    want_revisit: "#D4537E",
   };
 
   useEffect(() => {

@@ -9,3 +9,5 @@ anthropic
 instaloader
 apscheduler
 bcrypt
+python-multipart
+cloudinary

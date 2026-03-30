@@ -136,7 +136,7 @@ class Folder(Base):
 
 
 class PersonalPlace(Base):
-    """status: want_to_go | visited | want_revisit | not_recommended"""
+    """status: want_to_go | visited | want_revisit"""
     __tablename__ = "personal_places"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
@@ -151,6 +151,7 @@ class PersonalPlace(Base):
     status: Mapped[str] = mapped_column(String(20), default="want_to_go")
     rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
     memo: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    photo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     instagram_post_url: Mapped[str | None] = mapped_column(String(200), nullable=True)
     is_public: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

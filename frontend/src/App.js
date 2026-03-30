@@ -153,7 +153,7 @@ export default function App() {
 
   const addPersonalPlace = useCallback(async (place) => {
     try {
-      const payload = { ...place, folder_id: place.folder_id || null, status: place.status || "want_to_go", rating: place.rating || null, memo: place.memo || null, instagram_post_url: place.instagram_post_url || null };
+      const payload = { ...place, folder_id: place.folder_id || null, status: place.status || "want_to_go", rating: place.rating || null, memo: place.memo || null, photo_url: place.photo_url || null, instagram_post_url: place.instagram_post_url || null };
       const url = user ? `${API_BASE}/personal-places/?user_id=${user.user_id}` : `${API_BASE}/personal-places/`;
       const res = await axios.post(url, payload);
       setPersonalPlaces((prev) => { const e = prev.find((p) => p.id === res.data.id); return e ? prev : [...prev, res.data]; });
@@ -328,8 +328,6 @@ export default function App() {
               setActiveTab(tab);
               // 지도 탭으로 돌아올 때 패널 닫기
             }}
-            apiBase={API_BASE}
-            onAddPersonalPlace={addPersonalPlace}
             personalPlaces={personalPlaces}
             showPersonal={showPersonal} setShowPersonal={setShowPersonal}
             onDeletePersonalPlace={deletePersonalPlace}

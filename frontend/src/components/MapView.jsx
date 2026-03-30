@@ -15,7 +15,6 @@ const STATUS_DOT = {
   want_to_go:      "#BA7517",   // 황금 — 가고싶어요
   visited:         "#1D9E75",   // 초록 — 가봤어요
   want_revisit:    "#D4537E",   // 핑크 — 또가고싶어요
-  not_recommended: "#afb3ae",   // 회색 — 별로
 };
 
 const isSameLocation = (a, b, threshold = 0.0001) =>

@@ -1,5 +1,5 @@
 // src/components/SavePlaceModal.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import axios from "axios";
 import { useUser, API_BASE } from "../context/UserContext";
@@ -23,10 +23,9 @@ const STATUS_OPTIONS = [
   { value: "want_to_go",      emoji: "🔖", label: "가고 싶어요" },
   { value: "visited",         emoji: "✅", label: "가봤어요" },
   { value: "want_revisit",    emoji: "❤️", label: "또 가고 싶어요" },
-  { value: "not_recommended", emoji: "👎", label: "별로였어요" },
 ];
 
-const VISITED_STATUSES = ["visited", "want_revisit", "not_recommended"];
+const VISITED_STATUSES = ["visited", "want_revisit"];
 const FOLDER_COLORS = ["#655d54", "#3B8BD4", "#1D9E75", "#BA7517", "#7F77DD", "#D4537E"];
 
 export default function SavePlaceModal({ place, onSave, onClose, editMode = false }) {
@@ -38,6 +37,10 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
   const [rating, setRating] = useState(place?.rating || 0);
   const [memo, setMemo] = useState(place?.memo || "");
   const [instagramUrl, setInstagramUrl] = useState(place?.instagram_post_url || "");
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(place?.photo_url || null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
   const [saving, setSaving] = useState(false);
   const [showNewFolder, setShowNewFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
@@ -69,18 +72,46 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
     finally { setCreatingFolder(false); }
   };
 
+  const handlePhotoSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPhotoFile(file);
+    setPhotoPreview(URL.createObjectURL(file));
+  };
+
+  const handleRemovePhoto = () => {
+    setPhotoFile(null);
+    setPhotoPreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   const handleSave = async () => {
     if (!place) return;
     setSaving(true);
     try {
+      let photoUrl = photoPreview;
+      // Upload new photo if selected
+      if (photoFile) {
+        setUploading(true);
+        const formData = new FormData();
+        formData.append("file", photoFile);
+        const uploadRes = await axios.post(
+          `${API_BASE}/upload/photo?user_id=${user.user_id}`,
+          formData,
+          { headers: { "Content-Type": "multipart/form-data" } }
+        );
+        photoUrl = uploadRes.data.url;
+        setUploading(false);
+      }
       await onSave({
         ...place, folder_id: selectedFolderId, status,
         rating: VISITED_STATUSES.includes(status) && rating > 0 ? rating : null,
         memo: memo.trim() || null,
+        photo_url: photoUrl || null,
         instagram_post_url: instagramUrl.trim() || null,
       });
       onClose();
-    } catch (e) { alert("저장 실패"); }
+    } catch (e) { setUploading(false); alert("저장 실패"); }
     finally { setSaving(false); }
   };
 
@@ -144,7 +175,7 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
 
             {/* 상태 선택 */}
             <Section label="방문 상태">
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
                 {STATUS_OPTIONS.map((opt) => {
                   const isActive = status === opt.value;
                   return (
@@ -268,13 +299,66 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
               )}
             </Section>
 
-            {/* 메모 */}
+            {/* 사진 + 메모 */}
             <Section label="나의 기록">
+              {/* 사진 업로드 */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                onChange={handlePhotoSelect}
+                style={{ display: "none" }}
+              />
+              {photoPreview ? (
+                <div style={{ position: "relative", marginBottom: 12 }}>
+                  <img
+                    src={photoPreview}
+                    alt="미리보기"
+                    style={{
+                      width: "100%", height: 200, objectFit: "cover",
+                      borderRadius: 10, display: "block",
+                    }}
+                  />
+                  <button
+                    onClick={handleRemovePhoto}
+                    style={{
+                      position: "absolute", top: 8, right: 8,
+                      width: 28, height: 28, borderRadius: "50%",
+                      background: "rgba(0,0,0,0.5)", border: "none",
+                      color: "white", fontSize: 14, cursor: "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}
+                  >✕</button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    width: "100%", padding: "20px 14px",
+                    border: `1.5px dashed ${C.outline}66`,
+                    borderRadius: 10, background: "transparent",
+                    cursor: "pointer", marginBottom: 12,
+                    display: "flex", flexDirection: "column",
+                    alignItems: "center", gap: 6,
+                    transition: "background 0.15s",
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = C.container}
+                  onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 24, color: C.outline }}>
+                    add_photo_alternate
+                  </span>
+                  <span style={{ fontFamily: FL, fontSize: 11, color: C.outline }}>
+                    사진 추가
+                  </span>
+                </button>
+              )}
+
               <textarea
                 value={memo}
                 onChange={(e) => setMemo(e.target.value)}
                 placeholder="이 공간에 대한 소중한 기억을 남겨주세요..."
-                maxLength={200}
+                maxLength={300}
                 rows={3}
                 style={{
                   width: "100%", padding: "12px 14px",
@@ -321,7 +405,7 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
                 letterSpacing: "0.02em",
               }}
             >
-              {saving ? "저장 중..." : editMode ? "수정하기" : "기록하기"}
+              {uploading ? "사진 업로드 중..." : saving ? "저장 중..." : editMode ? "수정하기" : "기록하기"}
             </button>
           </div>
         </div>

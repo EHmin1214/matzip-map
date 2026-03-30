@@ -15,7 +15,7 @@ from models import User, Follow, Folder, PersonalPlace, PlaceLike, PlaceComment,
 
 router = APIRouter(tags=["places"])
 
-VALID_STATUSES = {"want_to_go", "visited", "want_revisit", "not_recommended"}
+VALID_STATUSES = {"want_to_go", "visited", "want_revisit"}
 
 
 # ── 스키마 ───────────────────────────────────────────────────
@@ -32,6 +32,7 @@ class PlaceCreate(BaseModel):
     status: str = "want_to_go"
     rating: int | None = None
     memo: str | None = None
+    photo_url: str | None = None
     instagram_post_url: str | None = None
     is_public: bool = True
 
@@ -41,6 +42,7 @@ class PlaceUpdate(BaseModel):
     status: str | None = None
     rating: int | None = None
     memo: str | None = None
+    photo_url: str | None = None
     instagram_post_url: str | None = None
     is_public: bool | None = None
 
@@ -56,9 +58,11 @@ class PlaceResponse(BaseModel):
     lng: float
     category: str | None
     naver_place_url: str | None
+    naver_place_id: str | None
     status: str
     rating: int | None
     memo: str | None
+    photo_url: str | None
     instagram_post_url: str | None
     is_public: bool
     like_count: int
@@ -83,9 +87,17 @@ class ActivityResponse(BaseModel):
     """팔로잉 활동 피드 아이템."""
     place_id: int
     place_name: str
+    place_address: str | None
+    place_category: str | None
     place_lat: float
     place_lng: float
     place_status: str
+    rating: int | None
+    memo: str | None
+    photo_url: str | None
+    instagram_post_url: str | None
+    like_count: int
+    comment_count: int
     owner_id: int
     owner_nickname: str
     created_at: datetime
@@ -131,9 +143,10 @@ def _to_place_response(p: PersonalPlace, db: Session) -> PlaceResponse:
         owner_nickname=owner.nickname if owner else None,
         folder_id=p.folder_id, name=p.name, address=p.address,
         lat=p.lat, lng=p.lng, category=p.category,
-        naver_place_url=p.naver_place_url, status=p.status,
-        rating=p.rating, memo=p.memo,
-        instagram_post_url=p.instagram_post_url, is_public=p.is_public,
+        naver_place_url=p.naver_place_url, naver_place_id=p.naver_place_id,
+        status=p.status, rating=p.rating, memo=p.memo,
+        photo_url=p.photo_url, instagram_post_url=p.instagram_post_url,
+        is_public=p.is_public,
         like_count=len(p.likes), comment_count=len(p.comments),
         created_at=p.created_at,
     )
@@ -223,6 +236,8 @@ def update_place(place_id: int, body: PlaceUpdate, user_id: int, db: Session = D
         place.folder_id = body.folder_id
     if body.memo is not None:
         place.memo = body.memo or None
+    if body.photo_url is not None:
+        place.photo_url = body.photo_url or None
     if body.instagram_post_url is not None:
         place.instagram_post_url = body.instagram_post_url or None
     if body.is_public is not None:
@@ -324,9 +339,17 @@ def get_activity_feed(user_id: int, limit: int = 30, db: Session = Depends(get_d
             result.append(ActivityResponse(
                 place_id=p.id,
                 place_name=p.name,
+                place_address=p.address,
+                place_category=p.category,
                 place_lat=p.lat,
                 place_lng=p.lng,
                 place_status=p.status,
+                rating=p.rating,
+                memo=p.memo,
+                photo_url=p.photo_url,
+                instagram_post_url=p.instagram_post_url,
+                like_count=len(p.likes),
+                comment_count=len(p.comments),
                 owner_id=owner.id,
                 owner_nickname=owner.nickname,
                 created_at=p.created_at,

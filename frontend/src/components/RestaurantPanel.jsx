@@ -27,13 +27,11 @@ const STATUS_LABEL = {
   want_to_go:      "가고 싶어요",
   visited:         "가봤어요",
   want_revisit:    "또 가고 싶어요",
-  not_recommended: "별로였어요",
 };
 const STATUS_COLOR = {
   want_to_go:      { bg: "#FEF3CD", color: "#BA7517" },
   visited:         { bg: "#E0F4EC", color: "#1D9E75" },
   want_revisit:    { bg: "#FCE4EE", color: "#D4537E" },
-  not_recommended: { bg: C.surfaceLow, color: C.outlineVariant },
 };
 
 // ── 아이콘 버튼 ─────────────────────────────────────────────
@@ -136,7 +134,7 @@ export default function RestaurantPanel({
   const handleEditSave = async (updated) => {
     const res = await axios.patch(
       `${API_BASE}/personal-places/${r.id}?user_id=${user.user_id}`,
-      { folder_id: updated.folder_id, status: updated.status, rating: updated.rating, memo: updated.memo, instagram_post_url: updated.instagram_post_url }
+      { folder_id: updated.folder_id, status: updated.status, rating: updated.rating, memo: updated.memo, photo_url: updated.photo_url, instagram_post_url: updated.instagram_post_url }
     );
     const updatedPlace = res.data;
     setR((prev) => ({ ...prev, ...updatedPlace }));
@@ -178,6 +176,10 @@ export default function RestaurantPanel({
 
   const statusStyle = r.status ? STATUS_COLOR[r.status] : null;
 
+  const naverUrl = (r.naver_place_id && /^\d+$/.test(r.naver_place_id))
+    ? `https://map.naver.com/v5/entry/place/${r.naver_place_id}`
+    : r.naver_place_url || (r.name ? `https://map.naver.com/v5/search/${encodeURIComponent(r.name)}` : null);
+
   return (
     <>
       <div
@@ -190,10 +192,9 @@ export default function RestaurantPanel({
           right: 0,
           background: C.bg,
           borderRadius: mobile ? "18px 18px 0 0" : "14px 14px 0 0",
-          /* Ambient shadow */
           boxShadow: "0 -8px 40px rgba(47,52,48,0.10)",
           zIndex: 30,
-          maxHeight: mobile ? "60vh" : "52vh",
+          maxHeight: mobile ? "65vh" : "56vh",
           overflowY: "auto",
           WebkitOverflowScrolling: "touch",
           transition: "left 0.2s ease",
@@ -206,10 +207,36 @@ export default function RestaurantPanel({
           </div>
         )}
 
-        <div style={{ padding: mobile ? "6px 20px 24px" : "18px 24px 20px" }}>
+        {/* ── 히어로 사진 ──────────────────────────────────── */}
+        {r.photo_url && (
+          <div style={{ position: "relative" }}>
+            <img
+              src={r.photo_url}
+              alt={r.name}
+              style={{
+                width: "100%", height: mobile ? 200 : 220,
+                objectFit: "cover", display: "block",
+              }}
+            />
+            {/* 그라데이션 오버레이 */}
+            <div style={{
+              position: "absolute", bottom: 0, left: 0, right: 0, height: 60,
+              background: `linear-gradient(transparent, ${C.bg})`,
+            }} />
+            {/* 닫기 버튼 오버레이 */}
+            <div style={{ position: "absolute", top: 10, right: 12, display: "flex", gap: 6 }}>
+              {isPersonalMine && (
+                <IconBtn icon="edit" onClick={() => setEditModalOpen(true)} title="수정" size={32} />
+              )}
+              <IconBtn icon="close" onClick={onClose} title="닫기" size={32} />
+            </div>
+          </div>
+        )}
+
+        <div style={{ padding: mobile ? "6px 20px 24px" : "14px 24px 20px" }}>
 
           {/* ── 헤더 ──────────────────────────────────────── */}
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 12 }}>
             <div style={{ flex: 1 }}>
               {/* 카테고리 */}
               {r.category && (
@@ -242,98 +269,152 @@ export default function RestaurantPanel({
                   {r.address}
                 </p>
               )}
-
-              {/* 내 기록 태그 */}
-              {isPersonalMine && r.status && (
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 10 }}>
-                  <span style={{
-                    fontFamily: FL, fontSize: 11, fontWeight: 600,
-                    padding: "4px 10px", borderRadius: 5,
-                    background: statusStyle?.bg || C.surfaceLow,
-                    color: statusStyle?.color || C.onSurfaceVariant,
-                  }}>
-                    {STATUS_LABEL[r.status] || r.status}
-                  </span>
-                  {r.rating > 0 && (
-                    <span style={{
-                      fontFamily: FL, fontSize: 11, padding: "4px 10px",
-                      background: C.primaryContainer, color: C.primary,
-                      borderRadius: 5, fontWeight: 600,
-                    }}>
-                      {"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}
-                    </span>
-                  )}
-                  {r.memo && (
-                    <span style={{
-                      fontFamily: FH, fontStyle: "italic",
-                      fontSize: 12, color: C.onSurfaceVariant,
-                      padding: "4px 0",
-                    }}>
-                      "{r.memo}"
-                    </span>
-                  )}
-                </div>
-              )}
             </div>
 
-            {/* ── 액션 버튼들 (Material Icons, clean) ──────── */}
-            <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-              <IconBtn icon="near_me" onClick={handleCenterMap} title="지도에서 보기" size={mobile ? 38 : 32} />
-              {isPersonalMine && (
-                <IconBtn icon="edit" onClick={() => setEditModalOpen(true)} title="수정" size={mobile ? 38 : 32} />
-              )}
-              {!isOthersPlace && (
-                <IconBtn icon="delete_outline" onClick={() => onHide(r.id, r.isPersonal)} title="삭제" danger size={mobile ? 38 : 32} />
-              )}
-              <IconBtn icon="close" onClick={onClose} title="닫기" size={mobile ? 38 : 32} />
-            </div>
+            {/* 액션 버튼 (사진 없을 때만 여기에 표시) */}
+            {!r.photo_url && (
+              <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                <IconBtn icon="near_me" onClick={handleCenterMap} title="지도에서 보기" size={mobile ? 38 : 32} />
+                {isPersonalMine && (
+                  <IconBtn icon="edit" onClick={() => setEditModalOpen(true)} title="수정" size={mobile ? 38 : 32} />
+                )}
+                {!isOthersPlace && (
+                  <IconBtn icon="delete_outline" onClick={() => onHide(r.id, r.isPersonal)} title="삭제" danger size={mobile ? 38 : 32} />
+                )}
+                <IconBtn icon="close" onClick={onClose} title="닫기" size={mobile ? 38 : 32} />
+              </div>
+            )}
           </div>
 
-          {/* ── 네이버 지도 링크 ────────────────────────────── */}
-          {(r.naver_place_id || r.naver_place_url) && (
-            <a
-              href={r.naver_place_id && /^\d+$/.test(r.naver_place_id)
-                ? `https://map.naver.com/v5/entry/place/${r.naver_place_id}`
-                : r.naver_place_url || `https://map.naver.com/v5/search/${encodeURIComponent(r.name)}`}
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                display: "inline-flex", alignItems: "center", gap: 6,
-                padding: mobile ? "9px 16px" : "7px 14px",
-                background: "#03C75A", color: "white",
-                borderRadius: 8,
-                fontFamily: FL, fontSize: 12, fontWeight: 600,
-                textDecoration: "none", marginBottom: 14,
-                WebkitTapHighlightColor: "transparent",
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 15 }}>map</span>
-              네이버 지도
-            </a>
+          {/* ── 상태 + 별점 + 메모 카드 ──────────────────────── */}
+          {r.isPersonal && r.status && (
+            <div style={{
+              background: C.surfaceLow, borderRadius: 10,
+              padding: "12px 14px", marginBottom: 14,
+            }}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginBottom: r.memo ? 8 : 0 }}>
+                <span style={{
+                  fontFamily: FL, fontSize: 11, fontWeight: 600,
+                  padding: "3px 9px", borderRadius: 5,
+                  background: statusStyle?.bg || C.container,
+                  color: statusStyle?.color || C.onSurfaceVariant,
+                }}>
+                  {STATUS_LABEL[r.status] || r.status}
+                </span>
+                {r.rating > 0 && (
+                  <span style={{
+                    fontFamily: FL, fontSize: 11, padding: "3px 9px",
+                    background: C.primaryContainer, color: C.primary,
+                    borderRadius: 5, fontWeight: 600,
+                  }}>
+                    {"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}
+                  </span>
+                )}
+                {r.owner_nickname && isOthersPlace && (
+                  <span style={{ fontFamily: FL, fontSize: 11, color: C.outlineVariant }}>
+                    by {r.owner_nickname}
+                  </span>
+                )}
+              </div>
+              {r.memo && (
+                <p style={{
+                  margin: 0, fontFamily: FH, fontStyle: "italic",
+                  fontSize: 13, color: C.onSurfaceVariant,
+                  lineHeight: 1.7,
+                }}>
+                  "{r.memo}"
+                </p>
+              )}
+            </div>
           )}
+
+          {/* ── 링크 바 ──────────────────────────────────────── */}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+            {naverUrl && (
+              <a href={naverUrl} target="_blank" rel="noreferrer"
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 5,
+                  padding: "6px 12px",
+                  background: "#03C75A", color: "white",
+                  borderRadius: 7,
+                  fontFamily: FL, fontSize: 11, fontWeight: 600,
+                  textDecoration: "none",
+                  WebkitTapHighlightColor: "transparent",
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>map</span>
+                네이버 지도
+              </a>
+            )}
+            {r.instagram_post_url && (
+              <a href={r.instagram_post_url} target="_blank" rel="noreferrer"
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 5,
+                  padding: "6px 12px",
+                  background: C.surfaceLow, color: C.primary,
+                  borderRadius: 7,
+                  fontFamily: FL, fontSize: 11, fontWeight: 600,
+                  textDecoration: "none",
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>photo_camera</span>
+                인스타
+              </a>
+            )}
+            {r.photo_url && (
+              <>
+                <button onClick={handleCenterMap}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 5,
+                    padding: "6px 12px",
+                    background: C.surfaceLow, color: C.onSurfaceVariant,
+                    border: "none", borderRadius: 7,
+                    fontFamily: FL, fontSize: 11, fontWeight: 600, cursor: "pointer",
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>near_me</span>
+                  지도 보기
+                </button>
+                {!isOthersPlace && (
+                  <button onClick={() => onHide(r.id, r.isPersonal)}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 5,
+                      padding: "6px 12px",
+                      background: "rgba(158,66,44,0.07)", color: C.error,
+                      border: "none", borderRadius: 7,
+                      fontFamily: FL, fontSize: 11, fontWeight: 600, cursor: "pointer",
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>delete_outline</span>
+                    삭제
+                  </button>
+                )}
+              </>
+            )}
+          </div>
 
           {/* ── 이웃이 같이 저장 ─────────────────────────────── */}
           {neighbors.length > 0 && (
-            <div style={{ marginBottom: 16 }}>
+            <div style={{ marginBottom: 14 }}>
               <p style={{
                 fontFamily: FL, fontSize: 9, fontWeight: 700,
                 textTransform: "uppercase", letterSpacing: "0.15em",
-                color: C.outlineVariant, margin: "0 0 8px",
+                color: C.outlineVariant, margin: "0 0 6px",
               }}>
                 함께 저장한 이웃 {neighbors.length}명
               </p>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {neighbors.map((n) => (
                   <div key={n.user_id} style={{
-                    display: "flex", alignItems: "center", gap: 6,
+                    display: "flex", alignItems: "center", gap: 5,
                     background: C.surfaceLow, borderRadius: 6,
-                    padding: "5px 10px",
+                    padding: "4px 8px",
                   }}>
                     <div style={{
-                      width: 20, height: 20, borderRadius: "50%",
+                      width: 18, height: 18, borderRadius: "50%",
                       background: `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`,
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 9, color: "white", fontWeight: 700, flexShrink: 0,
+                      fontSize: 8, color: "white", fontWeight: 700, flexShrink: 0,
                       fontFamily: FL,
                     }}>
                       {n.nickname?.[0]?.toUpperCase()}
@@ -341,14 +422,6 @@ export default function RestaurantPanel({
                     <span style={{ fontFamily: FL, fontSize: 11, color: C.onSurfaceVariant }}>
                       {n.nickname}
                     </span>
-                    {n.memo && (
-                      <span style={{
-                        fontFamily: FH, fontStyle: "italic",
-                        fontSize: 11, color: C.outlineVariant,
-                      }}>
-                        "{n.memo}"
-                      </span>
-                    )}
                   </div>
                 ))}
               </div>
@@ -375,22 +448,10 @@ export default function RestaurantPanel({
             </div>
           )}
 
-          {/* ── 좋아요 / 댓글 (타인 장소) ───────────────────── */}
+          {/* ── 좋아요 / 댓글 ────────────────────────────────── */}
           {isOthersPlace && (
-            <div style={{ marginTop: 8 }}>
-              {r.instagram_post_url && (
-                <a href={r.instagram_post_url} target="_blank" rel="noreferrer"
-                  style={{
-                    display: "inline-flex", alignItems: "center", gap: 5,
-                    fontFamily: FL, fontSize: 12, color: C.primary,
-                    fontWeight: 600, textDecoration: "none", marginBottom: 12,
-                  }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>photo_camera</span>
-                  인스타 포스트
-                </a>
-              )}
-
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+            <div style={{ marginTop: 4 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
                 <button
                   onClick={handleLike}
                   style={{
@@ -429,13 +490,12 @@ export default function RestaurantPanel({
 
               {showComments && (
                 <div>
-                  {/* Rule of Silence: gap spacing instead of dividers */}
                   <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
                     {comments.map((c) => (
                       <div key={c.id} style={{ background: C.surfaceLow, borderRadius: 8, padding: "10px 12px" }}>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                           <p style={{ margin: "0 0 3px", fontFamily: FL, fontSize: 11, fontWeight: 600, color: C.onSurface }}>
-                            {c.nickname}
+                            {c.author_nickname}
                           </p>
                           {c.user_id === user?.user_id && (
                             <button
@@ -474,11 +534,12 @@ export default function RestaurantPanel({
                       disabled={submittingComment}
                       style={{
                         padding: "9px 14px",
-                        background: `linear-gradient(to bottom, ${C.primary}, ${C.primaryDim})`,
+                        background: C.primary,
                         color: "#fff6ef", border: "none", borderRadius: 7,
                         fontFamily: FL, fontSize: 11, fontWeight: 600,
                         cursor: submittingComment ? "not-allowed" : "pointer",
                         opacity: submittingComment ? 0.6 : 1,
+                        transition: "all 0.35s ease",
                       }}
                     >
                       올리기

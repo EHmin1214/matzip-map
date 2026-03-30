@@ -21,7 +21,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from database import engine
 from models import Base
 from routers import accounts, crawl, restaurants, ad_check, search_place, personal_places
-from routers import users, follows, places, folders  
+from routers import users, follows, places, folders, upload
 
 Base.metadata.create_all(bind=engine)
 
@@ -59,6 +59,7 @@ app.include_router(folders.router)
 app.include_router(users.router)
 app.include_router(follows.router)
 app.include_router(places.router)
+app.include_router(upload.router)
 
 
 @app.get("/")

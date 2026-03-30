@@ -128,7 +128,7 @@ function MiniMap({ places, onViewMap }) {
 
         const STATUS_DOT = {
           want_to_go: "#BA7517", visited: "#1D9E75",
-          want_revisit: "#D4537E", not_recommended: "#afb3ae",
+          want_revisit: "#D4537E",
         };
 
         places.forEach((p) => {
@@ -150,7 +150,7 @@ function MiniMap({ places, onViewMap }) {
     };
   }, [places]);
 
-  const STATUS_EMOJI = { want_to_go: "🔖", visited: "✅", want_revisit: "❤️", not_recommended: "👎" };
+  const STATUS_EMOJI = { want_to_go: "🔖", visited: "✅", want_revisit: "❤️" };
   const counts = {};
   places.forEach((p) => { counts[p.status] = (counts[p.status] || 0) + 1; });
 

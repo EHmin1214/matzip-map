@@ -14,7 +14,6 @@ const STATUS_FILTERS = [
   { value: "want_to_go",      emoji: "🔖" },
   { value: "visited",         emoji: "✅" },
   { value: "want_revisit",    emoji: "❤️" },
-  { value: "not_recommended", emoji: "👎" },
 ];
 
 const FOLLOWING_COLORS = ["#3B8BD4","#1D9E75","#BA7517","#7F77DD","#D4537E","#0F6E56"];
