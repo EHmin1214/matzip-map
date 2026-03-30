@@ -37,10 +37,14 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
   const [rating, setRating] = useState(place?.rating || 0);
   const [memo, setMemo] = useState(place?.memo || "");
   const [instagramUrl, setInstagramUrl] = useState(place?.instagram_post_url || "");
-  const existingUrls = place?.photo_urls?.length ? place.photo_urls : (place?.photo_url ? [place.photo_url] : []);
-  const [photoFiles, setPhotoFiles] = useState([]);           // new File objects
-  const [photoPreviews, setPhotoPreviews] = useState(existingUrls); // URLs (existing) + blob URLs (new)
+  // 사진: { type: "existing", url } 또는 { type: "new", file, blobUrl }
+  const initPhotos = () => {
+    const urls = place?.photo_urls?.length ? place.photo_urls : (place?.photo_url ? [place.photo_url] : []);
+    return urls.map((url) => ({ type: "existing", url }));
+  };
+  const [photos, setPhotos] = useState(initPhotos);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
   const fileInputRef = useRef(null);
   const [saving, setSaving] = useState(false);
   const [showNewFolder, setShowNewFolder] = useState(false);
@@ -76,47 +80,61 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
   const handlePhotoSelect = (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
-    const remaining = 5 - photoPreviews.length;
+    setUploadError("");
+    const remaining = 5 - photos.length;
     const toAdd = files.slice(0, remaining);
-    setPhotoFiles((prev) => [...prev, ...toAdd]);
-    setPhotoPreviews((prev) => [...prev, ...toAdd.map((f) => URL.createObjectURL(f))]);
+    const newPhotos = toAdd.map((file) => ({
+      type: "new", file, blobUrl: URL.createObjectURL(file),
+    }));
+    setPhotos((prev) => [...prev, ...newPhotos]);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleRemovePhoto = (idx) => {
-    const preview = photoPreviews[idx];
-    const isExisting = existingUrls.includes(preview);
-    setPhotoPreviews((prev) => prev.filter((_, i) => i !== idx));
-    if (!isExisting) {
-      // find which file index this corresponds to
-      const newIdx = idx - existingUrls.filter((u) => photoPreviews.slice(0, idx).includes(u)).length;
-      setPhotoFiles((prev) => prev.filter((_, i) => i !== newIdx));
-    }
+    setPhotos((prev) => {
+      const removed = prev[idx];
+      if (removed?.type === "new" && removed.blobUrl) {
+        URL.revokeObjectURL(removed.blobUrl);
+      }
+      return prev.filter((_, i) => i !== idx);
+    });
   };
 
   const handleSave = async () => {
     if (!place) return;
     setSaving(true);
+    setUploadError("");
     try {
-      // Collect final URLs: existing URLs that remain + upload new files
       const finalUrls = [];
-      // Keep existing URLs that are still in previews
-      for (const p of photoPreviews) {
-        if (existingUrls.includes(p)) finalUrls.push(p);
+
+      // 1) 기존 URL 유지
+      for (const p of photos) {
+        if (p.type === "existing") finalUrls.push(p.url);
       }
-      // Upload new files
-      if (photoFiles.length > 0) {
+
+      // 2) 새 파일 업로드
+      const newFiles = photos.filter((p) => p.type === "new");
+      if (newFiles.length > 0) {
         setUploading(true);
         const formData = new FormData();
-        photoFiles.forEach((f) => formData.append("files", f));
-        const uploadRes = await axios.post(
-          `${API_BASE}/upload/photos?user_id=${user.user_id}`,
-          formData,
-          { headers: { "Content-Type": "multipart/form-data" } }
-        );
-        finalUrls.push(...uploadRes.data.urls);
+        newFiles.forEach((p) => formData.append("files", p.file));
+        try {
+          const uploadRes = await axios.post(
+            `${API_BASE}/upload/photos?user_id=${user.user_id}`,
+            formData,
+          );
+          finalUrls.push(...uploadRes.data.urls);
+        } catch (uploadErr) {
+          const detail = uploadErr.response?.data?.detail || uploadErr.message || "업로드 실패";
+          setUploading(false);
+          setUploadError(`사진 업로드 실패: ${detail}`);
+          setSaving(false);
+          return; // 업로드 실패 시 저장 중단
+        }
         setUploading(false);
       }
+
+      // 3) 장소 저장
       await onSave({
         ...place, folder_id: selectedFolderId, status,
         rating: VISITED_STATUSES.includes(status) && rating > 0 ? rating : null,
@@ -127,7 +145,6 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
       });
       onClose();
     } catch (e) {
-      setUploading(false);
       const detail = e.response?.data?.detail || e.message || "알 수 없는 오류";
       alert(`저장 실패: ${detail}`);
     }
@@ -340,24 +357,27 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
             </Section>
 
             {/* 사진 */}
-            <Section label={`사진 (${photoPreviews.length}/5)`}>
+            <Section label={`사진 (${photos.length}/5)`}>
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                {photoPreviews.map((src, idx) => (
-                  <div key={idx} style={{ position: "relative", width: 72, height: 72, borderRadius: 10, overflow: "hidden" }}>
-                    <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-                    <button
-                      onClick={() => handleRemovePhoto(idx)}
-                      style={{
-                        position: "absolute", top: 2, right: 2,
-                        width: 20, height: 20, borderRadius: "50%",
-                        background: "rgba(0,0,0,0.5)", color: "#fff",
-                        border: "none", cursor: "pointer",
-                        fontSize: 12, lineHeight: "20px", padding: 0,
-                      }}
-                    >&times;</button>
-                  </div>
-                ))}
-                {photoPreviews.length < 5 && (
+                {photos.map((photo, idx) => {
+                  const src = photo.type === "existing" ? photo.url : photo.blobUrl;
+                  return (
+                    <div key={idx} style={{ position: "relative", width: 72, height: 72, borderRadius: 10, overflow: "hidden" }}>
+                      <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                      <button
+                        onClick={() => handleRemovePhoto(idx)}
+                        style={{
+                          position: "absolute", top: 2, right: 2,
+                          width: 20, height: 20, borderRadius: "50%",
+                          background: "rgba(0,0,0,0.5)", color: "#fff",
+                          border: "none", cursor: "pointer",
+                          fontSize: 12, lineHeight: "20px", padding: 0,
+                        }}
+                      >&times;</button>
+                    </div>
+                  );
+                })}
+                {photos.length < 5 && (
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     style={{
@@ -382,6 +402,13 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
                 onChange={handlePhotoSelect}
                 style={{ display: "none" }}
               />
+              {uploadError && (
+                <p style={{
+                  margin: "8px 0 0", padding: "8px 12px",
+                  background: "#fef0ec", borderRadius: 8,
+                  fontFamily: FL, fontSize: 11, color: C.error,
+                }}>{uploadError}</p>
+              )}
             </Section>
 
             {/* 인스타 링크 */}
