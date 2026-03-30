@@ -163,9 +163,7 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
 
   return createPortal(
     <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&family=Manrope:wght@400;500;600;700&display=swap');
-      `}</style>
+      {/* fonts loaded in App.css */}
       <div
         onClick={(e) => e.target === e.currentTarget && onClose()}
         style={{
@@ -487,7 +485,7 @@ function Section({ label, children }) {
     <div style={{ marginBottom: 24 }}>
       <p style={{
         margin: "0 0 10px",
-        fontFamily: "'Manrope', sans-serif",
+        fontFamily: FL,
         fontSize: 10, fontWeight: 600,
         textTransform: "uppercase", letterSpacing: "0.15em",
         color: "#5c605c",
@@ -509,7 +507,7 @@ function FolderChip({ label, color, selected, onClick, onDelete }) {
           borderRadius: 999,
           background: selected ? `${color}18` : "transparent",
           cursor: "pointer",
-          fontFamily: "'Manrope', sans-serif", fontSize: 11, fontWeight: selected ? 700 : 400,
+          fontFamily: FL, fontSize: 11, fontWeight: selected ? 700 : 400,
           color: selected ? color : "#777c77",
           display: "flex", alignItems: "center", gap: 5,
           transition: "all 0.15s",

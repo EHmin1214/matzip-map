@@ -288,7 +288,7 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUse
                         ? `url(${u.profile_photo_url}) center/cover`
                         : `linear-gradient(135deg, #595149, #655d54)`,
                       display: "flex", alignItems: "center", justifyContent: "center",
-                      fontFamily: "'Noto Serif', Georgia, serif", fontStyle: "italic",
+                      fontFamily: FH, fontStyle: "italic",
                       fontSize: 16, color: "#fff6ef", fontWeight: 700,
                     }}>
                       {!u.profile_photo_url && u.nickname?.[0]?.toUpperCase()}

@@ -95,7 +95,7 @@ class User(Base):
     instagram_url: Mapped[str | None] = mapped_column(String(200), nullable=True)
     blog_url: Mapped[str | None] = mapped_column(String(200), nullable=True)
     profile_photo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
-    is_public: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_public: Mapped[bool] = mapped_column(Boolean, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     folders: Mapped[list["Folder"]] = relationship("Folder", back_populates="user", cascade="all, delete-orphan")

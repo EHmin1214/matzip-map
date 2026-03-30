@@ -343,7 +343,7 @@ function ActionBtn({ label, primary, onClick, disabled }) {
     <button onClick={onClick} disabled={disabled} style={{
       padding: "7px 18px", border: primary ? "none" : "1px solid rgba(175,179,174,0.3)",
       borderRadius: 6, background: primary ? "#655d54" : "none",
-      fontFamily: "'Manrope', sans-serif", fontSize: 10, fontWeight: 700,
+      fontFamily: FL, fontSize: 10, fontWeight: 700,
       textTransform: "uppercase", letterSpacing: "0.1em",
       color: primary ? "#fff6ef" : "#78716c", cursor: disabled ? "not-allowed" : "pointer",
       transition: "background 0.15s",

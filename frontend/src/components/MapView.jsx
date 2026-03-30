@@ -33,7 +33,7 @@ const myMarker = ({ name, status, shared = false, folderColor }) => {
       color:#fff6ef;
       padding:4px 9px 4px 6px;
       border-radius:6px;
-      font-family:'Manrope',sans-serif;
+      font-family:'Manrope',-apple-system,sans-serif;
       font-size:11px;font-weight:600;
       white-space:nowrap;
       box-shadow:0 2px 10px rgba(0,0,0,0.18);
@@ -60,7 +60,7 @@ const followingMarker = ({ name, color, nickname }) => `
     color:white;
     padding:4px 9px 4px 4px;
     border-radius:6px;
-    font-family:'Manrope',sans-serif;
+    font-family:'Manrope',-apple-system,sans-serif;
     font-size:11px;font-weight:600;
     white-space:nowrap;
     box-shadow:0 2px 10px rgba(0,0,0,0.15);
@@ -86,13 +86,25 @@ const blogMarker = ({ name, color }) => `
     color:white;
     padding:4px 9px;
     border-radius:6px;
-    font-family:'Manrope',sans-serif;
+    font-family:'Manrope',-apple-system,sans-serif;
     font-size:11px;font-weight:600;
     white-space:nowrap;
     box-shadow:0 2px 10px rgba(0,0,0,0.15);
     cursor:pointer;
     letter-spacing:0.01em;
   ">${name}</div>
+`;
+
+const ZOOM_THRESHOLD = 14; // 이 줌 이하면 dot, 이상이면 pill
+
+// 축소 시 보이는 dot 마커
+const dotMarker = (color) => `
+  <div style="
+    width:8px;height:8px;border-radius:50%;
+    background:${color};
+    border:1.5px solid rgba(255,255,255,0.8);
+    box-shadow:0 1px 4px rgba(0,0,0,0.25);
+  "></div>
 `;
 
 export default function MapView({
@@ -107,6 +119,7 @@ export default function MapView({
   const [mapReady, setMapReady] = useState(false);
   const hasFitBounds = useRef(false);
   const activeMarkerRef = useRef(null);
+  const zoomRef = useRef(13);
 
   // 마커 DOM 컨테이너 z-index 설정 (네이버 지도 내부 래퍼까지 올림)
   const setMarkerZ = (marker, z) => {
@@ -128,28 +141,74 @@ export default function MapView({
     } catch (e) {}
   };
 
+  // 모바일 touchstart 리스너를 마커 DOM에 부착
+  const lastTouchedMarkerRef = useRef(null);
+  const attachTouchZ = (marker) => {
+    const el = marker.getElement?.();
+    if (!el) return;
+    el.addEventListener("touchstart", () => {
+      if (lastTouchedMarkerRef.current && lastTouchedMarkerRef.current !== marker && lastTouchedMarkerRef.current !== activeMarkerRef.current) {
+        setMarkerZ(lastTouchedMarkerRef.current, "");
+      }
+      if (marker !== activeMarkerRef.current) {
+        setMarkerZ(marker, 5000);
+        lastTouchedMarkerRef.current = marker;
+      }
+    }, { passive: true });
+  };
+
   const bringToFront = (marker) => {
     // 이전 활성 마커 초기화
     if (activeMarkerRef.current && activeMarkerRef.current !== marker) {
       setMarkerZ(activeMarkerRef.current, "");
+      // 이전 마커: 줌아웃 상태이면 dot으로 복원
+      if (zoomRef.current < ZOOM_THRESHOLD && activeMarkerRef.current._dotIcon) {
+        activeMarkerRef.current.setIcon(activeMarkerRef.current._dotIcon);
+      }
     }
-    // 클릭된 마커: 맵에서 제거 후 재추가 → 렌더링 최상위 + DOM z-index
+    // 클릭된 마커: 항상 pill로 표시 (줌아웃에서도 이름 보이게)
+    if (marker._pillIcon) marker.setIcon(marker._pillIcon);
+    // 맵에서 제거 후 재추가 → 렌더링 최상위 + DOM z-index
     try {
       const map = mapInstance.current;
       marker.setMap(null);
       marker.setMap(map);
-      requestAnimationFrame(() => setMarkerZ(marker, 9999));
+      requestAnimationFrame(() => {
+        setMarkerZ(marker, 9999);
+        attachTouchZ(marker); // DOM 재생성 후 터치 리스너 재부착
+      });
     } catch (e) {}
     activeMarkerRef.current = marker;
   };
 
-  // 마커에 hover 이벤트 — 부모 컨테이너 z-index 올리기/내리기
+  // 마커에 hover/touch 이벤트 — 부모 컨테이너 z-index 올리기/내리기
   const addHoverZ = (marker) => {
+    // 데스크톱: hover
     window.naver.maps.Event.addListener(marker, "mouseover", () => {
       if (marker !== activeMarkerRef.current) setMarkerZ(marker, 5000);
     });
     window.naver.maps.Event.addListener(marker, "mouseout", () => {
       if (marker !== activeMarkerRef.current) setMarkerZ(marker, "");
+    });
+    // 모바일: touchstart (DOM 렌더 후 부착)
+    requestAnimationFrame(() => attachTouchZ(marker));
+  };
+
+  // 줌 레벨에 따라 모든 마커의 icon을 pill ↔ dot으로 전환
+  const updateMarkerIcons = (showPill) => {
+    const allMarkers = [
+      ...markersRef.current,
+      ...personalMarkersRef.current,
+      ...followingMarkersRef.current,
+    ];
+    allMarkers.forEach((m) => {
+      // 활성(클릭된) 마커는 항상 pill 유지
+      if (m === activeMarkerRef.current) return;
+      const icon = showPill ? m._pillIcon : m._dotIcon;
+      if (icon) {
+        m.setIcon(icon);
+        requestAnimationFrame(() => attachTouchZ(m));
+      }
     });
   };
 
@@ -177,6 +236,13 @@ export default function MapView({
           scaleControl: false,
           logoControl: false,
           mapDataControl: false,
+        });
+        // 줌 변경 시 마커 pill ↔ dot 전환
+        window.naver.maps.Event.addListener(mapInstance.current, "zoom_changed", (zoom) => {
+          const wasPill = zoomRef.current >= ZOOM_THRESHOLD;
+          const isPill = zoom >= ZOOM_THRESHOLD;
+          zoomRef.current = zoom;
+          if (wasPill !== isPill) updateMarkerIcons(isPill);
         });
         setMapReady(true);
         if (onMapReady) onMapReady(mapInstance.current);
@@ -243,16 +309,21 @@ export default function MapView({
     markersRef.current = [];
     if (restaurants.length === 0) hasFitBounds.current = false;
 
+    const isPill = zoomRef.current >= ZOOM_THRESHOLD;
     restaurants.forEach((r) => {
       const mentions = r.account_mentions || [];
       const color = mentions.length > 0 ? getAccountColor(mentions[0].account_id) : "#777c77";
+      const pillIcon = { content: blogMarker({ name: r.name, color }), anchor: new window.naver.maps.Point(6, 12) };
+      const dotIcon_ = { content: dotMarker(color), anchor: new window.naver.maps.Point(4, 4) };
       const marker = new window.naver.maps.Marker({
         position: new window.naver.maps.LatLng(r.lat, r.lng),
         map: mapInstance.current,
         title: r.name,
         zIndex: 1,
-        icon: { content: blogMarker({ name: r.name, color }), anchor: new window.naver.maps.Point(6, 12) },
+        icon: isPill ? pillIcon : dotIcon_,
       });
+      marker._pillIcon = pillIcon;
+      marker._dotIcon = dotIcon_;
       window.naver.maps.Event.addListener(marker, "click", () => {
         bringToFront(marker);
         panToPlace(r.lat, r.lng, marker);
@@ -280,22 +351,29 @@ export default function MapView({
       places.map((p) => ({ ...p, _nickname: nickname, _colorIdx: colorIdx }))
     );
 
+    const isPill = zoomRef.current >= ZOOM_THRESHOLD;
     personalPlaces.forEach((r) => {
       const sharedWith = allFollowing.filter((fp) => {
         if (r.naver_place_id && fp.naver_place_id) return r.naver_place_id === fp.naver_place_id;
         return isSameLocation(r, fp);
       });
 
+      const folderColor = getFolderColor(r.folder_id);
+      const dotColor = STATUS_DOT[r.status] || folderColor || MY_PRIMARY;
+      const pillIcon = {
+        content: myMarker({ name: r.name, status: r.status, shared: sharedWith.length > 0, folderColor }),
+        anchor: new window.naver.maps.Point(6, 12),
+      };
+      const dotIcon_ = { content: dotMarker(dotColor), anchor: new window.naver.maps.Point(4, 4) };
       const marker = new window.naver.maps.Marker({
         position: new window.naver.maps.LatLng(r.lat, r.lng),
         map: mapInstance.current,
         title: r.name,
-        icon: {
-          content: myMarker({ name: r.name, status: r.status, shared: sharedWith.length > 0, folderColor: getFolderColor(r.folder_id) }),
-          anchor: new window.naver.maps.Point(6, 12),
-        },
+        icon: isPill ? pillIcon : dotIcon_,
         zIndex: sharedWith.length > 0 ? 2 : 1,
       });
+      marker._pillIcon = pillIcon;
+      marker._dotIcon = dotIcon_;
       window.naver.maps.Event.addListener(marker, "click", () => {
         bringToFront(marker);
         panToPlace(r.lat, r.lng, marker);
@@ -312,6 +390,7 @@ export default function MapView({
     followingMarkersRef.current.forEach((m) => m.setMap(null));
     followingMarkersRef.current = [];
 
+    const isPill = zoomRef.current >= ZOOM_THRESHOLD;
     followingPlaces.forEach(({ userId, nickname, colorIdx, places }) => {
       const color = getFollowingColor(colorIdx);
 
@@ -322,16 +401,20 @@ export default function MapView({
         });
         if (isDup) return;
 
+        const pillIcon = {
+          content: followingMarker({ name: r.name, color, nickname }),
+          anchor: new window.naver.maps.Point(6, 12),
+        };
+        const dotIcon_ = { content: dotMarker(color), anchor: new window.naver.maps.Point(4, 4) };
         const marker = new window.naver.maps.Marker({
           position: new window.naver.maps.LatLng(r.lat, r.lng),
           map: mapInstance.current,
           title: `${nickname}: ${r.name}`,
           zIndex: 1,
-          icon: {
-            content: followingMarker({ name: r.name, color, nickname }),
-            anchor: new window.naver.maps.Point(6, 12),
-          },
+          icon: isPill ? pillIcon : dotIcon_,
         });
+        marker._pillIcon = pillIcon;
+        marker._dotIcon = dotIcon_;
         window.naver.maps.Event.addListener(marker, "click", () => {
           bringToFront(marker);
           panToPlace(r.lat, r.lng, marker);
@@ -355,7 +438,7 @@ export default function MapView({
           position: "absolute", inset: 0,
           display: "flex", alignItems: "center", justifyContent: "center",
           background: "#f4f4f0",
-          fontFamily: "'Manrope', sans-serif", fontSize: 12,
+          fontFamily: "'Manrope', -apple-system, sans-serif", fontSize: 12,
           color: "#a8a29e", letterSpacing: "0.08em",
         }}>
           불러오는 중…

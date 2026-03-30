@@ -57,6 +57,7 @@ export default function RestaurantPanel({
 
   // 모바일 시트 상태: "peek" | "full"
   const [sheetMode, setSheetMode] = useState("peek");
+  const [addToMyPlaceOpen, setAddToMyPlaceOpen] = useState(false);
   const sheetRef = useRef(null);
   const dragStartY = useRef(null);
   const dragStartScroll = useRef(0);
@@ -212,6 +213,7 @@ export default function RestaurantPanel({
   const naverUrl = (r.naver_place_id && /^\d+$/.test(r.naver_place_id))
     ? `https://map.naver.com/v5/entry/place/${r.naver_place_id}`
     : r.naver_place_url || (r.name ? `https://map.naver.com/v5/search/${encodeURIComponent(r.name)}` : null);
+  const kakaoMapUrl = r.name ? `https://map.kakao.com/link/search/${encodeURIComponent(r.name)}` : null;
 
   // ── 모바일 드래그 핸들러 ────────────────────
   const handleDragStart = (e) => {
@@ -259,8 +261,18 @@ export default function RestaurantPanel({
               background: "#03C75A", color: "white", borderRadius: 5,
               fontFamily: FL, fontSize: 10, fontWeight: 600, textDecoration: "none",
             }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 12 }}>map</span>
-              네이버
+              <span style={{ fontWeight: 800, fontSize: 11 }}>N</span>
+              지도
+            </a>
+          )}
+          {kakaoMapUrl && (
+            <a href={kakaoMapUrl} target="_blank" rel="noreferrer" style={{
+              display: "inline-flex", alignItems: "center", gap: 3, padding: "4px 8px",
+              background: "#FEE500", color: "#191919", borderRadius: 5,
+              fontFamily: FL, fontSize: 10, fontWeight: 600, textDecoration: "none",
+            }}>
+              <svg width="10" height="10" viewBox="0 0 18 18"><path fill="#191919" d="M9 1C4.58 1 1 3.79 1 7.21c0 2.17 1.45 4.08 3.64 5.18l-.93 3.44c-.08.3.26.54.52.37l4.12-2.74c.21.02.43.03.65.03 4.42 0 8-2.79 8-6.28S13.42 1 9 1z"/></svg>
+              지도
             </a>
           )}
           {r.isPersonal && r.id && (
@@ -312,6 +324,19 @@ export default function RestaurantPanel({
       </div>
     </div>
   );
+
+  const AddToMyPlaceBlock = isOthersPlace && user ? (
+    <button onClick={() => setAddToMyPlaceOpen(true)} style={{
+      display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+      width: "100%", padding: "11px", marginBottom: 12,
+      background: C.primary, color: "#fff6ef", border: "none", borderRadius: 8,
+      fontFamily: FL, fontSize: 12, fontWeight: 700, cursor: "pointer",
+      transition: "opacity 0.15s",
+    }}>
+      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add_location_alt</span>
+      내 장소에 추가
+    </button>
+  ) : null;
 
   const StatusBlock = r.isPersonal && r.status ? (
     <div style={{
@@ -567,6 +592,9 @@ export default function RestaurantPanel({
             {/* 상태/별점 */}
             {StatusBlock}
 
+            {/* 내 장소에 추가 */}
+            {AddToMyPlaceBlock}
+
             {/* 사진 갤러리 (상태 아래) */}
             {GalleryBlock}
 
@@ -603,6 +631,13 @@ export default function RestaurantPanel({
             onSave={(updated) => { handleEditSave(updated); setEditModalOpen(false); }}
             onClose={() => setEditModalOpen(false)}
             onDelete={() => { onHide(r.id, r.isPersonal); setEditModalOpen(false); }}
+          />
+        )}
+        {addToMyPlaceOpen && (
+          <SavePlaceModal
+            place={{ name: r.name, address: r.address, lat: r.lat, lng: r.lng, naver_place_id: r.naver_place_id, naver_place_url: r.naver_place_url, category: r.category }}
+            onSave={() => { setAddToMyPlaceOpen(false); if (onDataChange) onDataChange(); }}
+            onClose={() => setAddToMyPlaceOpen(false)}
           />
         )}
       </>
@@ -654,6 +689,9 @@ export default function RestaurantPanel({
           {/* 상태/별점 */}
           {StatusBlock}
 
+          {/* 내 장소에 추가 */}
+          {AddToMyPlaceBlock}
+
           {/* 사진 갤러리 */}
           {GalleryBlock}
 
@@ -674,6 +712,13 @@ export default function RestaurantPanel({
           onSave={(updated) => { handleEditSave(updated); setEditModalOpen(false); }}
           onClose={() => setEditModalOpen(false)}
           onDelete={() => { onHide(r.id, r.isPersonal); setEditModalOpen(false); }}
+        />
+      )}
+      {addToMyPlaceOpen && (
+        <SavePlaceModal
+          place={{ name: r.name, address: r.address, lat: r.lat, lng: r.lng, naver_place_id: r.naver_place_id, naver_place_url: r.naver_place_url, category: r.category }}
+          onSave={() => { setAddToMyPlaceOpen(false); if (onDataChange) onDataChange(); }}
+          onClose={() => setAddToMyPlaceOpen(false)}
         />
       )}
 

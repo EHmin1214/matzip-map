@@ -38,12 +38,18 @@ export default function UserProfileView({ nickname, onClose }) {
   const mapRef = useRef(null);
   const isMobile = window.innerWidth <= 768;
 
+  const [isPrivateNoAccess, setIsPrivateNoAccess] = useState(false);
+
   useEffect(() => {
     setLoading(true);
     setError("");
+    setIsPrivateNoAccess(false);
     Promise.all([
       axios.get(`${API_BASE}/users/${nickname}`),
-      axios.get(`${API_BASE}/users/${nickname}/public-places`).catch(() => ({ data: [] })),
+      axios.get(`${API_BASE}/users/${nickname}/public-places${user ? `?viewer_id=${user.user_id}` : ""}`).catch((e) => {
+        if (e.response?.status === 403) setIsPrivateNoAccess(true);
+        return { data: [] };
+      }),
       axios.get(`${API_BASE}/lists/public/${nickname}`).catch(() => ({ data: [] })),
     ])
       .then(([profileRes, placesRes, listsRes]) => {
@@ -51,12 +57,11 @@ export default function UserProfileView({ nickname, onClose }) {
         setPlaces(placesRes.data);
         setCuratedLists(listsRes.data);
       })
-      .catch((e) => {
-        const detail = e.response?.data?.detail;
-        setError(detail === "비공개 프로필입니다." ? "비공개 프로필이에요" : "프로필을 찾을 수 없어요");
+      .catch(() => {
+        setError("프로필을 찾을 수 없어요");
       })
       .finally(() => setLoading(false));
-  }, [nickname]);
+  }, [nickname]); // eslint-disable-line
 
   // 팔로우 상태 확인
   useEffect(() => {
@@ -364,11 +369,16 @@ export default function UserProfileView({ nickname, onClose }) {
             {places.length === 0 && !error && (
               <div style={{ textAlign: "center", padding: "60px 20px" }}>
                 <span className="material-symbols-outlined" style={{ fontSize: 48, color: C.outlineVariant }}>
-                  location_on
+                  {isPrivateNoAccess ? "lock" : "location_on"}
                 </span>
                 <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 16, color: C.onSurfaceVariant, marginTop: 12 }}>
-                  아직 공개된 공간이 없어요
+                  {isPrivateNoAccess ? "비공개 계정이에요" : "아직 공개된 공간이 없어요"}
                 </p>
+                {isPrivateNoAccess && (
+                  <p style={{ fontFamily: FL, fontSize: 12, color: C.outlineVariant, marginTop: 4 }}>
+                    팔로우 요청을 보내보세요
+                  </p>
+                )}
               </div>
             )}
           </>

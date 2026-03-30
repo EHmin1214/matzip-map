@@ -21,6 +21,8 @@ import OnboardingGuide from "./components/OnboardingGuide";
 import LoginPrompt from "./components/LoginPrompt";
 import "./App.css";
 
+const FH = "'Noto Serif', Georgia, serif";
+const FL = "'Manrope', -apple-system, sans-serif";
 export const ACCOUNT_COLORS = ["#E8593C","#3B8BD4","#1D9E75","#BA7517","#7F77DD","#D4537E","#0F6E56","#993C1D"];
 
 export function getAccountColor(accountId, accounts) {
@@ -243,10 +245,10 @@ export default function App() {
       display: "flex", alignItems: "center", justifyContent: "center",
       background: "#faf9f6", flexDirection: "column", gap: 10,
     }}>
-      <h1 style={{ fontFamily: "'Noto Serif', Georgia, serif", fontStyle: "italic", fontSize: 26, color: "#655d54", margin: 0, letterSpacing: "-0.02em" }}>
+      <h1 style={{ fontFamily: FH, fontStyle: "italic", fontSize: 26, color: "#655d54", margin: 0, letterSpacing: "-0.02em" }}>
         나의 공간
       </h1>
-      <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: 9, textTransform: "uppercase", letterSpacing: "0.25em", color: "#c7c4bf", margin: 0 }}>
+      <p style={{ fontFamily: FL, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.25em", color: "#c7c4bf", margin: 0 }}>
         The Curated Archive
       </p>
     </div>
@@ -367,13 +369,13 @@ export default function App() {
                         width: 24, height: 24, borderRadius: "50%",
                         background: isSelected ? "rgba(255,255,255,0.3)" : color,
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        fontFamily: "'Noto Serif', Georgia, serif", fontStyle: "italic",
+                        fontFamily: FH, fontStyle: "italic",
                         fontSize: 11, color: isSelected ? "white" : "#fff", fontWeight: 700,
                       }}>
                         {f.nickname?.[0]?.toUpperCase()}
                       </div>
                       <span style={{
-                        fontFamily: "'Manrope', sans-serif", fontSize: 11, fontWeight: 600,
+                        fontFamily: FL, fontSize: 11, fontWeight: 600,
                         color: isSelected ? "white" : "#2f3430",
                         whiteSpace: "nowrap",
                       }}>

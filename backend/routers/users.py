@@ -9,6 +9,7 @@ import bcrypt
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -141,13 +142,21 @@ def get_profile(nickname: str, db: Session = Depends(get_db)):
 
 
 @router.get("/{nickname}/public-places")
-def get_public_places(nickname: str, db: Session = Depends(get_db)):
-    """비회원도 볼 수 있는 공개 장소 목록."""
+def get_public_places(nickname: str, viewer_id: int | None = None, db: Session = Depends(get_db)):
+    """공개 장소 목록. 비공개 계정이면 accepted 팔로워만 접근 가능."""
     user = db.query(User).filter(User.nickname == nickname).first()
     if not user:
         raise HTTPException(status_code=404, detail="유저를 찾을 수 없습니다.")
     if not user.is_public:
-        raise HTTPException(status_code=403, detail="비공개 프로필입니다.")
+        allowed = False
+        if viewer_id:
+            row = db.execute(text(
+                "SELECT id FROM follows WHERE follower_id=:vid AND following_id=:uid AND status='accepted'"
+            ), {"vid": viewer_id, "uid": user.id}).fetchone()
+            if row:
+                allowed = True
+        if not allowed:
+            raise HTTPException(status_code=403, detail="비공개 프로필입니다.")
     places = db.query(PersonalPlace).filter(
         PersonalPlace.user_id == user.id,
         PersonalPlace.is_public == True,

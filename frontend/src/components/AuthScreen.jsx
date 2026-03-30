@@ -14,8 +14,8 @@ const C = {
   error:      "#9e422c",
 };
 
-const FONT_HEADLINE = "'Noto Serif', Georgia, serif";
-const FONT_LABEL    = "'Manrope', -apple-system, sans-serif";
+const FH = "'Noto Serif', Georgia, serif";
+const FL = "'Manrope', -apple-system, sans-serif";
 
 const KAKAO_KEY = process.env.REACT_APP_KAKAO_JS_KEY || "";
 
@@ -66,7 +66,7 @@ export default function AuthScreen({ embedded = false }) {
       ...(embedded ? {} : { position: "fixed", inset: 0, zIndex: 1000 }),
       background: C.bg,
       display: "flex",
-      fontFamily: FONT_LABEL,
+      fontFamily: FL,
     }}>
       {/* 왼쪽 — 비주얼 패널 (PC, 전체 화면 모드에서만) */}
       {!embedded && <div style={{
@@ -85,14 +85,14 @@ export default function AuthScreen({ embedded = false }) {
         {/* 텍스트 */}
         <div style={{ position: "absolute", bottom: 48, left: 48, zIndex: 10 }}>
           <h1 style={{
-            fontFamily: FONT_HEADLINE, fontStyle: "italic",
+            fontFamily: FH, fontStyle: "italic",
             fontSize: 40, fontWeight: 700, color: "#fff6ef",
             margin: "0 0 8px", letterSpacing: "-0.5px",
           }}>
             나의 공간
           </h1>
           <p style={{
-            fontFamily: FONT_LABEL, fontSize: 11,
+            fontFamily: FL, fontSize: 11,
             textTransform: "uppercase", letterSpacing: "0.3em",
             color: "rgba(255,246,239,0.6)", margin: 0,
           }}>
@@ -124,7 +124,7 @@ export default function AuthScreen({ embedded = false }) {
           {/* 모바일 브랜드 */}
           <div style={{ marginBottom: 48 }}>
             <h1 style={{
-              fontFamily: FONT_HEADLINE, fontStyle: "italic",
+              fontFamily: FH, fontStyle: "italic",
               fontSize: 28, fontWeight: 700, color: C.primary,
               margin: 0,
             }}>
@@ -139,13 +139,13 @@ export default function AuthScreen({ embedded = false }) {
           {/* 헤더 */}
           <div style={{ marginBottom: 32 }}>
             <h2 style={{
-              fontFamily: FONT_HEADLINE, fontSize: 32, fontWeight: 700,
+              fontFamily: FH, fontSize: 32, fontWeight: 700,
               color: C.onSurface, margin: "0 0 8px", letterSpacing: "-0.5px",
             }}>
               {mode === "login" ? "다시 오셨군요" : "처음 오셨군요"}
             </h2>
             <p style={{
-              fontFamily: FONT_LABEL, fontSize: 13,
+              fontFamily: FL, fontSize: 13,
               color: C.variant, lineHeight: 1.6, margin: 0,
             }}>
               {mode === "login"
@@ -179,7 +179,7 @@ export default function AuthScreen({ embedded = false }) {
           {/* 에러 */}
           {error && (
             <p style={{
-              fontFamily: FONT_LABEL, fontSize: 12,
+              fontFamily: FL, fontSize: 12,
               color: C.error, marginBottom: 16,
               padding: "10px 14px", background: "#fef0ec",
               borderRadius: 8, margin: "0 0 20px",
@@ -197,7 +197,7 @@ export default function AuthScreen({ embedded = false }) {
               background: loading ? C.outline : C.primary,
               color: "#fff6ef", border: "none",
               borderRadius: 12,
-              fontFamily: FONT_LABEL, fontSize: 14, fontWeight: 700,
+              fontFamily: FL, fontSize: 14, fontWeight: 700,
               cursor: loading ? "not-allowed" : "pointer",
               letterSpacing: "0.02em",
               transition: "background 0.2s, transform 0.1s",
@@ -212,7 +212,7 @@ export default function AuthScreen({ embedded = false }) {
           {/* 구분선 */}
           <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "24px 0" }}>
             <div style={{ flex: 1, height: 1, background: `${C.outline}33` }} />
-            <span style={{ fontFamily: FONT_LABEL, fontSize: 11, color: C.outline }}>또는</span>
+            <span style={{ fontFamily: FL, fontSize: 11, color: C.outline }}>또는</span>
             <div style={{ flex: 1, height: 1, background: `${C.outline}33` }} />
           </div>
 
@@ -224,7 +224,7 @@ export default function AuthScreen({ embedded = false }) {
               width: "100%", padding: "14px",
               background: "#FEE500", color: "#191919",
               border: "none", borderRadius: 12,
-              fontFamily: FONT_LABEL, fontSize: 14, fontWeight: 700,
+              fontFamily: FL, fontSize: 14, fontWeight: 700,
               cursor: loading ? "not-allowed" : "pointer",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
               transition: "opacity 0.15s",
@@ -241,14 +241,14 @@ export default function AuthScreen({ embedded = false }) {
             borderTop: `1px solid ${C.outline}22`,
             textAlign: "center",
           }}>
-            <p style={{ fontFamily: FONT_LABEL, fontSize: 13, color: C.variant, margin: 0 }}>
+            <p style={{ fontFamily: FL, fontSize: 13, color: C.variant, margin: 0 }}>
               {mode === "login" ? "처음이신가요?" : "이미 계정이 있나요?"}
               {" "}
               <button
                 onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); }}
                 style={{
                   background: "none", border: "none",
-                  fontFamily: FONT_LABEL, fontSize: 13, fontWeight: 700,
+                  fontFamily: FL, fontSize: 13, fontWeight: 700,
                   color: C.primary, cursor: "pointer",
                   textDecoration: "underline", textUnderlineOffset: 3,
                   padding: 0,
@@ -262,7 +262,6 @@ export default function AuthScreen({ embedded = false }) {
       </div>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&family=Manrope:wght@400;500;600;700&display=swap');
         @media (min-width: 768px) {
           .auth-left { display: block !important; }
         }
@@ -276,7 +275,7 @@ function Field({ label, style: extraStyle = {}, ...props }) {
   return (
     <div>
       <label style={{
-        display: "block", fontFamily: "'Manrope', sans-serif",
+        display: "block", fontFamily: FL,
         fontSize: 10, fontWeight: 600,
         textTransform: "uppercase", letterSpacing: "0.15em",
         color: "#5c605c", marginBottom: 8,
@@ -292,7 +291,7 @@ function Field({ label, style: extraStyle = {}, ...props }) {
           background: "#f4f4f0", border: "none",
           borderRadius: 12,
           outline: focused ? `2px solid #655d54` : "2px solid transparent",
-          fontFamily: "'Manrope', sans-serif",
+          fontFamily: FL,
           fontSize: 15, color: "#2f3430",
           boxSizing: "border-box",
           transition: "outline 0.15s",
