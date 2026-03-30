@@ -212,11 +212,66 @@ export default function App() {
             />
           </div>
 
-          {/* 지도 오버레이 컨트롤 — 우측 세로 스택 */}
+          {/* 모바일 팔로잉 가로 스크롤 — 지도 상단 */}
+          {showMap && followingList.length > 0 && (
+            <div style={{
+              position: "fixed", top: 10, left: 0, right: 0, zIndex: 26,
+              pointerEvents: "none",
+            }}>
+              <div style={{
+                display: "flex", gap: 8, padding: "0 14px",
+                overflowX: "auto", overflowY: "hidden",
+                WebkitOverflowScrolling: "touch",
+                pointerEvents: "auto",
+                msOverflowStyle: "none", scrollbarWidth: "none",
+              }}>
+                {followingList.map((f, idx) => {
+                  const isSelected = selectedFollowingIds.includes(f.id);
+                  const COLORS = ["#3B8BD4","#1D9E75","#BA7517","#7F77DD","#D4537E","#0F6E56"];
+                  const color = COLORS[idx % COLORS.length];
+                  return (
+                    <button
+                      key={f.id}
+                      onClick={() => handleToggleFollowing(f.id)}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 6,
+                        padding: "6px 12px 6px 6px",
+                        background: isSelected ? color : "rgba(250,249,246,0.92)",
+                        backdropFilter: "blur(8px)",
+                        border: isSelected ? "none" : "1px solid rgba(101,93,84,0.12)",
+                        borderRadius: 999, cursor: "pointer",
+                        flexShrink: 0, transition: "all 0.2s",
+                        boxShadow: "0 2px 8px rgba(47,52,48,0.1)",
+                      }}
+                    >
+                      <div style={{
+                        width: 24, height: 24, borderRadius: "50%",
+                        background: isSelected ? "rgba(255,255,255,0.3)" : color,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontFamily: "'Noto Serif', Georgia, serif", fontStyle: "italic",
+                        fontSize: 11, color: isSelected ? "white" : "#fff", fontWeight: 700,
+                      }}>
+                        {f.nickname?.[0]?.toUpperCase()}
+                      </div>
+                      <span style={{
+                        fontFamily: "'Manrope', sans-serif", fontSize: 11, fontWeight: 600,
+                        color: isSelected ? "white" : "#2f3430",
+                        whiteSpace: "nowrap",
+                      }}>
+                        {f.nickname}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 지도 오버레이 컨트롤 — 우측 하단 세로 스택 */}
           {showMap && (
             <div style={{
               position: "fixed",
-              right: 14, top: 14, bottom: 80,
+              right: 14, bottom: 80,
               zIndex: 26,
               display: "flex", flexDirection: "column",
               alignItems: "flex-end", gap: 8,
@@ -224,13 +279,13 @@ export default function App() {
             }}>
               <div style={{ pointerEvents: "auto", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
                 <RefreshButton onRefresh={handleRefresh} />
-                <LocationButton map={mapRef.current} />
                 <MapFilter
                   activeFilter={activeFilter} onFilterChange={setActiveFilter}
-                  followingList={followingList} selectedFollowingIds={selectedFollowingIds}
+                  followingList={[]} selectedFollowingIds={selectedFollowingIds}
                   onToggleFollowing={handleToggleFollowing}
                   showPersonal={showPersonal} onTogglePersonal={() => setShowPersonal((v) => !v)}
                 />
+                <LocationButton map={mapRef.current} />
               </div>
             </div>
           )}

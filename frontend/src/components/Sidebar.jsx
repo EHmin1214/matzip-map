@@ -68,13 +68,21 @@ export default function Sidebar({
       .then((res) => setFolders(res.data)).catch(() => {});
   }, [user]);
 
+  const savedPlaceIds = new Set(personalPlaces.map((p) => p.naver_place_id).filter(Boolean));
+
   const searchPlace = async () => {
     if (!searchQuery.trim()) return;
     setSearching(true);
     try {
       const res = await axios.get(`${apiBase}/search-place/`, { params: { name: searchQuery.trim() } });
-      if (res.data) { setPendingPlace(res.data); setSearchQuery(""); }
-      else { setMessage("가게를 찾을 수 없어요"); setTimeout(() => setMessage(""), 2500); }
+      const results = Array.isArray(res.data) ? res.data : res.data ? [res.data] : [];
+      if (results.length === 0) { setMessage("가게를 찾을 수 없어요"); setTimeout(() => setMessage(""), 2500); return; }
+      const place = results[0];
+      if (place.naver_place_id && savedPlaceIds.has(place.naver_place_id)) {
+        setMessage(`'${place.name}' 은(는) 이미 추가된 장소예요`); setTimeout(() => setMessage(""), 3000);
+      } else {
+        setPendingPlace(place); setSearchQuery("");
+      }
     } catch (e) { setMessage("검색 실패"); setTimeout(() => setMessage(""), 2500); }
     finally { setSearching(false); }
   };

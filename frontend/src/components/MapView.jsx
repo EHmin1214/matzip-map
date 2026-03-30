@@ -126,7 +126,7 @@ export default function MapView({
   }, []); // eslint-disable-line
 
   // 마커 클릭 시 지도 이동
-  const panToPlace = (lat, lng) => {
+  const panToPlace = (lat, lng, markerEl) => {
     if (!mapInstance.current || !window.naver) return;
     const isMobile = window.innerWidth <= 768;
     const proj = mapInstance.current.getProjection();
@@ -137,11 +137,20 @@ export default function MapView({
       return;
     }
 
-    // 모바일: x는 건드리지 않고 y만 아래로 이동 (하단 시트 위에 마커 표시)
+    // 모바일: 마커 중앙을 화면 중앙에, y는 하단 시트 위에 표시
     const pt = proj.fromCoordToOffset(targetLatLng);
-    const offset = window.innerHeight * 0.22;
+    const yOffset = window.innerHeight * 0.22;
+    // 마커 pill 너비의 절반만큼 x 보정 (anchor.x=6이므로 중앙까지의 차이)
+    let xCorrection = 40; // 기본값
+    if (markerEl) {
+      const el = markerEl.getElement?.() || markerEl._element;
+      if (el) {
+        const pill = el.querySelector("div");
+        if (pill) xCorrection = (pill.offsetWidth / 2) - 6;
+      }
+    }
     const adjusted = proj.fromOffsetToCoord(
-      new window.naver.maps.Point(pt.x, pt.y + offset)
+      new window.naver.maps.Point(pt.x + xCorrection, pt.y + yOffset)
     );
     mapInstance.current.panTo(adjusted, { duration: 280 });
   };
@@ -163,7 +172,7 @@ export default function MapView({
         icon: { content: blogMarker({ name: r.name, color }), anchor: new window.naver.maps.Point(6, 12) },
       });
       window.naver.maps.Event.addListener(marker, "click", () => {
-        panToPlace(r.lat, r.lng);
+        panToPlace(r.lat, r.lng, marker);
         onMarkerClick(r.id, false);
       });
       markersRef.current.push(marker);
@@ -204,7 +213,7 @@ export default function MapView({
         zIndex: sharedWith.length > 0 ? 10 : 5,
       });
       window.naver.maps.Event.addListener(marker, "click", () => {
-        panToPlace(r.lat, r.lng);
+        panToPlace(r.lat, r.lng, marker);
         onMarkerClick(`personal_${r.id}`, true);
       });
       personalMarkersRef.current.push(marker);
@@ -237,7 +246,7 @@ export default function MapView({
           },
         });
         window.naver.maps.Event.addListener(marker, "click", () => {
-          panToPlace(r.lat, r.lng);
+          panToPlace(r.lat, r.lng, marker);
           if (onFollowingMarkerClick) onFollowingMarkerClick({ ...r, ownerNickname: nickname, ownerUserId: userId });
         });
         followingMarkersRef.current.push(marker);

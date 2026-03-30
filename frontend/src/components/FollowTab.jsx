@@ -751,7 +751,7 @@ export default function FollowTab({ onViewMap, onFollowChange }) {
                       {!isFollowingBack && (
                         <button
                           onClick={(e) => { e.stopPropagation(); handleFollowToggle(f.id); }}
-                          disabled={loadingFollow || isPendingBack}
+                          disabled={loadingFollow}
                           style={{
                             padding: "5px 12px",
                             background: isPendingBack ? "rgba(101,93,84,0.08)" : C.primary,
