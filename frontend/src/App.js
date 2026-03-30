@@ -43,6 +43,7 @@ export default function App() {
   const [selectedFollowingIds, setSelectedFollowingIds] = useState([]);
   const [followingPlacesMap, setFollowingPlacesMap] = useState({});
   const [followingList, setFollowingList] = useState([]);
+  const [folders, setFolders] = useState([]);
 
   const isMobile = window.innerWidth <= 768;
   const showMap = activeTab === "map";
@@ -67,9 +68,15 @@ export default function App() {
       .catch(() => {});
   }, [user]);
 
+  const loadFolders = useCallback(() => {
+    if (!user) return Promise.resolve();
+    return axios.get(`${API_BASE}/folders/?user_id=${user.user_id}`)
+      .then((res) => setFolders(res.data)).catch(() => {});
+  }, [user]);
+
   useEffect(() => {
-    if (user) { loadPersonalPlaces(); loadFollowingList(); loadUnread(); }
-  }, [user, loadPersonalPlaces, loadFollowingList, loadUnread]);
+    if (user) { loadPersonalPlaces(); loadFollowingList(); loadUnread(); loadFolders(); }
+  }, [user, loadPersonalPlaces, loadFollowingList, loadUnread, loadFolders]);
 
   useEffect(() => {
     if (!user) return;
@@ -209,6 +216,7 @@ export default function App() {
               onMapReady={(map) => { mapRef.current = map; }}
               followingPlaces={followingPlaces}
               onFollowingMarkerClick={handleFollowingMarkerClick}
+              folders={folders}
             />
           </div>
 

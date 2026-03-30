@@ -23,20 +23,21 @@ const isSameLocation = (a, b, threshold = 0.0001) =>
 
 /* ── 마커 HTML ───────────────────────────────────────────── */
 
-// 내 맛집 — 작은 rounded pill, 상태 색상 도트
-const myMarker = ({ name, status, shared = false }) => {
+// 내 맛집 — 컬렉션 색상 pill + 상태 도트
+const myMarker = ({ name, status, shared = false, folderColor }) => {
   const dotColor = STATUS_DOT[status] || MY_PRIMARY;
+  const bg = folderColor || MY_PRIMARY;
   return `
     <div style="
       display:inline-flex;align-items:center;gap:5px;
-      background:${MY_PRIMARY};
+      background:${bg};
       color:#fff6ef;
       padding:4px 9px 4px 6px;
       border-radius:6px;
       font-family:'Manrope',sans-serif;
       font-size:11px;font-weight:600;
       white-space:nowrap;
-      box-shadow:0 2px 10px rgba(101,93,84,0.22);
+      box-shadow:0 2px 10px rgba(0,0,0,0.18);
       cursor:pointer;
       letter-spacing:0.01em;
       ${shared ? "outline:1.5px solid rgba(255,246,239,0.5);outline-offset:1px;" : ""}
@@ -45,6 +46,7 @@ const myMarker = ({ name, status, shared = false }) => {
         width:6px;height:6px;border-radius:50%;
         background:${dotColor};flex-shrink:0;
         display:inline-block;
+        box-shadow:0 0 0 1px rgba(255,255,255,0.3);
       "></span>
       <span>${name}</span>
     </div>
@@ -89,7 +91,7 @@ const blogMarker = ({ name, color }) => `
 
 export default function MapView({
   restaurants, personalPlaces = [], accounts, onMarkerClick, onMapReady,
-  followingPlaces = [], onFollowingMarkerClick,
+  followingPlaces = [], onFollowingMarkerClick, folders = [],
 }) {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
@@ -98,6 +100,12 @@ export default function MapView({
   const followingMarkersRef = useRef([]);
   const [mapReady, setMapReady] = useState(false);
   const hasFitBounds = useRef(false);
+
+  const getFolderColor = (folderId) => {
+    if (!folderId) return null;
+    const f = folders.find((x) => x.id === folderId);
+    return f?.color || null;
+  };
 
   const getAccountColor = (accountId) => {
     const COLORS = ["#E8593C","#3B8BD4","#1D9E75","#BA7517","#7F77DD","#D4537E","#0F6E56","#993C1D"];
@@ -207,7 +215,7 @@ export default function MapView({
         map: mapInstance.current,
         title: r.name,
         icon: {
-          content: myMarker({ name: r.name, status: r.status, shared: sharedWith.length > 0 }),
+          content: myMarker({ name: r.name, status: r.status, shared: sharedWith.length > 0, folderColor: getFolderColor(r.folder_id) }),
           anchor: new window.naver.maps.Point(6, 12),
         },
         zIndex: sharedWith.length > 0 ? 10 : 5,
@@ -218,7 +226,7 @@ export default function MapView({
       });
       personalMarkersRef.current.push(marker);
     });
-  }, [personalPlaces, followingPlaces, mapReady]); // eslint-disable-line
+  }, [personalPlaces, followingPlaces, folders, mapReady]); // eslint-disable-line
 
   // 팔로잉 마커
   useEffect(() => {

@@ -19,7 +19,7 @@ const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
 
 const NAV_ITEMS = [
-  { id: "map",     icon: "map",          label: "지도" },
+  { id: "map",     icon: "map",          label: "홈" },
   { id: "search",  icon: "search",       label: "검색" },
   { id: "follow",  icon: "group",        label: "팔로우" },
   { id: "updates", icon: "auto_stories", label: "업데이트" },
@@ -35,7 +35,7 @@ function SectionLabel({ children }) {
     <p style={{
       fontFamily: FL, fontSize: 9, fontWeight: 700,
       textTransform: "uppercase", letterSpacing: "0.18em",
-      color: C.outlineVariant, margin: "0 0 10px 2px",
+      color: C.outlineVariant, margin: "0 0 6px 2px",
     }}>
       {children}
     </p>
@@ -110,7 +110,7 @@ export default function Sidebar({
         background: C.bg,
         display: "flex",
         flexDirection: "column",
-        padding: "24px 16px 20px",
+        padding: "18px 16px 14px",
         overflowY: "auto",
         overflowX: "hidden",
         boxSizing: "border-box",
@@ -118,11 +118,11 @@ export default function Sidebar({
       }}>
 
         {/* ── 브랜드 ─────────────────────────────────────────── */}
-        <div style={{ padding: "0 6px", marginBottom: 28 }}>
+        <div style={{ padding: "0 6px", marginBottom: 14 }}>
           <h1 style={{
             fontFamily: FH, fontStyle: "italic",
             fontSize: 18, color: C.primary,
-            margin: "0 0 3px", letterSpacing: "-0.02em",
+            margin: "0 0 2px", letterSpacing: "-0.02em",
           }}>
             나의 공간
           </h1>
@@ -136,7 +136,7 @@ export default function Sidebar({
         </div>
 
         {/* ── 네비게이션 ─────────────────────────────────────── */}
-        <nav style={{ display: "flex", flexDirection: "column", gap: 1, marginBottom: 20 }}>
+        <nav style={{ display: "flex", flexDirection: "column", gap: 0, marginBottom: 10 }}>
           {NAV_ITEMS.map((item) => {
             const isActive = activeTab === item.id;
             const hasUnread = item.id === "updates" && unreadCount > 0;
@@ -146,7 +146,7 @@ export default function Sidebar({
                 onClick={() => onTabChange(item.id)}
                 style={{
                   display: "flex", alignItems: "center", gap: 10,
-                  padding: "9px 10px",
+                  padding: "7px 10px",
                   border: "none", cursor: "pointer",
                   borderRadius: 7,
                   /* Active: primaryContainer tonal highlight */
@@ -201,13 +201,12 @@ export default function Sidebar({
         {/* ── 지도 탭 전용 콘텐츠 ───────────────────────────── */}
         {activeTab === "map" && (
           <div style={{
-            flex: 1, overflowY: "auto", paddingTop: 16,
-            /* No-Line Rule: tonal shift instead of border */
-            background: "transparent",
+            flex: 1, overflowY: "auto", overflowX: "hidden", paddingTop: 8,
+            background: "transparent", minHeight: 0,
           }}>
             {/* 장소 추가 */}
             <SectionLabel>장소 추가</SectionLabel>
-            <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
+            <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
               <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -248,7 +247,7 @@ export default function Sidebar({
 
             {/* 내 맛집 토글 */}
             <div
-              style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 4px 10px", cursor: "pointer" }}
+              style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 4px 6px", cursor: "pointer" }}
               onClick={() => setShowPersonal(!showPersonal)}
             >
               {/* No-Line Rule: custom checkbox with tonal fill */}
@@ -273,7 +272,7 @@ export default function Sidebar({
 
             {/* 내 맛집 목록 — Rule of Silence: spacing instead of dividers */}
             {showPersonal && (
-              <div style={{ marginBottom: 16 }}>
+              <div style={{ marginBottom: 10 }}>
                 {personalPlaces.length > 5 && (
                   <div style={{ position: "relative", marginBottom: 6 }}>
                     <span className="material-symbols-outlined" style={{
@@ -293,15 +292,15 @@ export default function Sidebar({
                     />
                   </div>
                 )}
-                <div style={{ maxHeight: 180, overflowY: "auto" }}>
+                <div style={{ maxHeight: 240, overflowY: "auto" }}>
                 {personalPlaces
                   .filter((p) => !placeFilter || p.name.toLowerCase().includes(placeFilter.toLowerCase()))
                   .slice(0, 30).map((p) => (
                   <div key={p.id}
                     onClick={() => onPlaceSelect && onPlaceSelect(p)}
                     style={{
-                      display: "flex", alignItems: "center", gap: 8,
-                      padding: "5px 4px", borderRadius: 6,
+                      display: "flex", alignItems: "center", gap: 6,
+                      padding: "4px 4px", borderRadius: 6,
                       cursor: "pointer", transition: "background 0.12s",
                     }}
                     onMouseEnter={(e) => e.currentTarget.style.background = C.surfaceLow}
@@ -340,7 +339,7 @@ export default function Sidebar({
 
             {/* 팔로잉 레이어 */}
             {followingList.length > 0 && (
-              <div style={{ marginTop: 8 }}>
+              <div style={{ marginTop: 4 }}>
                 <SectionLabel>팔로잉</SectionLabel>
                 {followingList.map((f, idx) => {
                   const color = getFollowingColor(idx);
@@ -351,7 +350,7 @@ export default function Sidebar({
                       onClick={() => onToggleFollowing(f.id)}
                       style={{
                         display: "flex", alignItems: "center", gap: 8,
-                        padding: "7px 8px", cursor: "pointer",
+                        padding: "5px 8px", cursor: "pointer",
                         borderRadius: 7,
                         background: isSelected ? `${color}14` : "transparent",
                         marginBottom: 2,
@@ -389,7 +388,7 @@ export default function Sidebar({
         )}
 
         {/* ── 하단 ─────────────────────────────────────────── */}
-        <div style={{ marginTop: "auto", paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ marginTop: "auto", paddingTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
           {/* New Entry CTA — gradient as per design spec */}
           <button
             onClick={() => onTabChange("search")}
@@ -416,7 +415,7 @@ export default function Sidebar({
               onClick={() => onTabChange("profile")}
               style={{
                 display: "flex", alignItems: "center", gap: 10,
-                padding: "10px 12px",
+                padding: "8px 10px",
                 background: activeTab === "profile" ? C.primaryContainer : C.surfaceLow,
                 borderRadius: 8,
                 cursor: "pointer",
@@ -426,7 +425,7 @@ export default function Sidebar({
               onMouseLeave={(e) => { if (activeTab !== "profile") e.currentTarget.style.background = C.surfaceLow; }}
             >
               <div style={{
-                width: 30, height: 30, borderRadius: "50%",
+                width: 26, height: 26, borderRadius: "50%",
                 background: `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`,
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontFamily: FH, fontStyle: "italic",

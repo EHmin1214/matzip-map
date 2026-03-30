@@ -3,7 +3,7 @@ const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
 
 const TABS = [
-  { id: "map",     icon: "map",           label: "지도" },
+  { id: "map",     icon: "map",           label: "홈" },
   { id: "search",  icon: "search",        label: "검색" },
   { id: "follow",  icon: "group",         label: "팔로우" },
   { id: "updates", icon: "auto_stories",  label: "업데이트" },
