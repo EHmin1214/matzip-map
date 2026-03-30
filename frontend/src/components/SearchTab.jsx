@@ -54,6 +54,8 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [] }) {
       naver_place_url: place.naver_place_url,
       folder_id: place.folder_id || null, status: place.status || "want_to_go",
       rating: place.rating || null, memo: place.memo || null,
+      photo_url: place.photo_url || null,
+      photo_urls: place.photo_urls || null,
       instagram_post_url: place.instagram_post_url || null,
     };
     const url = user

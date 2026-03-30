@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useUser, API_BASE } from "../context/UserContext";
+import { subscribePush, unsubscribePush, isPushSubscribed } from "../utils/pushNotifications";
 
 const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
@@ -212,6 +213,125 @@ function MiniMap({ places, onViewMap }) {
   );
 }
 
+const STATUS_LABEL = { want_to_go: "가고 싶어요", visited: "가봤어요", want_revisit: "또 가고 싶어요" };
+const STATUS_COLOR = {
+  want_to_go:   { bg: "#FEF3CD", color: "#BA7517" },
+  visited:      { bg: "#E0F4EC", color: "#1D9E75" },
+  want_revisit: { bg: "#FCE4EE", color: "#D4537E" },
+};
+const STATUS_EMOJI = { want_to_go: "🔖", visited: "✅", want_revisit: "❤️" };
+
+// ── 프로필 피드 카드 ─────────────────────────────────────────
+function PlaceFeedCard({ place: p, mobile }) {
+  const photos = p.photo_urls?.length ? p.photo_urls : (p.photo_url ? [p.photo_url] : []);
+  const [imgIdx, setImgIdx] = useState(0);
+  const sc = STATUS_COLOR[p.status];
+
+  return (
+    <div style={{
+      background: C.surfaceLowest, borderRadius: mobile ? 0 : 12,
+      overflow: "hidden",
+      boxShadow: mobile ? "none" : "0 1px 6px rgba(47,52,48,0.05)",
+    }}>
+      {photos.length > 0 ? (
+        <div style={{ position: "relative" }}>
+          <div style={{ width: "100%", overflow: "hidden", aspectRatio: "5/4", background: "#f0efec" }}>
+            <img src={photos[imgIdx]} alt={p.name}
+              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+            />
+          </div>
+          {photos.length > 1 && (
+            <>
+              {imgIdx > 0 && (
+                <button onClick={() => setImgIdx((i) => i - 1)} style={{
+                  position: "absolute", left: 6, top: "50%", transform: "translateY(-50%)",
+                  width: 26, height: 26, borderRadius: "50%",
+                  background: "rgba(0,0,0,0.3)", border: "none", color: "white",
+                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 15 }}>chevron_left</span>
+                </button>
+              )}
+              {imgIdx < photos.length - 1 && (
+                <button onClick={() => setImgIdx((i) => i + 1)} style={{
+                  position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)",
+                  width: 26, height: 26, borderRadius: "50%",
+                  background: "rgba(0,0,0,0.3)", border: "none", color: "white",
+                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 15 }}>chevron_right</span>
+                </button>
+              )}
+              <div style={{
+                position: "absolute", bottom: 8, left: "50%", transform: "translateX(-50%)",
+                display: "flex", gap: 4,
+              }}>
+                {photos.map((_, i) => (
+                  <div key={i} style={{
+                    width: 5, height: 5, borderRadius: "50%",
+                    background: i === imgIdx ? "white" : "rgba(255,255,255,0.4)",
+                  }} />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      ) : (
+        <div style={{
+          padding: "28px 16px",
+          background: `linear-gradient(135deg, ${C.primaryDim}15, ${C.primary}08)`,
+        }}>
+          <p style={{ margin: 0, fontFamily: FH, fontStyle: "italic", fontSize: 18, color: C.primary, textAlign: "center" }}>
+            {p.name}
+          </p>
+        </div>
+      )}
+      <div style={{ padding: "10px 14px 14px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: p.memo ? 6 : 0 }}>
+          <span style={{
+            fontFamily: FL, fontSize: 10, fontWeight: 600,
+            padding: "2px 7px", borderRadius: 4,
+            background: sc?.bg || C.surfaceLow, color: sc?.color || C.onSurfaceVariant,
+          }}>
+            {STATUS_EMOJI[p.status]} {STATUS_LABEL[p.status]}
+          </span>
+          {p.rating > 0 && (
+            <span style={{
+              fontFamily: FL, fontSize: 10, padding: "2px 7px",
+              background: C.primaryContainer, color: C.primary,
+              borderRadius: 4, fontWeight: 600,
+            }}>
+              {"★".repeat(p.rating)}{"☆".repeat(5 - p.rating)}
+            </span>
+          )}
+          {photos.length > 0 && (
+            <span style={{ fontFamily: FH, fontSize: 12, fontWeight: 600, color: C.onSurface }}>
+              {p.name}
+            </span>
+          )}
+        </div>
+        {p.memo && (
+          <p style={{
+            margin: "4px 0 0", fontFamily: FH, fontStyle: "italic",
+            fontSize: 12, color: C.onSurfaceVariant, lineHeight: 1.6,
+          }}>
+            "{p.memo}"
+          </p>
+        )}
+        {p.address && (
+          <p style={{
+            margin: "4px 0 0", fontFamily: FL, fontSize: 10, color: C.outlineVariant,
+            display: "flex", alignItems: "center", gap: 3,
+          }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 11 }}>location_on</span>
+            {p.address}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function ProfilePage({ personalPlaces = [], onViewMap }) {
   const { user, updateUser, logout } = useUser();
   const mobile = isMobile();
@@ -228,6 +348,27 @@ export default function ProfilePage({ personalPlaces = [], onViewMap }) {
   const [newPin, setNewPin]         = useState("");
   const [pinError, setPinError]     = useState("");
   const [pinSaving, setPinSaving]   = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushLoading, setPushLoading] = useState(false);
+  const pushSupported = "PushManager" in window;
+
+  useEffect(() => {
+    isPushSubscribed().then(setPushEnabled);
+  }, []);
+
+  const handlePushToggle = async () => {
+    setPushLoading(true);
+    try {
+      if (pushEnabled) {
+        await unsubscribePush(user.user_id);
+        setPushEnabled(false);
+      } else {
+        const ok = await subscribePush(user.user_id);
+        setPushEnabled(ok);
+      }
+    } catch (e) {}
+    setPushLoading(false);
+  };
 
   if (!user) return null;
 
@@ -366,6 +507,25 @@ export default function ProfilePage({ personalPlaces = [], onViewMap }) {
             <Toggle value={isPublic} onChange={handlePublicToggle} />
           </div>
 
+          {/* 푸시 알림 설정 */}
+          {pushSupported && (
+            <div style={{
+              display: "flex", alignItems: "center", justifyContent: "space-between",
+              background: C.surfaceLow, borderRadius: 8, padding: "12px 14px",
+              marginBottom: 16, opacity: pushLoading ? 0.6 : 1,
+            }}>
+              <div>
+                <p style={{ margin: 0, fontFamily: FL, fontSize: 13, fontWeight: 600, color: C.onSurface }}>
+                  푸시 알림
+                </p>
+                <p style={{ margin: "3px 0 0", fontFamily: FL, fontSize: 11, color: C.outlineVariant, fontStyle: "italic" }}>
+                  {pushEnabled ? "좋아요, 댓글, 팔로우 알림" : "알림 받기를 켜보세요"}
+                </p>
+              </div>
+              <Toggle value={pushEnabled} onChange={handlePushToggle} />
+            </div>
+          )}
+
           {/* 수정 폼 */}
           {!editing ? (
             <button
@@ -451,6 +611,31 @@ export default function ProfilePage({ personalPlaces = [], onViewMap }) {
 
         {/* ── 미니 맵 ──────────────────────────────────────── */}
         <MiniMap places={personalPlaces} onViewMap={onViewMap} />
+
+        {/* ── 나의 기록 피드 ──────────────────────────────── */}
+        {personalPlaces.length > 0 && (
+          <div style={{ marginBottom: 12 }}>
+            <p style={{
+              margin: "0 0 12px", fontFamily: FL, fontSize: 9, fontWeight: 700,
+              textTransform: "uppercase", letterSpacing: "0.15em", color: C.outlineVariant,
+            }}>
+              나의 기록 — {personalPlaces.length}곳
+            </p>
+            <div style={{ display: "flex", flexDirection: "column", gap: mobile ? 2 : 12 }}>
+              {personalPlaces.slice(0, 10).map((p) => (
+                <PlaceFeedCard key={p.id} place={p} mobile={mobile} />
+              ))}
+            </div>
+            {personalPlaces.length > 10 && (
+              <p style={{
+                fontFamily: FL, fontSize: 10, color: C.outlineVariant,
+                textAlign: "center", marginTop: 16, letterSpacing: "0.15em",
+              }}>
+                + {personalPlaces.length - 10}곳 더
+              </p>
+            )}
+          </div>
+        )}
 
         {/* ── PIN 변경 ─────────────────────────────────────── */}
         <Card>

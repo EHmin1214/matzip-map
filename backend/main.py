@@ -18,12 +18,35 @@ FastAPI 진입점.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from sqlalchemy import text, inspect
 from database import engine
 from models import Base
 from routers import accounts, crawl, restaurants, ad_check, search_place, personal_places
-from routers import users, follows, places, folders, upload
+from routers import users, follows, places, folders, upload, push
 
 Base.metadata.create_all(bind=engine)
+
+# Auto-add missing columns (safe for re-runs)
+def _auto_migrate():
+    """Add columns that create_all doesn't handle on existing tables."""
+    migrations = [
+        ("personal_places", "photo_url", "VARCHAR(500)"),
+        ("personal_places", "photo_urls", "TEXT"),
+    ]
+    inspector = inspect(engine)
+    with engine.connect() as conn:
+        for table, col, col_type in migrations:
+            if table not in inspector.get_table_names():
+                continue
+            existing = {c["name"] for c in inspector.get_columns(table)}
+            if col not in existing:
+                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col} {col_type}"))
+                conn.commit()
+
+try:
+    _auto_migrate()
+except Exception:
+    pass  # non-critical — manual migration fallback
 
 app = FastAPI(
     title="맛집 지도 API",
@@ -60,6 +83,7 @@ app.include_router(users.router)
 app.include_router(follows.router)
 app.include_router(places.router)
 app.include_router(upload.router)
+app.include_router(push.router)
 
 
 @app.get("/")

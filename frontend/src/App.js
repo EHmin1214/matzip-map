@@ -78,6 +78,27 @@ export default function App() {
     if (user) { loadPersonalPlaces(); loadFollowingList(); loadUnread(); loadFolders(); }
   }, [user, loadPersonalPlaces, loadFollowingList, loadUnread, loadFolders]);
 
+  // ── 딥링크 처리 (?place=ID) ───────────────────────────────
+  useEffect(() => {
+    if (!user) return;
+    const params = new URLSearchParams(window.location.search);
+    const placeId = params.get("place");
+    if (!placeId) return;
+    axios.get(`${API_BASE}/personal-places/?user_id=${user.user_id}`)
+      .then((res) => {
+        const found = res.data.find((p) => p.id === parseInt(placeId));
+        if (found) {
+          setSelectedRestaurant({ ...found, sources: [], isPersonal: true });
+          setActiveTab("map");
+          if (mapRef.current && window.naver) {
+            setTimeout(() => mapRef.current?.panTo(new window.naver.maps.LatLng(found.lat, found.lng), { duration: 280 }), 500);
+          }
+        }
+      }).catch(() => {});
+    // clear the URL param without reload
+    window.history.replaceState({}, "", window.location.pathname);
+  }, [user]); // eslint-disable-line
+
   useEffect(() => {
     if (!user) return;
     const interval = setInterval(loadUnread, 30000);
@@ -153,7 +174,7 @@ export default function App() {
 
   const addPersonalPlace = useCallback(async (place) => {
     try {
-      const payload = { ...place, folder_id: place.folder_id || null, status: place.status || "want_to_go", rating: place.rating || null, memo: place.memo || null, photo_url: place.photo_url || null, instagram_post_url: place.instagram_post_url || null };
+      const payload = { ...place, folder_id: place.folder_id || null, status: place.status || "want_to_go", rating: place.rating || null, memo: place.memo || null, photo_url: place.photo_url || null, photo_urls: place.photo_urls || null, instagram_post_url: place.instagram_post_url || null };
       const url = user ? `${API_BASE}/personal-places/?user_id=${user.user_id}` : `${API_BASE}/personal-places/`;
       const res = await axios.post(url, payload);
       setPersonalPlaces((prev) => { const e = prev.find((p) => p.id === res.data.id); return e ? prev : [...prev, res.data]; });
@@ -308,9 +329,9 @@ export default function App() {
           {/* 상세 패널 */}
           {selectedRestaurant && showMap && (
             <RestaurantPanel
-              restaurant={selectedRestaurant} accounts={accounts}
+              restaurant={selectedRestaurant}
               onClose={() => setSelectedRestaurant(null)} onHide={hideRestaurant}
-              apiBase={API_BASE} sidebarWidth={0}
+              sidebarWidth={0}
               onPlaceUpdated={handlePlaceUpdated} mapInstance={mapRef.current}
             />
           )}
@@ -408,9 +429,9 @@ export default function App() {
           {/* 상세 패널 — 지도 탭에서 마커 클릭 시 */}
           {selectedRestaurant && showMap && (
             <RestaurantPanel
-              restaurant={selectedRestaurant} accounts={accounts}
+              restaurant={selectedRestaurant}
               onClose={() => setSelectedRestaurant(null)} onHide={hideRestaurant}
-              apiBase={API_BASE} sidebarWidth={SIDEBAR_W}
+              sidebarWidth={SIDEBAR_W}
               onPlaceUpdated={handlePlaceUpdated} mapInstance={mapRef.current}
             />
           )}

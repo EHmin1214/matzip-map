@@ -1,7 +1,6 @@
 // src/components/RestaurantPanel.jsx
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import { getAccountColor } from "../App";
 import { useUser, API_BASE } from "../context/UserContext";
 import SavePlaceModal from "./SavePlaceModal";
 
@@ -59,14 +58,12 @@ function IconBtn({ icon, onClick, title, danger = false, size = 32 }) {
 }
 
 export default function RestaurantPanel({
-  restaurant, accounts, onClose, onHide, apiBase, sidebarWidth = 240,
+  restaurant, onClose, onHide, sidebarWidth = 240,
   onPlaceUpdated, mapInstance,
 }) {
   const { user } = useUser();
   const mobile = isMobile();
   const [r, setR] = useState(restaurant);
-  const [adResult, setAdResult] = useState(null);
-  const [adLoading, setAdLoading] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [neighbors, setNeighbors] = useState([]);
   const [liked, setLiked] = useState(false);
@@ -75,6 +72,8 @@ export default function RestaurantPanel({
   const [commentInput, setCommentInput] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [galleryIdx, setGalleryIdx] = useState(0);
 
   const touchStartY = useRef(null);
 
@@ -134,30 +133,20 @@ export default function RestaurantPanel({
   const handleEditSave = async (updated) => {
     const res = await axios.patch(
       `${API_BASE}/personal-places/${r.id}?user_id=${user.user_id}`,
-      { folder_id: updated.folder_id, status: updated.status, rating: updated.rating, memo: updated.memo, photo_url: updated.photo_url, instagram_post_url: updated.instagram_post_url }
+      { folder_id: updated.folder_id, status: updated.status, rating: updated.rating, memo: updated.memo, photo_url: updated.photo_url, photo_urls: updated.photo_urls, instagram_post_url: updated.instagram_post_url }
     );
     const updatedPlace = res.data;
     setR((prev) => ({ ...prev, ...updatedPlace }));
     if (onPlaceUpdated) onPlaceUpdated({ ...r, ...updatedPlace });
   };
 
-  const checkAds = useCallback(async () => {
-    setAdLoading(true);
-    try {
-      const res = await axios.post(`${apiBase}/ad-check/`, {
-        restaurant_name: r.name,
-        address_hint: r.address ? r.address.split(" ").slice(0, 2).join(" ") : null,
-      });
-      setAdResult(res.data);
-    } catch (e) {}
-    finally { setAdLoading(false); }
-  }, [r?.name, apiBase]); // eslint-disable-line
+  const galleryUrls = r.photo_urls?.length ? r.photo_urls : (r.photo_url ? [r.photo_url] : []);
 
   useEffect(() => {
     if (!r) return;
-    setAdResult(null); setLiked(false); setLikeCount(0);
+    setLiked(false); setLikeCount(0);
     setComments([]); setShowComments(false); setNeighbors([]);
-    if (!r.isPersonal) checkAds();
+    setGalleryIdx(0);
   }, [r?.id]); // eslint-disable-line
 
   const handleTouchStart = (e) => { touchStartY.current = e.touches[0].clientY; };
@@ -168,11 +157,13 @@ export default function RestaurantPanel({
     touchStartY.current = null;
   };
 
-  const verdictInfo = adResult ? {
-    clean:      { label: "광고 적음",  color: "#1D9E75", bg: "#E0F4EC" },
-    suspicious: { label: "광고 의심",  color: "#BA7517", bg: "#FEF3CD" },
-    heavy_ad:   { label: "광고 많음",  color: "#9e422c", bg: "#FAE8E4" },
-  }[adResult.verdict] : null;
+  const handleShare = () => {
+    const url = `${window.location.origin}?place=${r.id}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => {});
+  };
 
   const statusStyle = r.status ? STATUS_COLOR[r.status] : null;
 
@@ -207,17 +198,57 @@ export default function RestaurantPanel({
           </div>
         )}
 
-        {/* ── 히어로 사진 ──────────────────────────────────── */}
-        {r.photo_url && (
+        {/* ── 히어로 사진 갤러리 ────────────────────────── */}
+        {galleryUrls.length > 0 && (
           <div style={{ position: "relative" }}>
-            <img
-              src={r.photo_url}
-              alt={r.name}
-              style={{
-                width: "100%", height: mobile ? 200 : 220,
-                objectFit: "cover", display: "block",
-              }}
-            />
+            <div style={{ width: "100%", overflow: "hidden", maxHeight: mobile ? 320 : 360 }}>
+              <img
+                src={galleryUrls[galleryIdx]}
+                alt={r.name}
+                style={{
+                  width: "100%", display: "block",
+                  objectFit: "cover", maxHeight: mobile ? 320 : 360,
+                }}
+              />
+            </div>
+            {/* 갤러리 좌우 버튼 */}
+            {galleryUrls.length > 1 && (
+              <>
+                {galleryIdx > 0 && (
+                  <button onClick={() => setGalleryIdx((i) => i - 1)} style={{
+                    position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)",
+                    width: 30, height: 30, borderRadius: "50%",
+                    background: "rgba(0,0,0,0.35)", border: "none", color: "white",
+                    cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_left</span>
+                  </button>
+                )}
+                {galleryIdx < galleryUrls.length - 1 && (
+                  <button onClick={() => setGalleryIdx((i) => i + 1)} style={{
+                    position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+                    width: 30, height: 30, borderRadius: "50%",
+                    background: "rgba(0,0,0,0.35)", border: "none", color: "white",
+                    cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                  }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_right</span>
+                  </button>
+                )}
+                {/* 인디케이터 */}
+                <div style={{
+                  position: "absolute", bottom: 68, left: "50%", transform: "translateX(-50%)",
+                  display: "flex", gap: 5,
+                }}>
+                  {galleryUrls.map((_, i) => (
+                    <div key={i} style={{
+                      width: 6, height: 6, borderRadius: "50%",
+                      background: i === galleryIdx ? "white" : "rgba(255,255,255,0.45)",
+                      transition: "background 0.15s",
+                    }} />
+                  ))}
+                </div>
+              </>
+            )}
             {/* 그라데이션 오버레이 */}
             <div style={{
               position: "absolute", bottom: 0, left: 0, right: 0, height: 60,
@@ -272,7 +303,7 @@ export default function RestaurantPanel({
             </div>
 
             {/* 액션 버튼 (사진 없을 때만 여기에 표시) */}
-            {!r.photo_url && (
+            {galleryUrls.length === 0 && (
               <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
                 <IconBtn icon="near_me" onClick={handleCenterMap} title="지도에서 보기" size={mobile ? 38 : 32} />
                 {isPersonalMine && (
@@ -361,7 +392,25 @@ export default function RestaurantPanel({
                 인스타
               </a>
             )}
-            {r.photo_url && (
+            {r.isPersonal && r.id && (
+              <button onClick={handleShare}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 5,
+                  padding: "6px 12px",
+                  background: copied ? C.primaryContainer : C.surfaceLow,
+                  color: copied ? C.primary : C.onSurfaceVariant,
+                  border: "none", borderRadius: 7,
+                  fontFamily: FL, fontSize: 11, fontWeight: 600, cursor: "pointer",
+                  transition: "all 0.15s",
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+                  {copied ? "check" : "share"}
+                </span>
+                {copied ? "복사됨" : "공유"}
+              </button>
+            )}
+            {galleryUrls.length > 0 && (
               <>
                 <button onClick={handleCenterMap}
                   style={{
@@ -425,26 +474,6 @@ export default function RestaurantPanel({
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-
-          {/* ── 광고 체크 ──────────────────────────────────── */}
-          {!r.isPersonal && (
-            <div style={{ marginBottom: 12 }}>
-              {adLoading ? (
-                <p style={{ fontFamily: FL, fontSize: 11, color: C.outlineVariant }}>
-                  광고 확인 중…
-                </p>
-              ) : verdictInfo ? (
-                <span style={{
-                  display: "inline-flex", alignItems: "center", gap: 5,
-                  fontFamily: FL, fontSize: 11, fontWeight: 600,
-                  padding: "4px 10px", borderRadius: 5,
-                  background: verdictInfo.bg, color: verdictInfo.color,
-                }}>
-                  {verdictInfo.label}
-                </span>
-              ) : null}
             </div>
           )}
 

@@ -3,6 +3,7 @@ routers/places.py
 개인 맛집 CRUD + 좋아요 + 댓글 + 알림 + 이웃 표시 + 활동 피드
 """
 
+import json
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
@@ -12,6 +13,7 @@ from typing import Literal
 
 from database import get_db
 from models import User, Follow, Folder, PersonalPlace, PlaceLike, PlaceComment, Notification
+from routers.push import send_push_to_user
 
 router = APIRouter(tags=["places"])
 
@@ -33,6 +35,7 @@ class PlaceCreate(BaseModel):
     rating: int | None = None
     memo: str | None = None
     photo_url: str | None = None
+    photo_urls: list[str] | None = None
     instagram_post_url: str | None = None
     is_public: bool = True
 
@@ -43,6 +46,7 @@ class PlaceUpdate(BaseModel):
     rating: int | None = None
     memo: str | None = None
     photo_url: str | None = None
+    photo_urls: list[str] | None = None
     instagram_post_url: str | None = None
     is_public: bool | None = None
 
@@ -63,6 +67,7 @@ class PlaceResponse(BaseModel):
     rating: int | None
     memo: str | None
     photo_url: str | None
+    photo_urls: list[str]
     instagram_post_url: str | None
     is_public: bool
     like_count: int
@@ -95,6 +100,7 @@ class ActivityResponse(BaseModel):
     rating: int | None
     memo: str | None
     photo_url: str | None
+    photo_urls: list[str]
     instagram_post_url: str | None
     like_count: int
     comment_count: int
@@ -136,6 +142,19 @@ class NotificationResponse(BaseModel):
 
 # ── 헬퍼 ─────────────────────────────────────────────────────
 
+def _parse_photo_urls(p: PersonalPlace) -> list[str]:
+    """photo_urls JSON 파싱. photo_url만 있으면 [photo_url] 반환."""
+    urls = []
+    if p.photo_urls:
+        try:
+            urls = json.loads(p.photo_urls)
+        except (json.JSONDecodeError, TypeError):
+            pass
+    if not urls and p.photo_url:
+        urls = [p.photo_url]
+    return urls
+
+
 def _to_place_response(p: PersonalPlace, db: Session) -> PlaceResponse:
     owner = db.query(User).filter(User.id == p.user_id).first() if p.user_id else None
     return PlaceResponse(
@@ -145,7 +164,8 @@ def _to_place_response(p: PersonalPlace, db: Session) -> PlaceResponse:
         lat=p.lat, lng=p.lng, category=p.category,
         naver_place_url=p.naver_place_url, naver_place_id=p.naver_place_id,
         status=p.status, rating=p.rating, memo=p.memo,
-        photo_url=p.photo_url, instagram_post_url=p.instagram_post_url,
+        photo_url=p.photo_url, photo_urls=_parse_photo_urls(p),
+        instagram_post_url=p.instagram_post_url,
         is_public=p.is_public,
         like_count=len(p.likes), comment_count=len(p.comments),
         created_at=p.created_at,
@@ -205,7 +225,14 @@ def create_place(body: PlaceCreate, user_id: int, db: Session = Depends(get_db))
         raise HTTPException(status_code=400, detail="별점은 1~5 사이여야 합니다.")
     if body.status == "want_to_go" and body.rating is not None:
         raise HTTPException(status_code=400, detail="'가고 싶어요' 상태에서는 별점을 입력할 수 없습니다.")
-    place = PersonalPlace(user_id=user_id, **body.dict())
+    data = body.dict()
+    if data.get("photo_urls"):
+        data["photo_urls"] = json.dumps(data["photo_urls"])
+        if not data.get("photo_url"):
+            data["photo_url"] = json.loads(data["photo_urls"])[0]
+    else:
+        data["photo_urls"] = None
+    place = PersonalPlace(user_id=user_id, **data)
     db.add(place)
     db.commit()
     db.refresh(place)
@@ -236,7 +263,10 @@ def update_place(place_id: int, body: PlaceUpdate, user_id: int, db: Session = D
         place.folder_id = body.folder_id
     if body.memo is not None:
         place.memo = body.memo or None
-    if body.photo_url is not None:
+    if body.photo_urls is not None:
+        place.photo_urls = json.dumps(body.photo_urls) if body.photo_urls else None
+        place.photo_url = body.photo_urls[0] if body.photo_urls else None
+    elif body.photo_url is not None:
         place.photo_url = body.photo_url or None
     if body.instagram_post_url is not None:
         place.instagram_post_url = body.instagram_post_url or None
@@ -347,6 +377,7 @@ def get_activity_feed(user_id: int, limit: int = 30, db: Session = Depends(get_d
                 rating=p.rating,
                 memo=p.memo,
                 photo_url=p.photo_url,
+                photo_urls=_parse_photo_urls(p),
                 instagram_post_url=p.instagram_post_url,
                 like_count=len(p.likes),
                 comment_count=len(p.comments),
@@ -380,6 +411,11 @@ def toggle_like(place_id: int, user_id: int, db: Session = Depends(get_db)):
         db.add(PlaceLike(place_id=place_id, user_id=user_id))
         if place.user_id:
             _create_notification(db, place.user_id, user_id, "like", place_id)
+            actor = db.query(User).filter(User.id == user_id).first()
+            if actor:
+                send_push_to_user(db, place.user_id,
+                    "나의 공간", f"{actor.nickname}님이 '{place.name}'에 좋아요를 눌렀어요",
+                    url=f"/?place={place_id}", tag=f"like-{place_id}")
         db.commit()
         db.refresh(place)
         return {"liked": True, "like_count": len(place.likes)}
@@ -430,6 +466,11 @@ def create_comment(place_id: int, body: CommentCreate, db: Session = Depends(get
     db.add(comment)
     if place.user_id:
         _create_notification(db, place.user_id, body.user_id, "comment", place_id)
+        actor = db.query(User).filter(User.id == body.user_id).first()
+        if actor:
+            send_push_to_user(db, place.user_id,
+                "나의 공간", f"{actor.nickname}님이 '{place.name}'에 댓글을 남겼어요",
+                url=f"/?place={place_id}", tag=f"comment-{place_id}")
     db.commit()
     db.refresh(comment)
 

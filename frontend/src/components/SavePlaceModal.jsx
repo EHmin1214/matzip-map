@@ -37,8 +37,9 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
   const [rating, setRating] = useState(place?.rating || 0);
   const [memo, setMemo] = useState(place?.memo || "");
   const [instagramUrl, setInstagramUrl] = useState(place?.instagram_post_url || "");
-  const [photoFile, setPhotoFile] = useState(null);
-  const [photoPreview, setPhotoPreview] = useState(place?.photo_url || null);
+  const existingUrls = place?.photo_urls?.length ? place.photo_urls : (place?.photo_url ? [place.photo_url] : []);
+  const [photoFiles, setPhotoFiles] = useState([]);           // new File objects
+  const [photoPreviews, setPhotoPreviews] = useState(existingUrls); // URLs (existing) + blob URLs (new)
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
   const [saving, setSaving] = useState(false);
@@ -73,41 +74,55 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
   };
 
   const handlePhotoSelect = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setPhotoFile(file);
-    setPhotoPreview(URL.createObjectURL(file));
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    const remaining = 5 - photoPreviews.length;
+    const toAdd = files.slice(0, remaining);
+    setPhotoFiles((prev) => [...prev, ...toAdd]);
+    setPhotoPreviews((prev) => [...prev, ...toAdd.map((f) => URL.createObjectURL(f))]);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  const handleRemovePhoto = () => {
-    setPhotoFile(null);
-    setPhotoPreview(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
+  const handleRemovePhoto = (idx) => {
+    const preview = photoPreviews[idx];
+    const isExisting = existingUrls.includes(preview);
+    setPhotoPreviews((prev) => prev.filter((_, i) => i !== idx));
+    if (!isExisting) {
+      // find which file index this corresponds to
+      const newIdx = idx - existingUrls.filter((u) => photoPreviews.slice(0, idx).includes(u)).length;
+      setPhotoFiles((prev) => prev.filter((_, i) => i !== newIdx));
+    }
   };
 
   const handleSave = async () => {
     if (!place) return;
     setSaving(true);
     try {
-      let photoUrl = photoPreview;
-      // Upload new photo if selected
-      if (photoFile) {
+      // Collect final URLs: existing URLs that remain + upload new files
+      const finalUrls = [];
+      // Keep existing URLs that are still in previews
+      for (const p of photoPreviews) {
+        if (existingUrls.includes(p)) finalUrls.push(p);
+      }
+      // Upload new files
+      if (photoFiles.length > 0) {
         setUploading(true);
         const formData = new FormData();
-        formData.append("file", photoFile);
+        photoFiles.forEach((f) => formData.append("files", f));
         const uploadRes = await axios.post(
-          `${API_BASE}/upload/photo?user_id=${user.user_id}`,
+          `${API_BASE}/upload/photos?user_id=${user.user_id}`,
           formData,
           { headers: { "Content-Type": "multipart/form-data" } }
         );
-        photoUrl = uploadRes.data.url;
+        finalUrls.push(...uploadRes.data.urls);
         setUploading(false);
       }
       await onSave({
         ...place, folder_id: selectedFolderId, status,
         rating: VISITED_STATUSES.includes(status) && rating > 0 ? rating : null,
         memo: memo.trim() || null,
-        photo_url: photoUrl || null,
+        photo_url: finalUrls[0] || null,
+        photo_urls: finalUrls.length > 0 ? finalUrls : null,
         instagram_post_url: instagramUrl.trim() || null,
       });
       onClose();
@@ -300,41 +315,60 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
             </Section>
 
             {/* 사진 + 메모 */}
-            <Section label="나의 기록">
+            <Section label={`나의 기록 (사진 ${photoPreviews.length}/5)`}>
               {/* 사진 업로드 */}
               <input
                 ref={fileInputRef}
                 type="file"
                 accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
                 onChange={handlePhotoSelect}
+                multiple
                 style={{ display: "none" }}
               />
-              {photoPreview ? (
-                <div style={{ position: "relative", marginBottom: 12 }}>
-                  <img
-                    src={photoPreview}
-                    alt="미리보기"
-                    style={{
-                      width: "100%", height: 200, objectFit: "cover",
-                      borderRadius: 10, display: "block",
-                    }}
-                  />
-                  <button
-                    onClick={handleRemovePhoto}
-                    style={{
-                      position: "absolute", top: 8, right: 8,
-                      width: 28, height: 28, borderRadius: "50%",
-                      background: "rgba(0,0,0,0.5)", border: "none",
-                      color: "white", fontSize: 14, cursor: "pointer",
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}
-                  >✕</button>
+              {photoPreviews.length > 0 && (
+                <div style={{
+                  display: "grid",
+                  gridTemplateColumns: photoPreviews.length === 1 ? "1fr" : "1fr 1fr",
+                  gap: 8, marginBottom: 12,
+                }}>
+                  {photoPreviews.map((preview, idx) => (
+                    <div key={idx} style={{ position: "relative", borderRadius: 10, overflow: "hidden" }}>
+                      <img
+                        src={preview}
+                        alt={`사진 ${idx + 1}`}
+                        style={{
+                          width: "100%",
+                          height: photoPreviews.length === 1 ? 200 : 120,
+                          objectFit: "cover", display: "block",
+                        }}
+                      />
+                      <button
+                        onClick={() => handleRemovePhoto(idx)}
+                        style={{
+                          position: "absolute", top: 6, right: 6,
+                          width: 24, height: 24, borderRadius: "50%",
+                          background: "rgba(0,0,0,0.5)", border: "none",
+                          color: "white", fontSize: 12, cursor: "pointer",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}
+                      >✕</button>
+                      {idx === 0 && photoPreviews.length > 1 && (
+                        <span style={{
+                          position: "absolute", bottom: 6, left: 6,
+                          fontFamily: FL, fontSize: 9, fontWeight: 700,
+                          background: "rgba(0,0,0,0.5)", color: "white",
+                          padding: "2px 6px", borderRadius: 4,
+                        }}>커버</span>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ) : (
+              )}
+              {photoPreviews.length < 5 && (
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   style={{
-                    width: "100%", padding: "20px 14px",
+                    width: "100%", padding: photoPreviews.length > 0 ? "12px 14px" : "20px 14px",
                     border: `1.5px dashed ${C.outline}66`,
                     borderRadius: 10, background: "transparent",
                     cursor: "pointer", marginBottom: 12,
@@ -349,7 +383,7 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
                     add_photo_alternate
                   </span>
                   <span style={{ fontFamily: FL, fontSize: 11, color: C.outline }}>
-                    사진 추가
+                    {photoPreviews.length > 0 ? "사진 추가" : "사진 추가 (최대 5장)"}
                   </span>
                 </button>
               )}

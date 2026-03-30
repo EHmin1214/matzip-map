@@ -1,6 +1,6 @@
 // src/components/ActivityFeed.jsx
 // Instagram-style feed — 팔로잉 장소 + 사진 + 후기 카드
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useUser, API_BASE } from "../context/UserContext";
 
@@ -95,7 +95,49 @@ export default function ActivityFeed({ embedded = false, onPlaceClick, noHeader 
 }
 
 function FeedCard({ activity: a, mobile, onPlaceClick }) {
+  const { user } = useUser();
   const sc = STATUS_COLOR[a.place_status];
+  const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(a.like_count || 0);
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [commentInput, setCommentInput] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [galleryIdx, setGalleryIdx] = useState(0);
+  const galleryUrls = a.photo_urls?.length ? a.photo_urls : (a.photo_url ? [a.photo_url] : []);
+
+  const handleLike = async () => {
+    if (!user) return;
+    try {
+      const res = await axios.post(`${API_BASE}/places/${a.place_id}/like?user_id=${user.user_id}`);
+      setLiked(res.data.liked);
+      setLikeCount(res.data.like_count);
+    } catch (e) {}
+  };
+
+  const toggleComments = async () => {
+    if (!showComments && comments.length === 0) {
+      try {
+        const res = await axios.get(`${API_BASE}/places/${a.place_id}/comments`);
+        setComments(res.data);
+      } catch (e) {}
+    }
+    setShowComments(!showComments);
+  };
+
+  const handleComment = async () => {
+    if (!commentInput.trim() || !user) return;
+    setSubmitting(true);
+    try {
+      const res = await axios.post(`${API_BASE}/places/${a.place_id}/comments`, {
+        content: commentInput.trim(), user_id: user.user_id,
+      });
+      setComments((prev) => [...prev, res.data]);
+      setCommentInput("");
+    } catch (e) {
+      alert(e.response?.data?.detail || "댓글 작성 실패");
+    } finally { setSubmitting(false); }
+  };
 
   return (
     <article style={{
@@ -104,7 +146,7 @@ function FeedCard({ activity: a, mobile, onPlaceClick }) {
       overflow: "hidden",
       boxShadow: mobile ? "none" : "0 1px 8px rgba(47,52,48,0.06)",
     }}>
-      {/* 카드 헤더 — 아바타 + 닉네임 + 시간 */}
+      {/* 카드 헤더 */}
       <div style={{
         display: "flex", alignItems: "center", gap: 10,
         padding: "12px 16px",
@@ -119,15 +161,10 @@ function FeedCard({ activity: a, mobile, onPlaceClick }) {
           {a.owner_nickname?.[0]?.toUpperCase()}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{
-            margin: 0, fontFamily: FL, fontSize: 12, fontWeight: 700,
-            color: C.onSurface,
-          }}>
+          <p style={{ margin: 0, fontFamily: FL, fontSize: 12, fontWeight: 700, color: C.onSurface }}>
             {a.owner_nickname}
           </p>
-          <p style={{
-            margin: 0, fontFamily: FL, fontSize: 10, color: C.outlineVariant,
-          }}>
+          <p style={{ margin: 0, fontFamily: FL, fontSize: 10, color: C.outlineVariant }}>
             {a.place_category || formatTime(a.created_at)}
           </p>
         </div>
@@ -136,44 +173,63 @@ function FeedCard({ activity: a, mobile, onPlaceClick }) {
         </span>
       </div>
 
-      {/* 사진 영역 */}
-      {a.photo_url ? (
-        <div
-          onClick={() => onPlaceClick && onPlaceClick(a)}
-          style={{ cursor: onPlaceClick ? "pointer" : "default" }}
-        >
-          <img
-            src={a.photo_url}
+      {/* 사진 영역 — 갤러리 */}
+      {galleryUrls.length > 0 ? (
+        <div style={{ position: "relative" }}>
+          <AdaptiveImage
+            src={galleryUrls[galleryIdx]}
             alt={a.place_name}
-            style={{
-              width: "100%", height: mobile ? 280 : 340,
-              objectFit: "cover", display: "block",
-            }}
+            onClick={() => onPlaceClick && onPlaceClick(a)}
+            clickable={!!onPlaceClick}
           />
+          {galleryUrls.length > 1 && (
+            <>
+              {galleryIdx > 0 && (
+                <button onClick={() => setGalleryIdx((i) => i - 1)} style={{
+                  position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)",
+                  width: 28, height: 28, borderRadius: "50%",
+                  background: "rgba(0,0,0,0.35)", border: "none", color: "white",
+                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>chevron_left</span>
+                </button>
+              )}
+              {galleryIdx < galleryUrls.length - 1 && (
+                <button onClick={() => setGalleryIdx((i) => i + 1)} style={{
+                  position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
+                  width: 28, height: 28, borderRadius: "50%",
+                  background: "rgba(0,0,0,0.35)", border: "none", color: "white",
+                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 16 }}>chevron_right</span>
+                </button>
+              )}
+              <div style={{
+                position: "absolute", bottom: 10, left: "50%", transform: "translateX(-50%)",
+                display: "flex", gap: 5,
+              }}>
+                {galleryUrls.map((_, i) => (
+                  <div key={i} style={{
+                    width: 6, height: 6, borderRadius: "50%",
+                    background: i === galleryIdx ? "white" : "rgba(255,255,255,0.45)",
+                  }} />
+                ))}
+              </div>
+            </>
+          )}
         </div>
       ) : (
-        /* 사진 없으면 장소명 카드 */
-        <div
-          onClick={() => onPlaceClick && onPlaceClick(a)}
+        <div onClick={() => onPlaceClick && onPlaceClick(a)}
           style={{
             padding: mobile ? "32px 20px" : "40px 24px",
             background: `linear-gradient(135deg, ${C.primaryDim}18, ${C.primary}10)`,
             cursor: onPlaceClick ? "pointer" : "default",
-          }}
-        >
-          <p style={{
-            margin: 0, fontFamily: FH, fontStyle: "italic",
-            fontSize: mobile ? 22 : 26, color: C.primary,
-            textAlign: "center", lineHeight: 1.3,
           }}>
+          <p style={{ margin: 0, fontFamily: FH, fontStyle: "italic", fontSize: mobile ? 22 : 26, color: C.primary, textAlign: "center", lineHeight: 1.3 }}>
             {a.place_name}
           </p>
           {a.place_address && (
-            <p style={{
-              margin: "8px 0 0", fontFamily: FL, fontSize: 11,
-              color: C.outlineVariant, textAlign: "center",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
-            }}>
+            <p style={{ margin: "8px 0 0", fontFamily: FL, fontSize: 11, color: C.outlineVariant, textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
               <span className="material-symbols-outlined" style={{ fontSize: 13 }}>location_on</span>
               {a.place_address}
             </p>
@@ -182,83 +238,166 @@ function FeedCard({ activity: a, mobile, onPlaceClick }) {
       )}
 
       {/* 하단 콘텐츠 */}
-      <div style={{ padding: "12px 16px 14px" }}>
-        {/* 상태 뱃지 + 별점 */}
-        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: a.memo ? 8 : 4 }}>
+      <div style={{ padding: "10px 16px 14px" }}>
+        {/* 좋아요 / 댓글 / 지도 액션 바 */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+          <button onClick={handleLike} style={{
+            display: "flex", alignItems: "center", gap: 4,
+            background: "none", border: "none", cursor: "pointer", padding: 0,
+            color: liked ? "#D4537E" : C.onSurfaceVariant, transition: "color 0.15s",
+          }}>
+            <span className="material-symbols-outlined" style={{
+              fontSize: 22, fontVariationSettings: liked ? "'FILL' 1" : "'FILL' 0",
+            }}>favorite</span>
+          </button>
+          <button onClick={toggleComments} style={{
+            display: "flex", alignItems: "center", gap: 4,
+            background: "none", border: "none", cursor: "pointer", padding: 0,
+            color: C.onSurfaceVariant,
+          }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 22 }}>chat_bubble_outline</span>
+          </button>
+          {onPlaceClick && (
+            <button onClick={() => onPlaceClick(a)} style={{
+              display: "flex", alignItems: "center", gap: 4,
+              background: "none", border: "none", cursor: "pointer", padding: 0,
+              color: C.onSurfaceVariant,
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 22 }}>location_on</span>
+            </button>
+          )}
+        </div>
+
+        {/* 좋아요 수 */}
+        {likeCount > 0 && (
+          <p style={{ margin: "0 0 4px", fontFamily: FL, fontSize: 12, fontWeight: 700, color: C.onSurface }}>
+            좋아요 {likeCount}개
+          </p>
+        )}
+
+        {/* 상태 뱃지 + 장소명 */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: a.memo ? 6 : 2 }}>
           <span style={{
             fontFamily: FL, fontSize: 11, fontWeight: 600,
-            padding: "3px 8px", borderRadius: 5,
+            padding: "2px 7px", borderRadius: 4,
             background: sc?.bg || C.surfaceLow,
             color: sc?.color || C.onSurfaceVariant,
           }}>
-            {STATUS_EMOJI[a.place_status]} {STATUS_LABEL[a.place_status] || a.place_status}
+            {STATUS_EMOJI[a.place_status]} {STATUS_LABEL[a.place_status]}
           </span>
           {a.rating > 0 && (
             <span style={{
-              fontFamily: FL, fontSize: 11, padding: "3px 8px",
+              fontFamily: FL, fontSize: 11, padding: "2px 7px",
               background: C.primaryContainer, color: C.primary,
-              borderRadius: 5, fontWeight: 600,
+              borderRadius: 4, fontWeight: 600,
             }}>
               {"★".repeat(a.rating)}{"☆".repeat(5 - a.rating)}
             </span>
           )}
-          {a.photo_url && (
-            <span style={{
-              fontFamily: FH, fontSize: 13, fontWeight: 600,
-              color: C.onSurface, marginLeft: 2,
-            }}>
-              {a.place_name}
-            </span>
-          )}
+          <span style={{ fontFamily: FH, fontSize: 13, fontWeight: 600, color: C.onSurface }}>
+            {a.place_name}
+          </span>
         </div>
 
-        {/* 메모 — 후기 */}
+        {/* 메모 */}
         {a.memo && (
           <p style={{
-            margin: "0 0 8px", fontFamily: FH, fontStyle: "italic",
-            fontSize: 13, color: C.onSurfaceVariant,
-            lineHeight: 1.7,
+            margin: "0 0 6px", fontFamily: FH, fontStyle: "italic",
+            fontSize: 13, color: C.onSurfaceVariant, lineHeight: 1.7,
           }}>
             "{a.memo}"
           </p>
         )}
 
-        {/* 액션 바 */}
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          {a.like_count > 0 && (
-            <span style={{ display: "flex", alignItems: "center", gap: 4, fontFamily: FL, fontSize: 11, color: C.outlineVariant }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>favorite</span>
-              {a.like_count}
-            </span>
-          )}
-          {a.comment_count > 0 && (
-            <span style={{ display: "flex", alignItems: "center", gap: 4, fontFamily: FL, fontSize: 11, color: C.outlineVariant }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>chat_bubble_outline</span>
-              {a.comment_count}
-            </span>
-          )}
-          {onPlaceClick && (
-            <button
-              onClick={() => onPlaceClick(a)}
-              style={{
-                display: "flex", alignItems: "center", gap: 4,
-                background: "none", border: "none", cursor: "pointer",
-                fontFamily: FL, fontSize: 10, fontWeight: 600,
-                textTransform: "uppercase", letterSpacing: "0.1em",
-                color: C.outlineVariant, padding: 0,
-                marginLeft: "auto",
-                transition: "color 0.15s",
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.color = C.primary}
-              onMouseLeave={(e) => e.currentTarget.style.color = C.outlineVariant}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>location_on</span>
-              지도에서 보기
-            </button>
-          )}
-        </div>
+        {/* 댓글 영역 */}
+        {a.comment_count > 0 && !showComments && (
+          <button onClick={toggleComments} style={{
+            background: "none", border: "none", cursor: "pointer", padding: 0,
+            fontFamily: FL, fontSize: 12, color: C.outlineVariant, marginBottom: 4,
+          }}>
+            댓글 {a.comment_count}개 모두 보기
+          </button>
+        )}
+
+        {showComments && (
+          <div style={{ marginTop: 6 }}>
+            {comments.map((c) => (
+              <div key={c.id} style={{ marginBottom: 4 }}>
+                <p style={{ margin: 0, fontFamily: FL, fontSize: 12, color: C.onSurface, lineHeight: 1.5 }}>
+                  <span style={{ fontWeight: 700 }}>{c.author_nickname}</span>{" "}
+                  <span style={{ color: C.onSurfaceVariant }}>{c.content}</span>
+                </p>
+              </div>
+            ))}
+            <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+              <input
+                value={commentInput}
+                onChange={(e) => setCommentInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleComment()}
+                placeholder="댓글 달기..."
+                style={{
+                  flex: 1, padding: "8px 0",
+                  background: "none", border: "none", borderBottom: `1px solid ${C.container}`,
+                  fontFamily: FL, fontSize: 12, color: C.onSurface, outline: "none",
+                }}
+              />
+              {commentInput.trim() && (
+                <button onClick={handleComment} disabled={submitting} style={{
+                  background: "none", border: "none", cursor: "pointer",
+                  fontFamily: FL, fontSize: 12, fontWeight: 700, color: C.primary,
+                  padding: "8px 0", opacity: submitting ? 0.5 : 1,
+                }}>
+                  게시
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* 시간 */}
+        <p style={{ margin: "6px 0 0", fontFamily: FL, fontSize: 10, color: C.outlineVariant }}>
+          {formatTime(a.created_at)}
+        </p>
       </div>
     </article>
+  );
+}
+
+function AdaptiveImage({ src, alt, onClick, clickable }) {
+  const [ratio, setRatio] = useState("5/4"); // default landscape
+  const imgRef = useRef(null);
+
+  const handleLoad = () => {
+    const img = imgRef.current;
+    if (!img) return;
+    const w = img.naturalWidth;
+    const h = img.naturalHeight;
+    // portrait → 4:5, landscape/square → 5:4
+    setRatio(h > w ? "4/5" : "5/4");
+  };
+
+  return (
+    <div
+      onClick={clickable ? onClick : undefined}
+      style={{
+        cursor: clickable ? "pointer" : "default",
+        overflow: "hidden",
+        width: "100%",
+        aspectRatio: ratio,
+        background: "#f0efec",
+      }}
+    >
+      <img
+        ref={imgRef}
+        src={src}
+        alt={alt}
+        onLoad={handleLoad}
+        style={{
+          width: "100%", height: "100%",
+          objectFit: "cover", display: "block",
+        }}
+      />
+    </div>
   );
 }
 

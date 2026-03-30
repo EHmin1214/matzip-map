@@ -12,6 +12,7 @@ from datetime import datetime
 
 from database import get_db
 from models import User, PersonalPlace, Notification
+from routers.push import send_push_to_user
 
 router = APIRouter(prefix="/follows", tags=["follows"])
 
@@ -88,6 +89,10 @@ def follow_user(target_id: int, follower_id: int, db: Session = Depends(get_db))
 
     ntype = "follow" if status == "accepted" else "follow_request"
     _create_notification(db, target_id, follower_id, ntype)
+    follower = db.query(User).filter(User.id == follower_id).first()
+    if follower:
+        msg = f"{follower.nickname}님이 팔로우했어요" if status == "accepted" else f"{follower.nickname}님이 팔로우 요청을 보냈어요"
+        send_push_to_user(db, target_id, "나의 공간", msg, tag="follow")
     db.commit()
 
     if status == "accepted":
