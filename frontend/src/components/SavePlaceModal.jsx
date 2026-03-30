@@ -314,80 +314,8 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
               )}
             </Section>
 
-            {/* 사진 + 메모 */}
-            <Section label={`나의 기록 (사진 ${photoPreviews.length}/5)`}>
-              {/* 사진 업로드 */}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
-                onChange={handlePhotoSelect}
-                multiple
-                style={{ display: "none" }}
-              />
-              {photoPreviews.length > 0 && (
-                <div style={{
-                  display: "grid",
-                  gridTemplateColumns: photoPreviews.length === 1 ? "1fr" : "1fr 1fr",
-                  gap: 8, marginBottom: 12,
-                }}>
-                  {photoPreviews.map((preview, idx) => (
-                    <div key={idx} style={{ position: "relative", borderRadius: 10, overflow: "hidden" }}>
-                      <img
-                        src={preview}
-                        alt={`사진 ${idx + 1}`}
-                        style={{
-                          width: "100%",
-                          height: photoPreviews.length === 1 ? 200 : 120,
-                          objectFit: "cover", display: "block",
-                        }}
-                      />
-                      <button
-                        onClick={() => handleRemovePhoto(idx)}
-                        style={{
-                          position: "absolute", top: 6, right: 6,
-                          width: 24, height: 24, borderRadius: "50%",
-                          background: "rgba(0,0,0,0.5)", border: "none",
-                          color: "white", fontSize: 12, cursor: "pointer",
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                        }}
-                      >✕</button>
-                      {idx === 0 && photoPreviews.length > 1 && (
-                        <span style={{
-                          position: "absolute", bottom: 6, left: 6,
-                          fontFamily: FL, fontSize: 9, fontWeight: 700,
-                          background: "rgba(0,0,0,0.5)", color: "white",
-                          padding: "2px 6px", borderRadius: 4,
-                        }}>커버</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-              {photoPreviews.length < 5 && (
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  style={{
-                    width: "100%", padding: photoPreviews.length > 0 ? "12px 14px" : "20px 14px",
-                    border: `1.5px dashed ${C.outline}66`,
-                    borderRadius: 10, background: "transparent",
-                    cursor: "pointer", marginBottom: 12,
-                    display: "flex", flexDirection: "column",
-                    alignItems: "center", gap: 6,
-                    transition: "background 0.15s",
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = C.container}
-                  onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: 24, color: C.outline }}>
-                    add_photo_alternate
-                  </span>
-                  <span style={{ fontFamily: FL, fontSize: 11, color: C.outline }}>
-                    {photoPreviews.length > 0 ? "사진 추가" : "사진 추가 (최대 5장)"}
-                  </span>
-                </button>
-              )}
-
+            {/* 메모 */}
+            <Section label="나의 기록">
               <textarea
                 value={memo}
                 onChange={(e) => setMemo(e.target.value)}
