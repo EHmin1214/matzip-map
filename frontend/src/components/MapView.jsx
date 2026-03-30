@@ -52,13 +52,13 @@ const myMarker = ({ name, status, shared = false, folderColor }) => {
   `;
 };
 
-// 팔로잉 마커 — 컬러 pill
-const followingMarker = ({ name, color }) => `
+// 팔로잉 마커 — 프로필 아바타 + 이름
+const followingMarker = ({ name, color, nickname }) => `
   <div style="
-    display:inline-flex;align-items:center;gap:4px;
+    display:inline-flex;align-items:center;gap:5px;
     background:${color};
     color:white;
-    padding:4px 9px;
+    padding:4px 9px 4px 4px;
     border-radius:6px;
     font-family:'Manrope',sans-serif;
     font-size:11px;font-weight:600;
@@ -67,6 +67,13 @@ const followingMarker = ({ name, color }) => `
     cursor:pointer;
     letter-spacing:0.01em;
   ">
+    <span style="
+      width:18px;height:18px;border-radius:50%;
+      background:rgba(255,255,255,0.3);
+      display:inline-flex;align-items:center;justify-content:center;
+      font-family:'Noto Serif',Georgia,serif;font-style:italic;
+      font-size:9px;color:white;font-weight:700;flex-shrink:0;
+    ">${nickname?.[0]?.toUpperCase() || '?'}</span>
     <span>${name}</span>
   </div>
 `;
@@ -99,6 +106,16 @@ export default function MapView({
   const followingMarkersRef = useRef([]);
   const [mapReady, setMapReady] = useState(false);
   const hasFitBounds = useRef(false);
+  const activeMarkerRef = useRef(null);
+
+  const bringToFront = (marker) => {
+    // Reset previous active marker
+    if (activeMarkerRef.current && activeMarkerRef.current !== marker) {
+      try { activeMarkerRef.current.setZIndex(5); } catch (e) {}
+    }
+    try { marker.setZIndex(100); } catch (e) {}
+    activeMarkerRef.current = marker;
+  };
 
   const getFolderColor = (folderId) => {
     if (!folderId) return null;
@@ -179,6 +196,7 @@ export default function MapView({
         icon: { content: blogMarker({ name: r.name, color }), anchor: new window.naver.maps.Point(6, 12) },
       });
       window.naver.maps.Event.addListener(marker, "click", () => {
+        bringToFront(marker);
         panToPlace(r.lat, r.lng, marker);
         onMarkerClick(r.id, false);
       });
@@ -220,6 +238,7 @@ export default function MapView({
         zIndex: sharedWith.length > 0 ? 10 : 5,
       });
       window.naver.maps.Event.addListener(marker, "click", () => {
+        bringToFront(marker);
         panToPlace(r.lat, r.lng, marker);
         onMarkerClick(`personal_${r.id}`, true);
       });
@@ -248,11 +267,12 @@ export default function MapView({
           map: mapInstance.current,
           title: `${nickname}: ${r.name}`,
           icon: {
-            content: followingMarker({ name: r.name, color }),
+            content: followingMarker({ name: r.name, color, nickname }),
             anchor: new window.naver.maps.Point(6, 12),
           },
         });
         window.naver.maps.Event.addListener(marker, "click", () => {
+          bringToFront(marker);
           panToPlace(r.lat, r.lng, marker);
           if (onFollowingMarkerClick) onFollowingMarkerClick({ ...r, ownerNickname: nickname, ownerUserId: userId });
         });

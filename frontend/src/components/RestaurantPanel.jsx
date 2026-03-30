@@ -4,6 +4,9 @@ import axios from "axios";
 import { useUser, API_BASE } from "../context/UserContext";
 import SavePlaceModal from "./SavePlaceModal";
 
+const KAKAO_KEY = process.env.REACT_APP_KAKAO_JS_KEY || "";
+const FRONTEND_URL = "https://myplace-map.vercel.app";
+
 const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
 const C = {
@@ -94,12 +97,16 @@ export default function RestaurantPanel({
   const handleCenterMap = () => {
     if (!mapInstance || !r.lat || !r.lng || !window.naver) return;
     const coord = new window.naver.maps.LatLng(r.lat, r.lng);
-    mapInstance.setCenter(coord);
     mapInstance.setZoom(17);
-    // 데스크톱: 디테일 패널(360px)만큼 오른쪽으로 보정
-    if (!mobile) {
-      mapInstance.panBy(new window.naver.maps.Point(-180, 0));
-    }
+    // First pan to exact coord, then apply offset in one smooth move
+    mapInstance.panTo(coord, { duration: 280 });
+    setTimeout(() => {
+      if (mobile) {
+        mapInstance.panBy(new window.naver.maps.Point(0, window.innerHeight * 0.22));
+      } else {
+        mapInstance.panBy(new window.naver.maps.Point(-180, 0));
+      }
+    }, 300);
   };
 
   const [heartAnim, setHeartAnim] = useState(false);
@@ -155,10 +162,26 @@ export default function RestaurantPanel({
   };
 
   const handleShare = () => {
-    const url = `${API_BASE}/og/place/${r.id}`;
+    const url = `${FRONTEND_URL}/?place=${r.id}`;
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true); setTimeout(() => setCopied(false), 2000);
     }).catch(() => {});
+  };
+
+  const handleKakaoShare = () => {
+    if (!window.Kakao) return;
+    if (!window.Kakao.isInitialized() && KAKAO_KEY) window.Kakao.init(KAKAO_KEY);
+    if (!window.Kakao.isInitialized()) return;
+    window.Kakao.Share.sendDefault({
+      objectType: "feed",
+      content: {
+        title: r.name,
+        description: r.memo ? `"${r.memo}"` : (r.owner_nickname ? `${r.owner_nickname}님의 큐레이션` : "나의 공간에서 발견한 장소"),
+        imageUrl: r.photo_url || `${FRONTEND_URL}/og-image.png`,
+        link: { mobileWebUrl: `${FRONTEND_URL}/?place=${r.id}`, webUrl: `${FRONTEND_URL}/?place=${r.id}` },
+      },
+      buttons: [{ title: "장소 보기", link: { mobileWebUrl: `${FRONTEND_URL}/?place=${r.id}`, webUrl: `${FRONTEND_URL}/?place=${r.id}` } }],
+    });
   };
 
   const galleryUrls = r.photo_urls?.length ? r.photo_urls : (r.photo_url ? [r.photo_url] : []);
@@ -218,18 +241,29 @@ export default function RestaurantPanel({
             </a>
           )}
           {r.isPersonal && r.id && (
-            <button onClick={handleShare} style={{
-              display: "inline-flex", alignItems: "center", gap: 3, padding: "4px 8px",
-              background: copied ? C.primaryContainer : C.surfaceLow,
-              color: copied ? C.primary : C.onSurfaceVariant,
-              border: "none", borderRadius: 5, fontFamily: FL, fontSize: 10, fontWeight: 600,
-              cursor: "pointer", transition: "all 0.15s",
-            }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 12 }}>
-                {copied ? "check" : "share"}
-              </span>
-              {copied ? "복사됨" : "공유"}
-            </button>
+            <>
+              <button onClick={handleShare} style={{
+                display: "inline-flex", alignItems: "center", gap: 3, padding: "4px 8px",
+                background: copied ? C.primaryContainer : C.surfaceLow,
+                color: copied ? C.primary : C.onSurfaceVariant,
+                border: "none", borderRadius: 5, fontFamily: FL, fontSize: 10, fontWeight: 600,
+                cursor: "pointer", transition: "all 0.15s",
+              }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 12 }}>
+                  {copied ? "check" : "link"}
+                </span>
+                {copied ? "복사됨" : "링크"}
+              </button>
+              <button onClick={handleKakaoShare} style={{
+                display: "inline-flex", alignItems: "center", gap: 3, padding: "4px 8px",
+                background: "#FEE500", color: "#191919",
+                border: "none", borderRadius: 5, fontFamily: FL, fontSize: 10, fontWeight: 600,
+                cursor: "pointer",
+              }}>
+                <svg width="11" height="11" viewBox="0 0 18 18"><path fill="#191919" d="M9 1C4.58 1 1 3.79 1 7.21c0 2.17 1.45 4.08 3.64 5.18l-.93 3.44c-.08.3.26.54.52.37l4.12-2.74c.21.02.43.03.65.03 4.42 0 8-2.79 8-6.28S13.42 1 9 1z"/></svg>
+                카톡
+              </button>
+            </>
           )}
         </div>
       </div>
