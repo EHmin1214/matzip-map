@@ -77,7 +77,7 @@ export default function RestaurantPanel({
 
   const touchStartY = useRef(null);
 
-  useEffect(() => { setR(restaurant); }, [restaurant?.id]);
+  useEffect(() => { setR(restaurant); }, [restaurant]);
 
   const isPersonalMine = r.isPersonal && (!r.user_id || (user && r.user_id === user.user_id));
   const isOthersPlace  = r.isPersonal && r.user_id && user && r.user_id !== user.user_id;
@@ -131,11 +131,13 @@ export default function RestaurantPanel({
   };
 
   const handleEditSave = async (updated) => {
+    console.log("[EditSave] sending photo_urls:", updated.photo_urls);
     const res = await axios.patch(
       `${API_BASE}/personal-places/${r.id}?user_id=${user.user_id}`,
       { folder_id: updated.folder_id, status: updated.status, rating: updated.rating, memo: updated.memo, photo_url: updated.photo_url, photo_urls: updated.photo_urls, instagram_post_url: updated.instagram_post_url }
     );
     const updatedPlace = res.data;
+    console.log("[EditSave] response photo_urls:", updatedPlace.photo_urls);
     setR((prev) => ({ ...prev, ...updatedPlace }));
     if (onPlaceUpdated) onPlaceUpdated({ ...r, ...updatedPlace });
   };
