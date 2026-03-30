@@ -33,7 +33,7 @@ const STATUS_COLOR = {
 
 export default function RestaurantPanel({
   restaurant, onClose, onHide, sidebarWidth = 240,
-  onPlaceUpdated, mapInstance,
+  onPlaceUpdated, mapInstance, onDataChange,
 }) {
   const { user } = useUser();
   const mobile = isMobile();
@@ -96,6 +96,7 @@ export default function RestaurantPanel({
       const res = await axios.post(`${API_BASE}/places/${r.id}/like?user_id=${user.user_id}`);
       setLiked(res.data.liked);
       setLikeCount(res.data.like_count);
+      if (onDataChange) onDataChange();
     } catch (e) {}
   };
 
@@ -108,6 +109,7 @@ export default function RestaurantPanel({
       });
       setComments((prev) => [...prev, res.data]);
       setCommentInput("");
+      if (onDataChange) onDataChange();
     } catch (e) {
       alert(e.response?.data?.detail || "댓글 작성 실패");
     } finally { setSubmittingComment(false); }
@@ -117,6 +119,7 @@ export default function RestaurantPanel({
     try {
       await axios.delete(`${API_BASE}/comments/${commentId}?user_id=${user.user_id}`);
       setComments((prev) => prev.filter((c) => c.id !== commentId));
+      if (onDataChange) onDataChange();
     } catch (e) {}
   };
 
@@ -128,6 +131,7 @@ export default function RestaurantPanel({
     const updatedPlace = res.data;
     setR((prev) => ({ ...prev, ...updatedPlace }));
     if (onPlaceUpdated) onPlaceUpdated({ ...r, ...updatedPlace });
+    if (onDataChange) onDataChange();
   };
 
   const handleShare = () => {

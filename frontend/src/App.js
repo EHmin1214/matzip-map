@@ -117,9 +117,9 @@ export default function App() {
 
   useEffect(() => {
     if (!user) return;
-    const interval = setInterval(loadUnread, 30000);
+    const interval = setInterval(() => { loadUnread(); loadPersonalPlaces(); }, 30000);
     return () => clearInterval(interval);
-  }, [user, loadUnread]);
+  }, [user, loadUnread, loadPersonalPlaces]);
 
   const handleRefresh = useCallback(async () => {
     await Promise.all([
@@ -253,7 +253,7 @@ export default function App() {
 
   const renderPanel = (tab) => {
     if (tab === "search")        return <SearchTab onPlaceAdded={addPlace} personalPlaces={personalPlaces} />;
-    if (tab === "feed")          return <FeedTab personalPlaces={personalPlaces} onPlaceClick={handleActivityPlaceClick} />;
+    if (tab === "feed")          return <FeedTab personalPlaces={personalPlaces} onPlaceClick={handleActivityPlaceClick} onDataChange={loadPersonalPlaces} />;
     if (tab === "notifications") return <NotificationTab onUnreadChange={setUnreadCount} />;
     if (tab === "profile")       return <ProfilePage personalPlaces={personalPlaces} onViewMap={() => setActiveTab("map")} onPlaceClick={(p) => {
       setSelectedRestaurant({ id: p.id, name: p.name, lat: p.lat, lng: p.lng, status: p.status, user_id: p.user_id, isPersonal: true, sources: [] });
@@ -390,6 +390,7 @@ export default function App() {
               onClose={() => setSelectedRestaurant(null)} onHide={hideRestaurant}
               sidebarWidth={0}
               onPlaceUpdated={handlePlaceUpdated} mapInstance={mapRef.current}
+              onDataChange={loadPersonalPlaces}
             />
           )}
 
@@ -488,6 +489,7 @@ export default function App() {
               onClose={() => setSelectedRestaurant(null)} onHide={hideRestaurant}
               sidebarWidth={SIDEBAR_W}
               onPlaceUpdated={handlePlaceUpdated} mapInstance={mapRef.current}
+              onDataChange={loadPersonalPlaces}
             />
           )}
         </>

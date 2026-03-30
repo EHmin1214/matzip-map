@@ -23,7 +23,7 @@ const C = {
 
 const isMobile = () => window.innerWidth <= 768;
 
-export default function FeedTab({ personalPlaces = [], onPlaceClick }) {
+export default function FeedTab({ personalPlaces = [], onPlaceClick, onDataChange }) {
   const { user } = useUser();
   const mobile = isMobile();
   const [activities, setActivities] = useState([]);
@@ -106,7 +106,7 @@ export default function FeedTab({ personalPlaces = [], onPlaceClick }) {
       <div style={{ maxWidth: 560, margin: "0 auto", padding: mobile ? "16px 0" : "32px 0" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: mobile ? 2 : 16 }}>
           {combinedFeed.map((item, idx) => (
-            <FeedCard key={`${item.isOwn ? "own" : "follow"}-${item.place_id}-${idx}`} item={item} mobile={mobile} onPlaceClick={onPlaceClick} />
+            <FeedCard key={`${item.isOwn ? "own" : "follow"}-${item.place_id}-${idx}`} item={item} mobile={mobile} onPlaceClick={onPlaceClick} onDataChange={onDataChange} />
           ))}
         </div>
 
@@ -120,7 +120,7 @@ export default function FeedTab({ personalPlaces = [], onPlaceClick }) {
   );
 }
 
-function FeedCard({ item, mobile, onPlaceClick }) {
+function FeedCard({ item, mobile, onPlaceClick, onDataChange }) {
   const { user } = useUser();
   const sc = STATUS_COLOR[item.place_status];
   const [liked, setLiked] = useState(false);
@@ -138,6 +138,7 @@ function FeedCard({ item, mobile, onPlaceClick }) {
       const res = await axios.post(`${API_BASE}/places/${item.place_id}/like?user_id=${user.user_id}`);
       setLiked(res.data.liked);
       setLikeCount(res.data.like_count);
+      if (onDataChange) onDataChange();
     } catch (e) {}
   };
 
@@ -160,6 +161,7 @@ function FeedCard({ item, mobile, onPlaceClick }) {
       });
       setComments((prev) => [...prev, res.data]);
       setCommentInput("");
+      if (onDataChange) onDataChange();
     } catch (e) {
       alert(e.response?.data?.detail || "댓글 작성 실패");
     } finally { setSubmitting(false); }
