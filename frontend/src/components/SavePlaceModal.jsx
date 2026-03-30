@@ -126,7 +126,11 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
         instagram_post_url: instagramUrl.trim() || null,
       });
       onClose();
-    } catch (e) { setUploading(false); alert("저장 실패"); }
+    } catch (e) {
+      setUploading(false);
+      const detail = e.response?.data?.detail || e.message || "알 수 없는 오류";
+      alert(`저장 실패: ${detail}`);
+    }
     finally { setSaving(false); }
   };
 
