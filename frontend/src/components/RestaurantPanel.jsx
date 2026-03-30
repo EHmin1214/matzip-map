@@ -50,6 +50,7 @@ export default function RestaurantPanel({
   const [submittingComment, setSubmittingComment] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
   const [galleryIdx, setGalleryIdx] = useState(0);
   const [replyTo, setReplyTo] = useState(null); // { id, author_nickname }
   const commentInputRef = useRef(null);
@@ -60,7 +61,7 @@ export default function RestaurantPanel({
   const dragStartY = useRef(null);
   const dragStartScroll = useRef(0);
 
-  useEffect(() => { setR(restaurant); setSheetMode("peek"); }, [restaurant]);
+  useEffect(() => { setR(restaurant); setSheetMode("peek"); setShowShareMenu(false); }, [restaurant]);
 
   const isPersonalMine = r.isPersonal && (!r.user_id || (user && r.user_id === user.user_id));
   const isOthersPlace  = r.isPersonal && r.user_id && user && r.user_id !== user.user_id;
@@ -96,32 +97,39 @@ export default function RestaurantPanel({
 
   const handleCenterMap = () => {
     if (!mapInstance || !r.lat || !r.lng || !window.naver) return;
-    mapInstance.setZoom(17);
-
-    const proj = mapInstance.getProjection();
     const coord = new window.naver.maps.LatLng(r.lat, r.lng);
-    const size = mapInstance.getSize();
-    const mapCX = size.width / 2;
-    const mapCY = size.height / 2;
-    const pillOffsetX = 34; // 기본 pill 중앙 오프셋
 
-    let visibleCX, visibleCY;
-    if (mobile) {
-      visibleCX = mapCX;
-      visibleCY = (size.height - 274) / 2;
-    } else {
-      const panelW = 360;
-      visibleCX = panelW + (size.width - panelW) / 2;
-      visibleCY = mapCY;
-    }
+    // 먼저 줌 설정 후 idle 이벤트에서 projection 계산
+    mapInstance.setZoom(17);
+    mapInstance.setCenter(coord);
 
-    const markerPx = proj.fromCoordToOffset(coord);
-    const newCenterPx = new window.naver.maps.Point(
-      markerPx.x + pillOffsetX - (visibleCX - mapCX),
-      markerPx.y - (visibleCY - mapCY)
-    );
-    const newCenter = proj.fromOffsetToCoord(newCenterPx);
-    mapInstance.panTo(newCenter, { duration: 280 });
+    // setZoom/setCenter 후 프레임이 갱신되면 projection이 정확해짐
+    const listener = window.naver.maps.Event.addListener(mapInstance, "idle", () => {
+      window.naver.maps.Event.removeListener(listener);
+      const proj = mapInstance.getProjection();
+      const size = mapInstance.getSize();
+      const mapCX = size.width / 2;
+      const mapCY = size.height / 2;
+      const pillOffsetX = 34;
+
+      let visibleCX, visibleCY;
+      if (mobile) {
+        visibleCX = mapCX;
+        visibleCY = (size.height - 274) / 2;
+      } else {
+        const panelW = 360;
+        visibleCX = panelW + (size.width - panelW) / 2;
+        visibleCY = mapCY;
+      }
+
+      const markerPx = proj.fromCoordToOffset(coord);
+      const newCenterPx = new window.naver.maps.Point(
+        markerPx.x + pillOffsetX - (visibleCX - mapCX),
+        markerPx.y - (visibleCY - mapCY)
+      );
+      const newCenter = proj.fromOffsetToCoord(newCenterPx);
+      mapInstance.panTo(newCenter, { duration: 280 });
+    });
   };
 
   const [heartAnim, setHeartAnim] = useState(false);
@@ -256,29 +264,49 @@ export default function RestaurantPanel({
             </a>
           )}
           {r.isPersonal && r.id && (
-            <>
-              <button onClick={handleShare} style={{
+            <div style={{ position: "relative" }}>
+              <button onClick={() => setShowShareMenu((v) => !v)} style={{
                 display: "inline-flex", alignItems: "center", gap: 3, padding: "4px 8px",
-                background: copied ? C.primaryContainer : C.surfaceLow,
-                color: copied ? C.primary : C.onSurfaceVariant,
+                background: showShareMenu ? C.primaryContainer : C.surfaceLow,
+                color: showShareMenu ? C.primary : C.onSurfaceVariant,
                 border: "none", borderRadius: 5, fontFamily: FL, fontSize: 10, fontWeight: 600,
                 cursor: "pointer", transition: "all 0.15s",
               }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 12 }}>
-                  {copied ? "check" : "link"}
-                </span>
-                {copied ? "복사됨" : "링크"}
+                <span className="material-symbols-outlined" style={{ fontSize: 12 }}>share</span>
+                공유
               </button>
-              <button onClick={handleKakaoShare} style={{
-                display: "inline-flex", alignItems: "center", gap: 3, padding: "4px 8px",
-                background: "#FEE500", color: "#191919",
-                border: "none", borderRadius: 5, fontFamily: FL, fontSize: 10, fontWeight: 600,
-                cursor: "pointer",
-              }}>
-                <svg width="11" height="11" viewBox="0 0 18 18"><path fill="#191919" d="M9 1C4.58 1 1 3.79 1 7.21c0 2.17 1.45 4.08 3.64 5.18l-.93 3.44c-.08.3.26.54.52.37l4.12-2.74c.21.02.43.03.65.03 4.42 0 8-2.79 8-6.28S13.42 1 9 1z"/></svg>
-                카톡
-              </button>
-            </>
+              {showShareMenu && (
+                <div style={{
+                  position: "absolute", top: "100%", right: 0, marginTop: 4,
+                  display: "flex", gap: 4, zIndex: 10,
+                  background: C.surfaceLowest, borderRadius: 8, padding: 4,
+                  boxShadow: "0 4px 16px rgba(47,52,48,0.15)",
+                  animation: "fadeIn 0.12s ease-out",
+                }}>
+                  <button onClick={() => { handleShare(); setShowShareMenu(false); }} style={{
+                    display: "inline-flex", alignItems: "center", gap: 4, padding: "7px 12px",
+                    background: copied ? C.primaryContainer : C.surfaceLow,
+                    color: copied ? C.primary : C.onSurfaceVariant,
+                    border: "none", borderRadius: 6, fontFamily: FL, fontSize: 10, fontWeight: 600,
+                    cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s",
+                  }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 13 }}>
+                      {copied ? "check" : "link"}
+                    </span>
+                    {copied ? "복사됨" : "링크 복사"}
+                  </button>
+                  <button onClick={() => { handleKakaoShare(); setShowShareMenu(false); }} style={{
+                    display: "inline-flex", alignItems: "center", gap: 4, padding: "7px 12px",
+                    background: "#FEE500", color: "#191919",
+                    border: "none", borderRadius: 6, fontFamily: FL, fontSize: 10, fontWeight: 600,
+                    cursor: "pointer", whiteSpace: "nowrap",
+                  }}>
+                    <svg width="12" height="12" viewBox="0 0 18 18"><path fill="#191919" d="M9 1C4.58 1 1 3.79 1 7.21c0 2.17 1.45 4.08 3.64 5.18l-.93 3.44c-.08.3.26.54.52.37l4.12-2.74c.21.02.43.03.65.03 4.42 0 8-2.79 8-6.28S13.42 1 9 1z"/></svg>
+                    카카오톡
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -653,6 +681,10 @@ export default function RestaurantPanel({
         @keyframes slideInDetail {
           from { opacity: 0; transform: translateX(-16px); }
           to   { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-4px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
     </>

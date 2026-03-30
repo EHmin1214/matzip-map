@@ -191,6 +191,10 @@ def get_place_detail(place_id: int, db: Session = Depends(get_db)):
     place = db.query(PersonalPlace).filter(PersonalPlace.id == place_id).first()
     if not place:
         raise HTTPException(status_code=404, detail="장소를 찾을 수 없습니다.")
+    if place.is_public == False:
+        owner = db.query(User).filter(User.id == place.user_id).first()
+        if owner and not owner.is_public:
+            raise HTTPException(status_code=403, detail="비공개 장소입니다.")
     return _to_place_response(place, db)
 
 

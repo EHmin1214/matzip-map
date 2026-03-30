@@ -37,6 +37,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("map");
   const [unreadCount, setUnreadCount] = useState(0);
   const mapRef = useRef(null);
+  const pendingDeepLink = useRef(null);
 
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
@@ -101,20 +102,20 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
     const placeId = params.get("place");
     if (!placeId) return;
-    // 공개 상세 API로 장소 정보 조회 (로그인 불필요)
+    window.history.replaceState({}, "", window.location.pathname);
     axios.get(`${API_BASE}/personal-places/${placeId}/detail`)
       .then((res) => {
         const found = res.data;
         setSelectedRestaurant({ ...found, sources: [], isPersonal: true });
         setActiveTab("map");
+        // 지도가 준비되면 이동, 아직이면 pendingDeepLink에 저장
         if (mapRef.current && window.naver) {
-          setTimeout(() => {
-            mapRef.current?.setCenter(new window.naver.maps.LatLng(found.lat, found.lng));
-            mapRef.current?.setZoom(16);
-          }, 500);
+          mapRef.current.setCenter(new window.naver.maps.LatLng(found.lat, found.lng));
+          mapRef.current.setZoom(16);
+        } else {
+          pendingDeepLink.current = found;
         }
       }).catch(() => {});
-    window.history.replaceState({}, "", window.location.pathname);
   }, []); // eslint-disable-line
 
   useEffect(() => {
@@ -315,7 +316,15 @@ export default function App() {
               personalPlaces={showPersonal ? filteredPersonalPlaces : []}
               accounts={accounts}
               onMarkerClick={handleMarkerClick}
-              onMapReady={(map) => { mapRef.current = map; }}
+              onMapReady={(map) => {
+                mapRef.current = map;
+                if (pendingDeepLink.current && window.naver) {
+                  const p = pendingDeepLink.current;
+                  pendingDeepLink.current = null;
+                  map.setCenter(new window.naver.maps.LatLng(p.lat, p.lng));
+                  map.setZoom(16);
+                }
+              }}
               followingPlaces={followingPlaces}
               onFollowingMarkerClick={handleFollowingMarkerClick}
               folders={folders}
@@ -462,7 +471,15 @@ export default function App() {
                 // 마커 클릭 시 지도 탭으로 이동
                 setActiveTab("map");
               }}
-              onMapReady={(map) => { mapRef.current = map; }}
+              onMapReady={(map) => {
+                mapRef.current = map;
+                if (pendingDeepLink.current && window.naver) {
+                  const p = pendingDeepLink.current;
+                  pendingDeepLink.current = null;
+                  map.setCenter(new window.naver.maps.LatLng(p.lat, p.lng));
+                  map.setZoom(16);
+                }
+              }}
               followingPlaces={followingPlaces}
               onFollowingMarkerClick={(place) => {
                 handleFollowingMarkerClick(place);
