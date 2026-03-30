@@ -1,5 +1,6 @@
 // src/components/FollowTab.jsx
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import axios from "axios";
 import { useUser, API_BASE } from "../context/UserContext";
 
@@ -36,17 +37,109 @@ function Avatar({ nickname, size = 44 }) {
   );
 }
 
-// ── 프로필 모달 (바텀시트 / 다이얼로그) ───────────────────────
+// ── 미니 맵 프리뷰 ────────────────────────────────────────────
+function PlaceMiniMap({ places, expanded, onToggle }) {
+  const mapRef = useRef(null);
+  const mapInstance = useRef(null);
+
+  const STATUS_DOT = {
+    want_to_go: "#BA7517", visited: "#1D9E75",
+    want_revisit: "#D4537E", not_recommended: "#afb3ae",
+  };
+
+  useEffect(() => {
+    if (!mapRef.current || places.length === 0) return;
+    const check = setInterval(() => {
+      if (window.naver?.maps) {
+        clearInterval(check);
+        const bounds = new window.naver.maps.LatLngBounds();
+        places.forEach((p) => bounds.extend(new window.naver.maps.LatLng(p.lat, p.lng)));
+        mapInstance.current = new window.naver.maps.Map(mapRef.current, {
+          center: bounds.getCenter(), zoom: 12,
+          mapTypeControl: false, scaleControl: false,
+          logoControl: false, mapDataControl: false,
+          zoomControl: false,
+          draggable: expanded, scrollWheel: expanded,
+          keyboardShortcuts: false,
+          disableDoubleTapZoom: !expanded,
+          disableDoubleClickZoom: !expanded,
+          disableTwoFingerTapZoom: !expanded,
+        });
+        if (places.length > 1) mapInstance.current.fitBounds(bounds, { padding: 30 });
+        else mapInstance.current.setZoom(14);
+        places.forEach((p) => {
+          const color = STATUS_DOT[p.status] || "#655d54";
+          new window.naver.maps.Marker({
+            position: new window.naver.maps.LatLng(p.lat, p.lng),
+            map: mapInstance.current,
+            icon: {
+              content: `<div style="width:10px;height:10px;border-radius:50%;background:${color};border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.25);"></div>`,
+              anchor: new window.naver.maps.Point(5, 5),
+            },
+          });
+        });
+      }
+    }, 100);
+    return () => {
+      clearInterval(check);
+      if (mapInstance.current) { mapInstance.current.destroy(); mapInstance.current = null; }
+    };
+  }, [places, expanded]); // eslint-disable-line
+
+  if (places.length === 0) return null;
+
+  return (
+    <div style={{ marginBottom: 16 }}>
+      <div style={{
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        marginBottom: 8,
+      }}>
+        <p style={{
+          fontFamily: FL, fontSize: 9, fontWeight: 700,
+          textTransform: "uppercase", letterSpacing: "0.15em",
+          color: C.outlineVariant, margin: 0,
+        }}>
+          지도 프리뷰 — {places.length}곳
+        </p>
+        <button
+          onClick={onToggle}
+          style={{
+            background: "none", border: "none",
+            fontFamily: FL, fontSize: 10, fontWeight: 600,
+            color: C.primary, cursor: "pointer",
+          }}
+        >
+          {expanded ? "축소" : "확대"}
+        </button>
+      </div>
+      <div
+        ref={mapRef}
+        onClick={!expanded ? onToggle : undefined}
+        style={{
+          width: "100%",
+          height: expanded ? 280 : 140,
+          borderRadius: 10, overflow: "hidden",
+          background: C.surfaceLow,
+          cursor: expanded ? "default" : "pointer",
+          transition: "height 0.3s ease",
+        }}
+      />
+    </div>
+  );
+}
+
+// ── 프로필 모달 (바텀시트 / 다이얼로그) — createPortal ────────
 function ProfileSheet({ userData, onClose, followStatus, onFollowToggle, loadingFollow }) {
   const { user } = useUser();
   const [places, setPlaces] = useState([]);
+  const [mapExpanded, setMapExpanded] = useState(false);
   const mobile = isMobile();
 
   useEffect(() => {
     if (!userData) return;
     if (userData.is_public || followStatus === "accepted") {
       axios.get(`${API_BASE}/personal-places/?user_id=${userData.id}`)
-        .then((res) => setPlaces(res.data.slice(0, 8))).catch(() => {});
+        .then((res) => setPlaces(res.data)).catch(() => {});
     }
   }, [userData, followStatus]);
 
@@ -56,7 +149,7 @@ function ProfileSheet({ userData, onClose, followStatus, onFollowToggle, loading
   const isPending = followStatus === "pending";
   const isFollowing = followStatus === "accepted";
 
-  return (
+  return createPortal(
     <div
       onClick={(e) => e.target === e.currentTarget && onClose()}
       style={{
@@ -72,11 +165,12 @@ function ProfileSheet({ userData, onClose, followStatus, onFollowToggle, loading
       <div style={{
         background: C.bg,
         borderRadius: mobile ? "20px 20px 0 0" : 16,
-        width: mobile ? "100%" : 440,
-        maxHeight: mobile ? "82vh" : "78vh",
+        width: mobile ? "100%" : 480,
+        maxHeight: mobile ? "88vh" : "85vh",
         overflowY: "auto",
-        /* Ambient shadow — no border */
-        boxShadow: "0 -8px 40px rgba(47,52,48,0.12)",
+        boxShadow: mobile
+          ? "0 -8px 40px rgba(47,52,48,0.12)"
+          : "0 20px 60px rgba(47,52,48,0.18)",
         WebkitOverflowScrolling: "touch",
       }}>
         {mobile && (
@@ -85,7 +179,7 @@ function ProfileSheet({ userData, onClose, followStatus, onFollowToggle, loading
           </div>
         )}
 
-        <div style={{ padding: mobile ? "12px 24px 32px" : "28px 32px" }}>
+        <div style={{ padding: mobile ? "12px 24px 32px" : "28px 32px 32px" }}>
           {/* 닫기 */}
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 4 }}>
             <button
@@ -147,21 +241,30 @@ function ProfileSheet({ userData, onClose, followStatus, onFollowToggle, loading
               disabled={loadingFollow}
               style={{
                 width: "100%", padding: "11px",
-                background: isFollowing ? "transparent" : isPending ? "transparent" : `linear-gradient(to bottom, ${C.primary}, ${C.primaryDim})`,
-                border: (isFollowing || isPending) ? `1px solid rgba(101,93,84,0.15)` : "none",
+                background: isFollowing ? "transparent" : isPending ? "rgba(101,93,84,0.08)" : C.primary,
+                border: isFollowing ? "1px solid rgba(158,66,44,0.2)" : isPending ? "1px solid rgba(101,93,84,0.15)" : "none",
                 borderRadius: 8,
                 fontFamily: FL, fontSize: 11, fontWeight: 700,
                 textTransform: "uppercase", letterSpacing: "0.1em",
                 color: isFollowing ? C.error : isPending ? C.outlineVariant : "#fff6ef",
                 cursor: loadingFollow ? "not-allowed" : "pointer",
                 marginBottom: 20,
-                transition: "all 0.3s cubic-bezier(0.16,1,0.3,1)",
+                transition: "all 0.35s ease",
               }}
               onMouseEnter={(e) => { if (!loadingFollow) e.currentTarget.style.opacity = "0.85"; }}
               onMouseLeave={(e) => e.currentTarget.style.opacity = "1"}
             >
               {isFollowing ? "언팔로우" : isPending ? "신청됨" : "팔로우"}
             </button>
+          )}
+
+          {/* 미니 맵 프리뷰 */}
+          {canSeePlaces && (
+            <PlaceMiniMap
+              places={places}
+              expanded={mapExpanded}
+              onToggle={() => setMapExpanded((v) => !v)}
+            />
           )}
 
           {/* 맛집 그리드 */}
@@ -175,7 +278,7 @@ function ProfileSheet({ userData, onClose, followStatus, onFollowToggle, loading
                 최근 맛집
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                {places.map((p) => (
+                {places.slice(0, 8).map((p) => (
                   <div key={p.id} style={{
                     background: C.surfaceLow,
                     borderRadius: 8, padding: "10px 12px",
@@ -206,7 +309,8 @@ function ProfileSheet({ userData, onClose, followStatus, onFollowToggle, loading
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -556,18 +660,20 @@ export default function FollowTab({ onViewMap, onFollowChange }) {
                       disabled={loadingFollow}
                       style={{
                         padding: "8px 14px", borderRadius: 7,
-                        background: getFollowStatus(searchResult.id) !== "none"
-                          ? "transparent"
-                          : `linear-gradient(to bottom, ${C.primary}, ${C.primaryDim})`,
-                        border: getFollowStatus(searchResult.id) !== "none"
-                          ? "1px solid rgba(101,93,84,0.15)"
+                        background: getFollowStatus(searchResult.id) === "accepted" ? "transparent"
+                          : getFollowStatus(searchResult.id) === "pending" ? "rgba(101,93,84,0.08)"
+                          : C.primary,
+                        border: getFollowStatus(searchResult.id) === "accepted" ? "1px solid rgba(158,66,44,0.2)"
+                          : getFollowStatus(searchResult.id) === "pending" ? "1px solid rgba(101,93,84,0.15)"
                           : "none",
                         fontFamily: FL, fontSize: 10, fontWeight: 700,
                         textTransform: "uppercase", letterSpacing: "0.08em",
-                        color: getFollowStatus(searchResult.id) !== "none" ? C.onSurfaceVariant : "#fff6ef",
+                        color: getFollowStatus(searchResult.id) === "accepted" ? C.error
+                          : getFollowStatus(searchResult.id) === "pending" ? C.outlineVariant
+                          : "#fff6ef",
                         cursor: loadingFollow ? "not-allowed" : "pointer",
                         flexShrink: 0,
-                        transition: "all 0.3s cubic-bezier(0.16,1,0.3,1)",
+                        transition: "all 0.35s ease",
                       }}
                     >
                       {getFollowStatus(searchResult.id) === "accepted" ? "언팔로우"
@@ -648,9 +754,7 @@ export default function FollowTab({ onViewMap, onFollowChange }) {
                           disabled={loadingFollow || isPendingBack}
                           style={{
                             padding: "5px 12px",
-                            background: isPendingBack
-                              ? "transparent"
-                              : `linear-gradient(to bottom, ${C.primary}, ${C.primaryDim})`,
+                            background: isPendingBack ? "rgba(101,93,84,0.08)" : C.primary,
                             border: isPendingBack ? "1px solid rgba(101,93,84,0.15)" : "none",
                             borderRadius: 6,
                             fontFamily: FL, fontSize: 10, fontWeight: 700,
@@ -658,7 +762,7 @@ export default function FollowTab({ onViewMap, onFollowChange }) {
                             color: isPendingBack ? C.outlineVariant : "#fff6ef",
                             cursor: loadingFollow ? "not-allowed" : "pointer",
                             flexShrink: 0,
-                            transition: "all 0.3s cubic-bezier(0.16,1,0.3,1)",
+                            transition: "all 0.35s ease",
                           }}
                         >
                           {isPendingBack ? "신청됨" : "팔로우"}

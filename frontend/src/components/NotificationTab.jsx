@@ -255,12 +255,12 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
                               disabled={followLoading === n.actor_id}
                               style={{
                                 padding: "5px 12px", borderRadius: 6,
-                                background: `linear-gradient(to bottom, ${C.primary}, ${C.primaryDim})`,
+                                background: C.primary,
                                 border: "none",
                                 fontFamily: FL, fontSize: 10, fontWeight: 700,
                                 textTransform: "uppercase", letterSpacing: "0.08em",
                                 color: "#fff6ef", cursor: followLoading === n.actor_id ? "not-allowed" : "pointer",
-                                flexShrink: 0, transition: "opacity 0.15s",
+                                flexShrink: 0, transition: "all 0.35s ease",
                               }}
                             >
                               팔로우

@@ -24,7 +24,7 @@ export function getAccountColor(accountId, accounts) {
 }
 
 // ── 레이아웃 상수 ─────────────────────────────────────────────
-const SIDEBAR_W = 240;   // 사이드바 너비
+const SIDEBAR_W = 300;   // 사이드바 너비
 const PANEL_W   = 480;   // 슬라이드 패널 너비 (데스크탑)
 
 export default function App() {

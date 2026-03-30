@@ -93,13 +93,13 @@ export default function Sidebar({
         position: "fixed",
         left: 0, top: 0,
         zIndex: 40,
-        /* No-Line Rule: tonal separation instead of border */
         background: C.bg,
         display: "flex",
         flexDirection: "column",
-        padding: "24px 14px 20px",
+        padding: "24px 16px 20px",
         overflowY: "auto",
-        /* Ambient shadow defines right edge — no border */
+        overflowX: "hidden",
+        boxSizing: "border-box",
         boxShadow: "1px 0 0 rgba(101,93,84,0.07)",
       }}>
 
@@ -200,11 +200,11 @@ export default function Sidebar({
                 onKeyDown={(e) => e.key === "Enter" && searchPlace()}
                 placeholder="가게명 검색"
                 style={{
-                  flex: 1, padding: "8px 10px",
+                  flex: 1, minWidth: 0, padding: "8px 10px",
                   background: C.surfaceLow,
                   border: "none", borderRadius: 7,
                   fontFamily: FL, fontSize: 12, color: C.onSurface,
-                  outline: "none",
+                  outline: "none", boxSizing: "border-box",
                   transition: "background 0.15s",
                 }}
                 onFocus={(e) => e.target.style.background = C.container}
@@ -214,8 +214,8 @@ export default function Sidebar({
                 onClick={searchPlace}
                 disabled={searching}
                 style={{
-                  padding: "8px 10px",
-                  background: searching ? C.container : `linear-gradient(to bottom, ${C.primary}, ${C.primaryDim})`,
+                  padding: "8px 12px", flexShrink: 0,
+                  background: searching ? C.container : C.primary,
                   color: searching ? C.outlineVariant : "#fff6ef",
                   border: "none", borderRadius: 7,
                   fontFamily: FL, fontSize: 11, fontWeight: 600,
