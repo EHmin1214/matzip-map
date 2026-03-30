@@ -220,8 +220,8 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [] }) {
                 )}
 
                 <div style={{ padding: mobile ? "16px" : idx === 0 ? "16px 24px 24px" : "14px 24px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                    <div>
                       {place.category && (
                         <p style={{ margin: "0 0 6px", fontFamily: FL, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.15em", color: "#a8a29e" }}>
                           {place.category}
@@ -236,13 +236,12 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [] }) {
                       </h3>
                       {place.address && (
                         <p style={{
-                          margin: "0 0 12px", fontFamily: FH, fontStyle: "italic",
+                          margin: "0 0 8px", fontFamily: FH, fontStyle: "italic",
                           fontSize: 13, color: "#78716c",
                           display: "flex", alignItems: "center", gap: 4,
-                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                         }}>
                           <span className="material-symbols-outlined" style={{ fontSize: 14, flexShrink: 0 }}>location_on</span>
-                          {place.address}
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{place.address}</span>
                         </p>
                       )}
                       {(place.naver_place_id || place.naver_place_url) && (
@@ -263,11 +262,11 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [] }) {
 
                     {place.naver_place_id && savedPlaceIds.has(place.naver_place_id) ? (
                       <span style={{
-                        display: "flex", alignItems: "center", gap: 6,
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
                         padding: "10px 18px",
                         background: C.container, borderRadius: 6,
                         fontFamily: FL, fontSize: 11, fontWeight: 600,
-                        color: C.outlineVariant, flexShrink: 0,
+                        color: C.outlineVariant,
                       }}>
                         <span className="material-symbols-outlined" style={{ fontSize: 14 }}>check_circle</span>
                         이미 저장됨
@@ -276,20 +275,20 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [] }) {
                       <button
                         onClick={() => setPendingPlace(place)}
                         style={{
-                          display: "flex", alignItems: "center", gap: 8,
-                          padding: idx === 0 ? (mobile ? "12px 20px" : "12px 24px") : "10px 18px",
+                          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                          padding: "12px 20px",
                           background: C.primary, color: "#fff6ef",
-                          border: "none", borderRadius: 6,
-                          fontFamily: FL, fontSize: 11, fontWeight: 700,
-                          textTransform: "uppercase", letterSpacing: "0.1em",
+                          border: "none", borderRadius: 8,
+                          fontFamily: FL, fontSize: 12, fontWeight: 700,
+                          letterSpacing: "0.04em",
                           cursor: "pointer", transition: "background 0.15s",
-                          flexShrink: 0,
+                          width: "100%",
                         }}
                         onMouseEnter={(e) => e.currentTarget.style.background = C.primaryDim}
                         onMouseLeave={(e) => e.currentTarget.style.background = C.primary}
                       >
                         <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
-                        {idx === 0 ? "Add to My Space" : "추가"}
+                        내 공간에 추가
                       </button>
                     )}
                   </div>

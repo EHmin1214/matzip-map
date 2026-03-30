@@ -528,3 +528,21 @@ def mark_all_read(user_id: int, db: Session = Depends(get_db)):
     ).update({"is_read": True})
     db.commit()
     return {"message": "모든 알림을 읽음 처리했습니다."}
+
+
+@router.delete("/notifications/{notification_id}", status_code=204)
+def delete_notification(notification_id: int, user_id: int, db: Session = Depends(get_db)):
+    n = db.query(Notification).filter(
+        Notification.id == notification_id,
+        Notification.user_id == user_id,
+    ).first()
+    if not n:
+        raise HTTPException(status_code=404, detail="알림을 찾을 수 없습니다.")
+    db.delete(n)
+    db.commit()
+
+
+@router.delete("/notifications/", status_code=204)
+def delete_all_notifications(user_id: int, db: Session = Depends(get_db)):
+    db.query(Notification).filter(Notification.user_id == user_id).delete()
+    db.commit()

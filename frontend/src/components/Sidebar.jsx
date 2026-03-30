@@ -43,7 +43,7 @@ function SectionLabel({ children }) {
 
 export default function Sidebar({
   activeTab, onTabChange,
-  personalPlaces, showPersonal, setShowPersonal, onDeletePersonalPlace,
+  personalPlaces, onDeletePersonalPlace,
   unreadCount,
   selectedFollowingIds, onToggleFollowing,
   followingList = [],
@@ -78,14 +78,14 @@ export default function Sidebar({
       display: "flex",
       flexDirection: "column",
       padding: "18px 16px 14px",
-      overflowY: "auto",
+      overflowY: "hidden",
       overflowX: "hidden",
       boxSizing: "border-box",
       boxShadow: "1px 0 0 rgba(101,93,84,0.07)",
     }}>
 
       {/* ── 브랜드 ─────────────────────────────────────────── */}
-      <div style={{ padding: "0 6px", marginBottom: 14 }}>
+      <div style={{ padding: "0 6px", marginBottom: 14, flexShrink: 0 }}>
         <h1 style={{
           fontFamily: FH, fontStyle: "italic",
           fontSize: 18, color: C.primary,
@@ -103,7 +103,7 @@ export default function Sidebar({
       </div>
 
       {/* ── 네비게이션 ─────────────────────────────────────── */}
-      <nav style={{ display: "flex", flexDirection: "column", gap: 0, marginBottom: 10 }}>
+      <nav style={{ display: "flex", flexDirection: "column", gap: 0, marginBottom: 10, flexShrink: 0 }}>
         {NAV_ITEMS.map((item) => {
           const isActive = activeTab === item.id;
           const hasUnread = item.id === "notifications" && unreadCount > 0;
@@ -167,59 +167,37 @@ export default function Sidebar({
       {/* ── 지도 탭 전용 콘텐츠 ───────────────────────────── */}
       {activeTab === "map" && (
         <div style={{
-          flex: 1, overflowY: "auto", overflowX: "hidden", paddingTop: 8,
-          background: "transparent", minHeight: 0,
+          flex: 1, display: "flex", flexDirection: "column",
+          paddingTop: 4, minHeight: 0, gap: 4,
         }}>
-          {/* 내 맛집 토글 */}
-          <div
-            style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 4px 6px", cursor: "pointer" }}
-            onClick={() => setShowPersonal(!showPersonal)}
-          >
-            <div style={{
-              width: 14, height: 14, borderRadius: 3, flexShrink: 0,
-              background: showPersonal ? C.primary : C.container,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              transition: "background 0.15s",
-            }}>
-              {showPersonal && (
-                <span style={{ color: "#fff6ef", fontSize: 9, lineHeight: 1, fontWeight: 700 }}>✓</span>
-              )}
-            </div>
-            <span style={{
-              fontFamily: FL, fontSize: 10, fontWeight: 600,
-              textTransform: "uppercase", letterSpacing: "0.1em",
-              color: C.primary,
-            }}>
-              내 맛집 ({personalPlaces.length})
-            </span>
-          </div>
-
-          {/* 내 맛집 목록 */}
-          {showPersonal && (
-            <div style={{ marginBottom: 10 }}>
-              {personalPlaces.length > 5 && (
-                <div style={{ position: "relative", marginBottom: 6 }}>
-                  <span className="material-symbols-outlined" style={{
-                    position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)",
-                    fontSize: 13, color: C.outlineVariant, pointerEvents: "none",
-                  }}>search</span>
-                  <input
-                    value={placeFilter}
-                    onChange={(e) => setPlaceFilter(e.target.value)}
-                    placeholder="내 맛집 검색..."
-                    style={{
-                      width: "100%", padding: "6px 8px 6px 28px",
-                      background: C.surfaceLow, border: "none", borderRadius: 6,
-                      fontFamily: FL, fontSize: 11, color: C.onSurface,
-                      outline: "none", boxSizing: "border-box",
-                    }}
-                  />
-                </div>
-              )}
-              <div style={{ maxHeight: 240, overflowY: "auto" }}>
+          {/* 내 공간 섹션 */}
+          <div style={{
+            flex: 1, minHeight: 0, display: "flex", flexDirection: "column",
+          }}>
+            <SectionLabel>내 공간 ({personalPlaces.length})</SectionLabel>
+            {personalPlaces.length > 5 && (
+              <div style={{ position: "relative", marginBottom: 6, flexShrink: 0 }}>
+                <span className="material-symbols-outlined" style={{
+                  position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)",
+                  fontSize: 13, color: C.outlineVariant, pointerEvents: "none",
+                }}>search</span>
+                <input
+                  value={placeFilter}
+                  onChange={(e) => setPlaceFilter(e.target.value)}
+                  placeholder="장소 검색..."
+                  style={{
+                    width: "100%", padding: "6px 8px 6px 28px",
+                    background: C.surfaceLow, border: "none", borderRadius: 6,
+                    fontFamily: FL, fontSize: 11, color: C.onSurface,
+                    outline: "none", boxSizing: "border-box",
+                  }}
+                />
+              </div>
+            )}
+            <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
               {personalPlaces
                 .filter((p) => !placeFilter || p.name.toLowerCase().includes(placeFilter.toLowerCase()))
-                .slice(0, 30).map((p) => (
+                .slice(0, 50).map((p) => (
                 <div key={p.id}
                   onClick={() => onPlaceSelect && onPlaceSelect(p)}
                   style={{
@@ -257,63 +235,76 @@ export default function Sidebar({
                   </button>
                 </div>
               ))}
-              </div>
+              {personalPlaces.length === 0 && (
+                <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 11, color: C.outlineVariant, margin: "8px 4px" }}>
+                  아직 저장된 공간이 없어요
+                </p>
+              )}
             </div>
+          </div>
+
+          {/* 구분선 */}
+          {followingList.length > 0 && (
+            <div style={{ height: 1, background: "rgba(101,93,84,0.08)", margin: "4px 0", flexShrink: 0 }} />
           )}
 
           {/* 팔로잉 레이어 */}
           {followingList.length > 0 && (
-            <div style={{ marginTop: 4 }}>
+            <div style={{
+              flex: 1, minHeight: 0, display: "flex", flexDirection: "column",
+            }}>
               <SectionLabel>팔로잉</SectionLabel>
-              {followingList.map((f, idx) => {
-                const color = getFollowingColor(idx);
-                const isSelected = selectedFollowingIds.includes(f.id);
-                return (
-                  <div
-                    key={f.id}
-                    onClick={() => onToggleFollowing(f.id)}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 8,
-                      padding: "5px 8px", cursor: "pointer",
-                      borderRadius: 7,
-                      background: isSelected ? `${color}14` : "transparent",
-                      marginBottom: 2,
-                      transition: "background 0.15s",
-                    }}
-                  >
-                    <div style={{
-                      width: 14, height: 14, borderRadius: 3, flexShrink: 0,
-                      background: isSelected ? color : C.container,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      transition: "background 0.15s",
-                    }}>
-                      {isSelected && <span style={{ color: "white", fontSize: 9, fontWeight: 700 }}>✓</span>}
+              <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+                {followingList.map((f, idx) => {
+                  const color = getFollowingColor(idx);
+                  const isSelected = selectedFollowingIds.includes(f.id);
+                  return (
+                    <div
+                      key={f.id}
+                      onClick={() => onToggleFollowing(f.id)}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 8,
+                        padding: "5px 8px", cursor: "pointer",
+                        borderRadius: 7,
+                        background: isSelected ? `${color}14` : "transparent",
+                        marginBottom: 2,
+                        transition: "background 0.15s",
+                      }}
+                    >
+                      <div style={{
+                        width: 14, height: 14, borderRadius: 3, flexShrink: 0,
+                        background: isSelected ? color : C.container,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        transition: "background 0.15s",
+                      }}>
+                        {isSelected && <span style={{ color: "white", fontSize: 9, fontWeight: 700 }}>✓</span>}
+                      </div>
+                      <div style={{
+                        width: 20, height: 20, borderRadius: "50%",
+                        background: color, flexShrink: 0,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontFamily: FL, fontSize: 9, color: "white", fontWeight: 700,
+                      }}>
+                        {f.nickname?.[0]?.toUpperCase()}
+                      </div>
+                      <span style={{
+                        fontFamily: FL, fontSize: 11, color: C.onSurface,
+                        flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                      }}>
+                        {f.nickname}
+                      </span>
                     </div>
-                    <div style={{
-                      width: 20, height: 20, borderRadius: "50%",
-                      background: color, flexShrink: 0,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontFamily: FL, fontSize: 9, color: "white", fontWeight: 700,
-                    }}>
-                      {f.nickname?.[0]?.toUpperCase()}
-                    </div>
-                    <span style={{
-                      fontFamily: FL, fontSize: 11, color: C.onSurface,
-                      flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                    }}>
-                      {f.nickname}
-                    </span>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
       )}
 
       {/* ── 하단 유저 카드 ─────────────────────────────────── */}
-      <div style={{ marginTop: "auto", paddingTop: 10 }}>
-        {user && (
+      <div style={{ marginTop: "auto", paddingTop: 10, flexShrink: 0 }}>
+        {user ? (
           <div
             onClick={() => onTabChange("profile")}
             style={{
@@ -350,6 +341,33 @@ export default function Sidebar({
             </div>
             <span className="material-symbols-outlined" style={{ fontSize: 16, color: C.outlineVariant }}>
               chevron_right
+            </span>
+          </div>
+        ) : (
+          <div
+            onClick={() => onTabChange("profile")}
+            style={{
+              display: "flex", alignItems: "center", gap: 10,
+              padding: "10px 12px",
+              background: C.primaryContainer,
+              borderRadius: 8,
+              cursor: "pointer",
+              transition: "background 0.15s",
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = "#e5d6c9"}
+            onMouseLeave={(e) => e.currentTarget.style.background = C.primaryContainer}
+          >
+            <span className="material-symbols-outlined" style={{
+              fontSize: 18, color: C.primary,
+              fontVariationSettings: "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24",
+            }}>
+              login
+            </span>
+            <span style={{
+              fontFamily: FL, fontSize: 12, fontWeight: 700,
+              color: C.primary,
+            }}>
+              로그인 / 회원가입
             </span>
           </div>
         )}

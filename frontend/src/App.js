@@ -255,7 +255,11 @@ export default function App() {
     if (tab === "search")        return <SearchTab onPlaceAdded={addPlace} personalPlaces={personalPlaces} />;
     if (tab === "feed")          return <FeedTab personalPlaces={personalPlaces} onPlaceClick={handleActivityPlaceClick} />;
     if (tab === "notifications") return <NotificationTab onUnreadChange={setUnreadCount} />;
-    if (tab === "profile")       return <ProfilePage personalPlaces={personalPlaces} onViewMap={() => setActiveTab("map")} />;
+    if (tab === "profile")       return <ProfilePage personalPlaces={personalPlaces} onViewMap={() => setActiveTab("map")} onPlaceClick={(p) => {
+      setSelectedRestaurant({ id: p.id, name: p.name, lat: p.lat, lng: p.lng, status: p.status, user_id: p.user_id, isPersonal: true, sources: [] });
+      setActiveTab("map");
+      if (mapRef.current && window.naver) { mapRef.current.setCenter(new window.naver.maps.LatLng(p.lat, p.lng)); mapRef.current.setZoom(16); }
+    }} />;
     return null;
   };
 
@@ -400,7 +404,6 @@ export default function App() {
           <Sidebar
             activeTab={activeTab} onTabChange={handleTabChange}
             personalPlaces={personalPlaces}
-            showPersonal={showPersonal} setShowPersonal={setShowPersonal}
             onDeletePersonalPlace={deletePersonalPlace}
             unreadCount={unreadCount}
             selectedFollowingIds={selectedFollowingIds}
@@ -413,6 +416,8 @@ export default function App() {
               setActiveTab("map");
               if (mapRef.current && window.naver) {
                 mapRef.current.panTo(new window.naver.maps.LatLng(place.lat, place.lng), { duration: 280 });
+                // 디테일 패널(360px) 보정
+                setTimeout(() => mapRef.current?.panBy(new window.naver.maps.Point(-180, 0)), 300);
               }
             }}
           />

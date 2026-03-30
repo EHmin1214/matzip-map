@@ -5,7 +5,7 @@ import { useUser, API_BASE } from "../context/UserContext";
 
 const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
-const C = { primary: "#655d54", primaryDim: "#595149", primaryContainer: "#ede0d5", bg: "#faf9f6", container: "#edeeea", containerLowest: "#ffffff", containerLow: "#f4f4f0", onSurface: "#2f3430", tertiary: "#685f39" };
+const C = { primary: "#655d54", primaryDim: "#595149", primaryContainer: "#ede0d5", bg: "#faf9f6", container: "#edeeea", containerLowest: "#ffffff", containerLow: "#f4f4f0", onSurface: "#2f3430", tertiary: "#685f39", error: "#9e422c" };
 
 const isMobile = () => window.innerWidth <= 768;
 
@@ -78,9 +78,21 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
 
   const markAllRead = async () => {
     try {
-      await axios.patch(`${API_BASE}/notifications/read?user_id=${user.user_id}`);
-      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      await axios.delete(`${API_BASE}/notifications/?user_id=${user.user_id}`);
+      setNotifications([]);
       if (onUnreadChange) onUnreadChange(0);
+    } catch (e) {}
+  };
+
+  const deleteNotification = async (id) => {
+    try {
+      await axios.delete(`${API_BASE}/notifications/${id}?user_id=${user.user_id}`);
+      setNotifications((prev) => {
+        const next = prev.filter((n) => n.id !== id);
+        const unread = next.filter((x) => !x.is_read).length;
+        if (onUnreadChange) onUnreadChange(unread);
+        return next;
+      });
     } catch (e) {}
   };
 
@@ -109,16 +121,31 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
       <div style={{ height: "100%", overflowY: "auto", background: C.bg }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 12px 8px" }}>
           <span style={{ fontFamily: FL, fontSize: 9, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.15em", color: "#a8a29e" }}>알림</span>
-          {unreadCount > 0 && (
-            <button onClick={markAllRead} style={{ background: "none", border: "none", fontFamily: FL, fontSize: 10, color: C.primary, cursor: "pointer", fontWeight: 600 }}>
-              모두 읽음
+          {notifications.length > 0 && (
+            <button onClick={markAllRead} style={{
+              padding: "3px 8px", borderRadius: 4,
+              background: C.primary, border: "none",
+              fontFamily: FL, fontSize: 9, color: "#fff6ef", cursor: "pointer", fontWeight: 700,
+            }}>
+              모두 삭제
             </button>
           )}
         </div>
         {loading ? <p style={{ fontFamily: FL, fontSize: 12, color: "#a8a29e", padding: "8px 12px" }}>...</p> :
           notifications.slice(0, 5).map((n) => (
-            <div key={n.id} style={{ padding: "10px 12px", background: n.is_read ? "transparent" : `${C.primaryContainer}60`, borderLeft: n.is_read ? "2px solid transparent" : `2px solid ${C.primary}`, borderBottom: `1px solid ${C.container}` }}>
-              <p style={{ margin: 0, fontFamily: FH, fontSize: 12, color: C.onSurface, lineHeight: 1.5 }}>
+            <div key={n.id} style={{ position: "relative", padding: "10px 12px", background: n.is_read ? "transparent" : `${C.primaryContainer}60`, borderLeft: n.is_read ? "2px solid transparent" : `2px solid ${C.primary}`, borderBottom: `1px solid ${C.container}` }}>
+              <button
+                onClick={() => deleteNotification(n.id)}
+                style={{
+                  position: "absolute", top: 4, right: 4,
+                  width: 16, height: 16, borderRadius: "50%",
+                  background: "rgba(47,52,48,0.08)", border: "none",
+                  cursor: "pointer", fontSize: 10, color: "#a8a29e",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  padding: 0, lineHeight: 1,
+                }}
+              >&times;</button>
+              <p style={{ margin: 0, fontFamily: FH, fontSize: 12, color: C.onSurface, lineHeight: 1.5, paddingRight: 16 }}>
                 <b>{n.actor_nickname}</b>{TYPE_LABEL[n.type] || "새 알림"}
                 {n.target_place_name && <span style={{ fontStyle: "italic", color: C.primary }}> — {n.target_place_name}</span>}
               </p>
@@ -130,17 +157,26 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
     );
   }
 
-  // 풀 버전 (noHeader일 경우 헤더 숨김 — UpdatesTab 내 서브탭으로 사용)
+  // 풀 버전
   return (
     <div style={{ background: C.bg, minHeight: "100%" }}>
       <div style={{ maxWidth: 760, margin: "0 auto", padding: mobile ? "24px 20px" : "32px 40px" }}>
         {/* 상단 actions */}
-        {unreadCount > 0 && (
+        {notifications.length > 0 && (
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 24 }}>
             <button onClick={markAllRead} style={{
-              background: "none", border: "none", fontFamily: FL, fontSize: 11, fontWeight: 700,
-              textTransform: "uppercase", letterSpacing: "0.1em", color: C.primary, cursor: "pointer",
-            }}>모두 읽음</button>
+              padding: "8px 16px", borderRadius: 8,
+              background: C.primary, border: "none",
+              fontFamily: FL, fontSize: 11, fontWeight: 700,
+              textTransform: "uppercase", letterSpacing: "0.1em",
+              color: "#fff6ef", cursor: "pointer",
+              transition: "background 0.15s",
+            }}
+              onMouseEnter={(e) => e.currentTarget.style.background = C.primaryDim}
+              onMouseLeave={(e) => e.currentTarget.style.background = C.primary}
+            >
+              모두 삭제
+            </button>
           </div>
         )}
 
@@ -195,6 +231,7 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
                 const actorFollowStatus = isFollowType && n.actor_id ? getFollowStatus(n.actor_id) : "none";
                 return (
                   <div key={n.id} style={{
+                    position: "relative",
                     display: "flex", alignItems: "flex-start", gap: 16,
                     padding: mobile ? "14px 16px" : "18px 24px",
                     borderRadius: 10,
@@ -205,6 +242,22 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
                     onMouseEnter={(e) => { if (!isUnread) e.currentTarget.style.background = C.containerLow; }}
                     onMouseLeave={(e) => { if (!isUnread) e.currentTarget.style.background = "transparent"; }}
                   >
+                    {/* 삭제 버튼 */}
+                    <button
+                      onClick={() => deleteNotification(n.id)}
+                      style={{
+                        position: "absolute", top: 8, right: 8,
+                        width: 20, height: 20, borderRadius: "50%",
+                        background: "rgba(47,52,48,0.06)", border: "none",
+                        cursor: "pointer", fontSize: 12, color: "#a8a29e",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        padding: 0, lineHeight: 1,
+                        transition: "background 0.15s, color 0.15s",
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(158,66,44,0.1)"; e.currentTarget.style.color = C.error; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(47,52,48,0.06)"; e.currentTarget.style.color = "#a8a29e"; }}
+                    >&times;</button>
+
                     <div style={{ position: "relative", flexShrink: 0 }}>
                       <div style={{
                         width: 44, height: 44, borderRadius: "50%",
@@ -219,7 +272,7 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
                         <span className="material-symbols-outlined" style={{ fontSize: 10, color: ti.color, fontVariationSettings: "'FILL' 1" }}>{ti.icon}</span>
                       </div>
                     </div>
-                    <div style={{ flex: 1 }}>
+                    <div style={{ flex: 1, paddingRight: 20 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                         <div style={{ flex: 1 }}>
                           <p style={{ margin: 0, fontFamily: FH, fontSize: mobile ? 14 : 15, color: isUnread ? C.onSurface : "#78716c", lineHeight: 1.6 }}>

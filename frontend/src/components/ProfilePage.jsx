@@ -79,9 +79,9 @@ function Toggle({ value, onChange }) {
 }
 
 // ── 섹션 카드 (No-Line Rule: tonal surface, no border) ───────
-function Card({ children, style = {} }) {
+function Card({ children, style = {}, onClick }) {
   return (
-    <div style={{
+    <div onClick={onClick} style={{
       background: C.surfaceLowest,
       borderRadius: 12, padding: "18px 20px",
       marginBottom: 12,
@@ -333,9 +333,10 @@ function PlaceFeedCard({ place: p, mobile }) {
   );
 }
 
-export default function ProfilePage({ personalPlaces = [], onViewMap }) {
+export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceClick }) {
   const { user, updateUser, logout } = useUser();
   const mobile = isMobile();
+  const [showMyPlaces, setShowMyPlaces] = useState(false);
   const [editing, setEditing]       = useState(false);
   const [nickname, setNickname]     = useState(user?.nickname || "");
   const [instagramUrl, setInstagramUrl] = useState(user?.instagram_url || "");
@@ -365,17 +366,26 @@ export default function ProfilePage({ personalPlaces = [], onViewMap }) {
     isPushSubscribed().then(setPushEnabled);
   }, []);
 
+  const [pushError, setPushError] = useState("");
+
   const handlePushToggle = async () => {
     setPushLoading(true);
+    setPushError("");
     try {
       if (pushEnabled) {
         await unsubscribePush(user.user_id);
         setPushEnabled(false);
       } else {
         const ok = await subscribePush(user.user_id);
+        if (!ok) {
+          setPushError("알림 권한이 거부됐거나 서버 설정이 필요해요");
+        }
         setPushEnabled(ok);
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error("Push toggle error:", e);
+      setPushError(e.message || "알림 설정 중 오류가 발생했어요");
+    }
     setPushLoading(false);
   };
 
@@ -580,21 +590,28 @@ export default function ProfilePage({ personalPlaces = [], onViewMap }) {
 
           {/* 푸시 알림 설정 */}
           {pushSupported && (
-            <div style={{
-              display: "flex", alignItems: "center", justifyContent: "space-between",
-              background: C.surfaceLow, borderRadius: 8, padding: "12px 14px",
-              marginBottom: 16, opacity: pushLoading ? 0.6 : 1,
-            }}>
-              <div>
-                <p style={{ margin: 0, fontFamily: FL, fontSize: 13, fontWeight: 600, color: C.onSurface }}>
-                  푸시 알림
-                </p>
-                <p style={{ margin: "3px 0 0", fontFamily: FL, fontSize: 11, color: C.outlineVariant, fontStyle: "italic" }}>
-                  {pushEnabled ? "좋아요, 댓글, 팔로우 알림" : "알림 받기를 켜보세요"}
-                </p>
+            <>
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                background: C.surfaceLow, borderRadius: 8, padding: "12px 14px",
+                marginBottom: pushError ? 4 : 16, opacity: pushLoading ? 0.6 : 1,
+              }}>
+                <div>
+                  <p style={{ margin: 0, fontFamily: FL, fontSize: 13, fontWeight: 600, color: C.onSurface }}>
+                    푸시 알림
+                  </p>
+                  <p style={{ margin: "3px 0 0", fontFamily: FL, fontSize: 11, color: C.outlineVariant, fontStyle: "italic" }}>
+                    {pushEnabled ? "좋아요, 댓글, 팔로우 알림" : "알림 받기를 켜보세요"}
+                  </p>
+                </div>
+                <Toggle value={pushEnabled} onChange={handlePushToggle} />
               </div>
-              <Toggle value={pushEnabled} onChange={handlePushToggle} />
-            </div>
+              {pushError && (
+                <p style={{ margin: "0 0 12px", fontFamily: FL, fontSize: 11, color: C.error, padding: "0 14px" }}>
+                  {pushError}
+                </p>
+              )}
+            </>
           )}
 
           {/* 수정 폼 */}
@@ -870,28 +887,134 @@ export default function ProfilePage({ personalPlaces = [], onViewMap }) {
           )}
         </Card>
 
-        {/* ── 나의 기록 피드 ──────────────────────────────── */}
-        {personalPlaces.length > 0 && (
-          <div style={{ marginBottom: 12 }}>
-            <p style={{
-              margin: "0 0 12px", fontFamily: FL, fontSize: 9, fontWeight: 700,
-              textTransform: "uppercase", letterSpacing: "0.15em", color: C.outlineVariant,
-            }}>
-              나의 기록 — {personalPlaces.length}곳
-            </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: mobile ? 2 : 12 }}>
-              {personalPlaces.slice(0, 10).map((p) => (
-                <PlaceFeedCard key={p.id} place={p} mobile={mobile} />
-              ))}
-            </div>
-            {personalPlaces.length > 10 && (
+        {/* ── 나의 기록 (요약 카드) ─────────────────────────── */}
+        <Card style={{ cursor: "pointer" }} onClick={() => setShowMyPlaces(true)}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div>
               <p style={{
-                fontFamily: FL, fontSize: 10, color: C.outlineVariant,
-                textAlign: "center", marginTop: 16, letterSpacing: "0.15em",
+                margin: "0 0 6px", fontFamily: FL, fontSize: 9, fontWeight: 700,
+                textTransform: "uppercase", letterSpacing: "0.15em", color: C.outlineVariant,
               }}>
-                + {personalPlaces.length - 10}곳 더
+                나의 기록
               </p>
-            )}
+              <p style={{ margin: 0, fontFamily: FH, fontSize: 20, fontWeight: 700, color: C.onSurface }}>
+                {personalPlaces.length}<span style={{ fontFamily: FL, fontSize: 12, fontWeight: 400, color: C.onSurfaceVariant }}>곳</span>
+              </p>
+            </div>
+            <span className="material-symbols-outlined" style={{ fontSize: 20, color: C.outlineVariant }}>
+              chevron_right
+            </span>
+          </div>
+          {/* 썸네일 미리보기 */}
+          {personalPlaces.length > 0 && (
+            <div style={{ display: "flex", gap: 6, marginTop: 12, overflowX: "auto" }}>
+              {personalPlaces.slice(0, 5).map((p) => {
+                const thumb = p.photo_urls?.[0] || p.photo_url;
+                return (
+                  <div key={p.id} style={{
+                    width: 56, height: 56, borderRadius: 8, flexShrink: 0,
+                    background: thumb ? `url(${thumb}) center/cover` : `linear-gradient(135deg, ${C.primaryDim}20, ${C.primary}10)`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    overflow: "hidden",
+                  }}>
+                    {!thumb && (
+                      <span style={{ fontFamily: FH, fontStyle: "italic", fontSize: 10, color: C.outlineVariant }}>
+                        {p.name?.[0]}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+              {personalPlaces.length > 5 && (
+                <div style={{
+                  width: 56, height: 56, borderRadius: 8, flexShrink: 0,
+                  background: C.surfaceLow,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <span style={{ fontFamily: FL, fontSize: 11, color: C.outlineVariant, fontWeight: 600 }}>
+                    +{personalPlaces.length - 5}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+          {personalPlaces.length === 0 && (
+            <p style={{
+              margin: "8px 0 0", fontFamily: FH, fontStyle: "italic",
+              fontSize: 12, color: C.outlineVariant,
+            }}>
+              첫 장소를 추가해보세요
+            </p>
+          )}
+        </Card>
+
+        {/* ── 나의 기록 상세 오버레이 ─────────────────────── */}
+        {showMyPlaces && (
+          <div style={{
+            position: "fixed", inset: 0, zIndex: 60,
+            background: C.bg,
+            overflowY: "auto",
+            WebkitOverflowScrolling: "touch",
+          }}>
+            <div style={{
+              maxWidth: 520, margin: "0 auto",
+              padding: mobile ? "0 0 100px" : "0 28px 60px",
+            }}>
+              {/* 상단 헤더 */}
+              <div style={{
+                position: "sticky", top: 0, zIndex: 10,
+                background: "rgba(250,249,246,0.92)",
+                backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+                padding: mobile ? "16px 18px" : "20px 0",
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+              }}>
+                <button
+                  onClick={() => setShowMyPlaces(false)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 4,
+                    border: "none", background: "none", cursor: "pointer",
+                    fontFamily: FL, fontSize: 13, fontWeight: 600, color: C.primary,
+                    padding: 0,
+                  }}
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>arrow_back</span>
+                  프로필
+                </button>
+                <p style={{
+                  margin: 0, fontFamily: FL, fontSize: 9, fontWeight: 700,
+                  textTransform: "uppercase", letterSpacing: "0.15em", color: C.outlineVariant,
+                }}>
+                  나의 기록 — {personalPlaces.length}곳
+                </p>
+              </div>
+
+              {/* 장소 카드 리스트 */}
+              <div style={{
+                display: "flex", flexDirection: "column",
+                gap: mobile ? 2 : 12,
+                padding: mobile ? 0 : undefined,
+              }}>
+                {personalPlaces.map((p) => (
+                  <div key={p.id} onClick={() => onPlaceClick?.(p)} style={{ cursor: onPlaceClick ? "pointer" : "default" }}>
+                    <PlaceFeedCard place={p} mobile={mobile} />
+                  </div>
+                ))}
+              </div>
+
+              {personalPlaces.length === 0 && (
+                <div style={{ textAlign: "center", padding: "60px 20px" }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 48, color: C.outlineVariant, marginBottom: 12 }}>
+                    add_location
+                  </span>
+                  <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 16, color: C.onSurfaceVariant }}>
+                    아직 저장된 장소가 없어요
+                  </p>
+                  <p style={{ fontFamily: FL, fontSize: 12, color: C.outlineVariant }}>
+                    지도에서 장소를 검색하고 저장해보세요
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         )}
 

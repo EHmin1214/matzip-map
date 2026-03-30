@@ -23,39 +23,13 @@ const C = {
 const isMobile = () => window.innerWidth <= 768;
 
 const STATUS_LABEL = {
-  want_to_go:      "가고 싶어요",
-  visited:         "가봤어요",
-  want_revisit:    "또 가고 싶어요",
+  want_to_go: "가고 싶어요", visited: "가봤어요", want_revisit: "또 가고 싶어요",
 };
 const STATUS_COLOR = {
-  want_to_go:      { bg: "#FEF3CD", color: "#BA7517" },
-  visited:         { bg: "#E0F4EC", color: "#1D9E75" },
-  want_revisit:    { bg: "#FCE4EE", color: "#D4537E" },
+  want_to_go: { bg: "#FEF3CD", color: "#BA7517" },
+  visited:    { bg: "#E0F4EC", color: "#1D9E75" },
+  want_revisit: { bg: "#FCE4EE", color: "#D4537E" },
 };
-
-// ── 아이콘 버튼 ─────────────────────────────────────────────
-function IconBtn({ icon, onClick, title, danger = false, size = 32 }) {
-  return (
-    <button
-      onClick={onClick}
-      title={title}
-      style={{
-        width: size, height: size,
-        background: danger ? "rgba(158,66,44,0.07)" : C.surfaceLow,
-        border: "none", borderRadius: "50%",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        cursor: "pointer", flexShrink: 0,
-        color: danger ? C.error : C.onSurfaceVariant,
-        transition: "background 0.15s",
-        WebkitTapHighlightColor: "transparent",
-      }}
-      onMouseEnter={(e) => e.currentTarget.style.background = danger ? "rgba(158,66,44,0.12)" : C.container}
-      onMouseLeave={(e) => e.currentTarget.style.background = danger ? "rgba(158,66,44,0.07)" : C.surfaceLow}
-    >
-      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>{icon}</span>
-    </button>
-  );
-}
 
 export default function RestaurantPanel({
   restaurant, onClose, onHide, sidebarWidth = 240,
@@ -75,9 +49,13 @@ export default function RestaurantPanel({
   const [copied, setCopied] = useState(false);
   const [galleryIdx, setGalleryIdx] = useState(0);
 
-  const touchStartY = useRef(null);
+  // 모바일 시트 상태: "peek" | "full"
+  const [sheetMode, setSheetMode] = useState("peek");
+  const sheetRef = useRef(null);
+  const dragStartY = useRef(null);
+  const dragStartScroll = useRef(0);
 
-  useEffect(() => { setR(restaurant); }, [restaurant]);
+  useEffect(() => { setR(restaurant); setSheetMode("peek"); }, [restaurant]);
 
   const isPersonalMine = r.isPersonal && (!r.user_id || (user && r.user_id === user.user_id));
   const isOthersPlace  = r.isPersonal && r.user_id && user && r.user_id !== user.user_id;
@@ -94,10 +72,22 @@ export default function RestaurantPanel({
       .then((res) => setComments(res.data)).catch(() => {});
   }, [r?.id, isOthersPlace]);
 
+  useEffect(() => {
+    if (!r) return;
+    setLiked(false); setLikeCount(0);
+    setComments([]); setShowComments(false); setNeighbors([]);
+    setGalleryIdx(0);
+  }, [r?.id]); // eslint-disable-line
+
   const handleCenterMap = () => {
     if (!mapInstance || !r.lat || !r.lng || !window.naver) return;
-    mapInstance.setCenter(new window.naver.maps.LatLng(r.lat, r.lng));
+    const coord = new window.naver.maps.LatLng(r.lat, r.lng);
+    mapInstance.setCenter(coord);
     mapInstance.setZoom(17);
+    // 데스크톱: 디테일 패널(360px)만큼 오른쪽으로 보정
+    if (!mobile) {
+      mapInstance.panBy(new window.naver.maps.Point(-180, 0));
+    }
   };
 
   const handleLike = async () => {
@@ -140,455 +130,445 @@ export default function RestaurantPanel({
     if (onPlaceUpdated) onPlaceUpdated({ ...r, ...updatedPlace });
   };
 
-  const galleryUrls = r.photo_urls?.length ? r.photo_urls : (r.photo_url ? [r.photo_url] : []);
-
-  useEffect(() => {
-    if (!r) return;
-    setLiked(false); setLikeCount(0);
-    setComments([]); setShowComments(false); setNeighbors([]);
-    setGalleryIdx(0);
-  }, [r?.id]); // eslint-disable-line
-
-  const handleTouchStart = (e) => { touchStartY.current = e.touches[0].clientY; };
-  const handleTouchEnd = (e) => {
-    if (touchStartY.current === null) return;
-    const diff = e.changedTouches[0].clientY - touchStartY.current;
-    if (diff > 80) onClose();
-    touchStartY.current = null;
-  };
-
   const handleShare = () => {
     const url = `${API_BASE}/og/place/${r.id}`;
     navigator.clipboard.writeText(url).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setCopied(true); setTimeout(() => setCopied(false), 2000);
     }).catch(() => {});
   };
 
+  const galleryUrls = r.photo_urls?.length ? r.photo_urls : (r.photo_url ? [r.photo_url] : []);
   const statusStyle = r.status ? STATUS_COLOR[r.status] : null;
-
   const naverUrl = (r.naver_place_id && /^\d+$/.test(r.naver_place_id))
     ? `https://map.naver.com/v5/entry/place/${r.naver_place_id}`
     : r.naver_place_url || (r.name ? `https://map.naver.com/v5/search/${encodeURIComponent(r.name)}` : null);
 
-  return (
-    <>
-      <div
-        onTouchStart={mobile ? handleTouchStart : undefined}
-        onTouchEnd={mobile ? handleTouchEnd : undefined}
-        style={{
-          position: "fixed",
-          bottom: mobile ? 64 : 0,
-          left: mobile ? 0 : sidebarWidth,
-          right: 0,
-          background: C.bg,
-          borderRadius: mobile ? "18px 18px 0 0" : "14px 14px 0 0",
-          boxShadow: "0 -8px 40px rgba(47,52,48,0.10)",
-          zIndex: 30,
-          maxHeight: mobile ? "65vh" : "56vh",
-          overflowY: "auto",
-          WebkitOverflowScrolling: "touch",
-          transition: "left 0.2s ease",
-        }}
-      >
-        {/* 스와이프 핸들 */}
-        {mobile && (
+  // ── 모바일 드래그 핸들러 ────────────────────
+  const handleDragStart = (e) => {
+    dragStartY.current = e.touches[0].clientY;
+    dragStartScroll.current = sheetRef.current?.scrollTop || 0;
+  };
+  const handleDragEnd = (e) => {
+    if (dragStartY.current === null) return;
+    const diff = e.changedTouches[0].clientY - dragStartY.current;
+    if (sheetMode === "peek" && diff < -40) {
+      setSheetMode("full");
+    } else if (sheetMode === "full" && diff > 60 && dragStartScroll.current <= 0) {
+      setSheetMode("peek");
+    } else if (sheetMode === "peek" && diff > 60) {
+      onClose();
+    }
+    dragStartY.current = null;
+  };
+
+  // ── 공통 콘텐츠 블록들 ──────────────────────
+  const HeaderBlock = (
+    <div style={{ marginBottom: 10 }}>
+      {r.category && (
+        <p style={{
+          margin: "0 0 3px", fontFamily: FL, fontSize: 10, fontWeight: 700,
+          textTransform: "uppercase", letterSpacing: "0.12em", color: C.primary,
+        }}>{r.category}</p>
+      )}
+      <h2 style={{
+        margin: "0 0 4px", fontFamily: FH, fontSize: mobile ? 20 : 22,
+        fontWeight: 700, color: C.onSurface, letterSpacing: "-0.01em",
+      }}>{r.name}</h2>
+      {/* 주소 + 네이버/공유 */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        {r.address && (
+          <p style={{
+            margin: 0, fontFamily: FL, fontSize: 12, color: C.outlineVariant, flex: 1, minWidth: 0,
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          }}>{r.address}</p>
+        )}
+        <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
+          {naverUrl && (
+            <a href={naverUrl} target="_blank" rel="noreferrer" style={{
+              display: "inline-flex", alignItems: "center", gap: 3, padding: "4px 8px",
+              background: "#03C75A", color: "white", borderRadius: 5,
+              fontFamily: FL, fontSize: 10, fontWeight: 600, textDecoration: "none",
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 12 }}>map</span>
+              네이버
+            </a>
+          )}
+          {r.isPersonal && r.id && (
+            <button onClick={handleShare} style={{
+              display: "inline-flex", alignItems: "center", gap: 3, padding: "4px 8px",
+              background: copied ? C.primaryContainer : C.surfaceLow,
+              color: copied ? C.primary : C.onSurfaceVariant,
+              border: "none", borderRadius: 5, fontFamily: FL, fontSize: 10, fontWeight: 600,
+              cursor: "pointer", transition: "all 0.15s",
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 12 }}>
+                {copied ? "check" : "share"}
+              </span>
+              {copied ? "복사됨" : "공유"}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  const StatusBlock = r.isPersonal && r.status ? (
+    <div style={{
+      background: C.surfaceLow, borderRadius: 10, padding: "12px 14px", marginBottom: 12,
+    }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginBottom: r.memo ? 8 : 0 }}>
+        <span style={{
+          fontFamily: FL, fontSize: 11, fontWeight: 600, padding: "3px 9px", borderRadius: 5,
+          background: statusStyle?.bg || C.container, color: statusStyle?.color || C.onSurfaceVariant,
+        }}>{STATUS_LABEL[r.status] || r.status}</span>
+        {r.rating > 0 && (
+          <span style={{
+            fontFamily: FL, fontSize: 11, padding: "3px 9px",
+            background: C.primaryContainer, color: C.primary, borderRadius: 5, fontWeight: 600,
+          }}>{"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}</span>
+        )}
+        {r.owner_nickname && isOthersPlace && (
+          <span style={{ fontFamily: FL, fontSize: 11, color: C.outlineVariant }}>by {r.owner_nickname}</span>
+        )}
+      </div>
+      {r.memo && (
+        <p style={{
+          margin: 0, fontFamily: FH, fontStyle: "italic", fontSize: 13,
+          color: C.onSurfaceVariant, lineHeight: 1.7,
+        }}>"{r.memo}"</p>
+      )}
+    </div>
+  ) : null;
+
+  const GalleryBlock = galleryUrls.length > 0 ? (
+    <div style={{ position: "relative", marginBottom: 12, borderRadius: 10, overflow: "hidden" }}>
+      <div style={{ width: "100%", aspectRatio: "4/3", background: "#f0efec" }}>
+        <img src={galleryUrls[galleryIdx]} alt={r.name}
+          style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+      </div>
+      {galleryUrls.length > 1 && (
+        <>
+          {galleryIdx > 0 && (
+            <button onClick={() => setGalleryIdx((i) => i - 1)} style={{
+              position: "absolute", left: 6, top: "50%", transform: "translateY(-50%)",
+              width: 28, height: 28, borderRadius: "50%",
+              background: "rgba(0,0,0,0.35)", border: "none", color: "white",
+              cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>chevron_left</span>
+            </button>
+          )}
+          {galleryIdx < galleryUrls.length - 1 && (
+            <button onClick={() => setGalleryIdx((i) => i + 1)} style={{
+              position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)",
+              width: 28, height: 28, borderRadius: "50%",
+              background: "rgba(0,0,0,0.35)", border: "none", color: "white",
+              cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>chevron_right</span>
+            </button>
+          )}
+          <div style={{
+            position: "absolute", bottom: 8, left: "50%", transform: "translateX(-50%)",
+            display: "flex", gap: 4,
+          }}>
+            {galleryUrls.map((_, i) => (
+              <div key={i} style={{
+                width: 5, height: 5, borderRadius: "50%",
+                background: i === galleryIdx ? "white" : "rgba(255,255,255,0.45)",
+              }} />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  ) : null;
+
+  const InstaBlock = r.instagram_post_url ? (
+    <a href={r.instagram_post_url} target="_blank" rel="noreferrer" style={{
+      display: "inline-flex", alignItems: "center", gap: 5, padding: "6px 12px",
+      background: C.surfaceLow, color: C.primary, borderRadius: 7,
+      fontFamily: FL, fontSize: 11, fontWeight: 600, textDecoration: "none", marginBottom: 12,
+    }}>
+      <span className="material-symbols-outlined" style={{ fontSize: 14 }}>photo_camera</span>
+      인스타 포스트
+    </a>
+  ) : null;
+
+  const NeighborsBlock = neighbors.length > 0 ? (
+    <div style={{ marginBottom: 12 }}>
+      <p style={{
+        fontFamily: FL, fontSize: 9, fontWeight: 700,
+        textTransform: "uppercase", letterSpacing: "0.15em",
+        color: C.outlineVariant, margin: "0 0 6px",
+      }}>함께 저장한 이웃 {neighbors.length}명</p>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        {neighbors.map((n) => (
+          <div key={n.user_id} style={{
+            display: "flex", alignItems: "center", gap: 5,
+            background: C.surfaceLow, borderRadius: 6, padding: "4px 8px",
+          }}>
+            <div style={{
+              width: 18, height: 18, borderRadius: "50%",
+              background: `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 8, color: "white", fontWeight: 700, flexShrink: 0, fontFamily: FL,
+            }}>{n.nickname?.[0]?.toUpperCase()}</div>
+            <span style={{ fontFamily: FL, fontSize: 11, color: C.onSurfaceVariant }}>{n.nickname}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  ) : null;
+
+  const SocialBlock = isOthersPlace ? (
+    <div style={{ marginTop: 4 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+        <button onClick={handleLike} style={{
+          display: "flex", alignItems: "center", gap: 5,
+          background: liked ? C.primaryContainer : C.surfaceLow,
+          border: "none", borderRadius: 7, padding: "7px 14px",
+          fontFamily: FL, fontSize: 12, fontWeight: 600,
+          color: liked ? C.primary : C.outlineVariant,
+          cursor: "pointer", transition: "all 0.15s",
+        }}>
+          <span className="material-symbols-outlined" style={{
+            fontSize: 15, fontVariationSettings: liked ? "'FILL' 1" : "'FILL' 0",
+          }}>favorite</span>
+          {likeCount > 0 ? likeCount : "좋아요"}
+        </button>
+        <button onClick={() => setShowComments(!showComments)} style={{
+          display: "flex", alignItems: "center", gap: 5,
+          background: showComments ? C.container : C.surfaceLow,
+          border: "none", borderRadius: 7, padding: "7px 14px",
+          fontFamily: FL, fontSize: 12, fontWeight: 600,
+          color: C.onSurfaceVariant, cursor: "pointer",
+        }}>
+          <span className="material-symbols-outlined" style={{ fontSize: 15 }}>chat_bubble_outline</span>
+          댓글 {comments.length > 0 ? comments.length : ""}
+        </button>
+      </div>
+      {showComments && (
+        <div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
+            {comments.map((c) => (
+              <div key={c.id} style={{ background: C.surfaceLow, borderRadius: 8, padding: "10px 12px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                  <p style={{ margin: "0 0 3px", fontFamily: FL, fontSize: 11, fontWeight: 600, color: C.onSurface }}>{c.author_nickname}</p>
+                  {c.user_id === user?.user_id && (
+                    <button onClick={() => handleDeleteComment(c.id)} style={{
+                      background: "none", border: "none", fontFamily: FL, fontSize: 9,
+                      color: C.outlineVariant, cursor: "pointer", padding: 0,
+                    }}>삭제</button>
+                  )}
+                </div>
+                <p style={{ margin: 0, fontFamily: FL, fontSize: 12, color: C.onSurfaceVariant, lineHeight: 1.5 }}>{c.content}</p>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              value={commentInput}
+              onChange={(e) => setCommentInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleComment()}
+              placeholder="댓글 달기"
+              style={{
+                flex: 1, padding: "9px 12px", background: C.surfaceLow, border: "none", borderRadius: 7,
+                fontFamily: FL, fontSize: 13, color: C.onSurface, outline: "none",
+              }}
+            />
+            <button onClick={handleComment} disabled={submittingComment} style={{
+              padding: "9px 14px", background: C.primary, color: "#fff6ef",
+              border: "none", borderRadius: 7, fontFamily: FL, fontSize: 11, fontWeight: 600,
+              cursor: submittingComment ? "not-allowed" : "pointer",
+              opacity: submittingComment ? 0.6 : 1,
+            }}>올리기</button>
+          </div>
+        </div>
+      )}
+    </div>
+  ) : null;
+
+  // ═══════════════════════════════════════════════════════════
+  // 모바일 레이아웃: 바텀 시트 (peek ↔ full)
+  // ═══════════════════════════════════════════════════════════
+  if (mobile) {
+    const peekHeight = galleryUrls.length > 0 ? 210 : 160;
+    return (
+      <>
+        <div
+          ref={sheetRef}
+          onTouchStart={handleDragStart}
+          onTouchEnd={handleDragEnd}
+          style={{
+            position: "fixed",
+            bottom: 64,
+            left: 0, right: 0,
+            height: sheetMode === "full" ? "calc(100vh - 64px)" : peekHeight,
+            background: C.bg,
+            borderRadius: "18px 18px 0 0",
+            boxShadow: "0 -8px 40px rgba(47,52,48,0.12)",
+            zIndex: 30,
+            overflowY: sheetMode === "full" ? "auto" : "hidden",
+            WebkitOverflowScrolling: "touch",
+            transition: "height 0.3s cubic-bezier(0.16,1,0.3,1)",
+          }}
+        >
+          {/* 핸들 */}
           <div style={{ display: "flex", justifyContent: "center", padding: "10px 0 4px", cursor: "grab" }}>
             <div style={{ width: 32, height: 3, background: C.container, borderRadius: 2 }} />
           </div>
-        )}
 
-        {/* ── 히어로 사진 갤러리 ────────────────────────── */}
-        {galleryUrls.length > 0 && (
-          <div style={{ position: "relative" }}>
-            <div style={{ width: "100%", overflow: "hidden", maxHeight: mobile ? 320 : 360 }}>
-              <img
-                src={galleryUrls[galleryIdx]}
-                alt={r.name}
-                style={{
-                  width: "100%", display: "block",
-                  objectFit: "cover", maxHeight: mobile ? 320 : 360,
-                }}
-              />
-            </div>
-            {/* 갤러리 좌우 버튼 */}
-            {galleryUrls.length > 1 && (
-              <>
-                {galleryIdx > 0 && (
-                  <button onClick={() => setGalleryIdx((i) => i - 1)} style={{
-                    position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)",
-                    width: 30, height: 30, borderRadius: "50%",
-                    background: "rgba(0,0,0,0.35)", border: "none", color: "white",
-                    cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                  }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_left</span>
-                  </button>
-                )}
-                {galleryIdx < galleryUrls.length - 1 && (
-                  <button onClick={() => setGalleryIdx((i) => i + 1)} style={{
-                    position: "absolute", right: 8, top: "50%", transform: "translateY(-50%)",
-                    width: 30, height: 30, borderRadius: "50%",
-                    background: "rgba(0,0,0,0.35)", border: "none", color: "white",
-                    cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                  }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>chevron_right</span>
-                  </button>
-                )}
-                {/* 인디케이터 */}
-                <div style={{
-                  position: "absolute", bottom: 68, left: "50%", transform: "translateX(-50%)",
-                  display: "flex", gap: 5,
-                }}>
-                  {galleryUrls.map((_, i) => (
-                    <div key={i} style={{
-                      width: 6, height: 6, borderRadius: "50%",
-                      background: i === galleryIdx ? "white" : "rgba(255,255,255,0.45)",
-                      transition: "background 0.15s",
-                    }} />
-                  ))}
-                </div>
-              </>
-            )}
-            {/* 그라데이션 오버레이 */}
-            <div style={{
-              position: "absolute", bottom: 0, left: 0, right: 0, height: 60,
-              background: `linear-gradient(transparent, ${C.bg})`,
-            }} />
-            {/* 닫기 버튼 오버레이 */}
-            <div style={{ position: "absolute", top: 10, right: 12, display: "flex", gap: 6 }}>
-              {isPersonalMine && (
-                <IconBtn icon="edit" onClick={() => setEditModalOpen(true)} title="수정" size={32} />
-              )}
-              <IconBtn icon="close" onClick={onClose} title="닫기" size={32} />
-            </div>
-          </div>
-        )}
-
-        <div style={{ padding: mobile ? "6px 20px 24px" : "14px 24px 20px" }}>
-
-          {/* ── 헤더 ──────────────────────────────────────── */}
-          <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 12 }}>
-            <div style={{ flex: 1 }}>
-              {/* 카테고리 */}
-              {r.category && (
-                <p style={{
-                  margin: "0 0 3px",
-                  fontFamily: FL, fontSize: 10, fontWeight: 700,
-                  textTransform: "uppercase", letterSpacing: "0.12em",
-                  color: C.primary,
-                }}>
-                  {r.category}
-                </p>
-              )}
-
-              {/* 이름 */}
-              <h2 style={{
-                margin: "0 0 4px",
-                fontFamily: FH, fontSize: mobile ? 20 : 22,
-                fontWeight: 700, color: C.onSurface,
-                letterSpacing: "-0.01em",
-              }}>
-                {r.name}
-              </h2>
-
-              {/* 주소 */}
-              {r.address && (
-                <p style={{
-                  margin: 0, fontFamily: FL, fontSize: 12,
-                  color: C.outlineVariant,
-                }}>
-                  {r.address}
-                </p>
-              )}
-            </div>
-
-            {/* 액션 버튼 (사진 없을 때만 여기에 표시) */}
-            {galleryUrls.length === 0 && (
-              <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
-                <IconBtn icon="near_me" onClick={handleCenterMap} title="지도에서 보기" size={mobile ? 38 : 32} />
+          <div style={{ padding: "6px 20px 24px" }}>
+            {/* 헤더 + 닫기/수정 */}
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+              <div style={{ flex: 1 }}>{HeaderBlock}</div>
+              <div style={{ display: "flex", gap: 4, flexShrink: 0, marginTop: 2 }}>
                 {isPersonalMine && (
-                  <IconBtn icon="edit" onClick={() => setEditModalOpen(true)} title="수정" size={mobile ? 38 : 32} />
+                  <IconBtn icon="edit" onClick={() => setEditModalOpen(true)} title="수정" size={32} />
                 )}
-                {!isOthersPlace && (
-                  <IconBtn icon="delete_outline" onClick={() => onHide(r.id, r.isPersonal)} title="삭제" danger size={mobile ? 38 : 32} />
-                )}
-                <IconBtn icon="close" onClick={onClose} title="닫기" size={mobile ? 38 : 32} />
+                <IconBtn icon="close" onClick={onClose} title="닫기" size={32} />
               </div>
-            )}
+            </div>
+
+            {/* 상태/별점 */}
+            {StatusBlock}
+
+            {/* 사진 갤러리 (상태 아래) */}
+            {GalleryBlock}
+
+            {/* 인스타 */}
+            {InstaBlock}
+
+            {/* 이웃 */}
+            {NeighborsBlock}
+
+            {/* 좋아요/댓글 */}
+            {SocialBlock}
           </div>
 
-          {/* ── 상태 + 별점 + 메모 카드 ──────────────────────── */}
-          {r.isPersonal && r.status && (
-            <div style={{
-              background: C.surfaceLow, borderRadius: 10,
-              padding: "12px 14px", marginBottom: 14,
-            }}>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", marginBottom: r.memo ? 8 : 0 }}>
-                <span style={{
-                  fontFamily: FL, fontSize: 11, fontWeight: 600,
-                  padding: "3px 9px", borderRadius: 5,
-                  background: statusStyle?.bg || C.container,
-                  color: statusStyle?.color || C.onSurfaceVariant,
-                }}>
-                  {STATUS_LABEL[r.status] || r.status}
-                </span>
-                {r.rating > 0 && (
-                  <span style={{
-                    fontFamily: FL, fontSize: 11, padding: "3px 9px",
-                    background: C.primaryContainer, color: C.primary,
-                    borderRadius: 5, fontWeight: 600,
-                  }}>
-                    {"★".repeat(r.rating)}{"☆".repeat(5 - r.rating)}
-                  </span>
-                )}
-                {r.owner_nickname && isOthersPlace && (
-                  <span style={{ fontFamily: FL, fontSize: 11, color: C.outlineVariant }}>
-                    by {r.owner_nickname}
-                  </span>
-                )}
-              </div>
-              {r.memo && (
-                <p style={{
-                  margin: 0, fontFamily: FH, fontStyle: "italic",
-                  fontSize: 13, color: C.onSurfaceVariant,
-                  lineHeight: 1.7,
-                }}>
-                  "{r.memo}"
-                </p>
-              )}
+          {/* peek 상태에서 스크롤 유도 화살표 */}
+          {sheetMode === "peek" && (
+            <div
+              onClick={() => setSheetMode("full")}
+              style={{
+                position: "absolute", bottom: 8, left: "50%", transform: "translateX(-50%)",
+                display: "flex", flexDirection: "column", alignItems: "center",
+                cursor: "pointer", opacity: 0.4,
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18, color: C.outlineVariant }}>
+                expand_less
+              </span>
             </div>
           )}
+        </div>
 
-          {/* ── 링크 바 ──────────────────────────────────────── */}
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-            {naverUrl && (
-              <a href={naverUrl} target="_blank" rel="noreferrer"
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 5,
-                  padding: "6px 12px",
-                  background: "#03C75A", color: "white",
-                  borderRadius: 7,
-                  fontFamily: FL, fontSize: 11, fontWeight: 600,
-                  textDecoration: "none",
-                  WebkitTapHighlightColor: "transparent",
-                }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>map</span>
-                네이버 지도
-              </a>
+        {editModalOpen && (
+          <SavePlaceModal
+            place={r} editMode
+            onSave={(updated) => { handleEditSave(updated); setEditModalOpen(false); }}
+            onClose={() => setEditModalOpen(false)}
+            onDelete={() => { onHide(r.id, r.isPersonal); setEditModalOpen(false); }}
+          />
+        )}
+      </>
+    );
+  }
+
+  // ═══════════════════════════════════════════════════════════
+  // 데스크톱 레이아웃: 사이드바 오른쪽에 세로 패널
+  // ═══════════════════════════════════════════════════════════
+  return (
+    <>
+      <div style={{
+        position: "fixed",
+        top: 0,
+        left: sidebarWidth,
+        width: 360,
+        height: "100vh",
+        background: C.bg,
+        boxShadow: "4px 0 24px rgba(47,52,48,0.08)",
+        zIndex: 35,
+        overflowY: "auto",
+        WebkitOverflowScrolling: "touch",
+        animation: "slideInDetail 0.22s cubic-bezier(0.16,1,0.3,1)",
+      }}>
+        {/* 상단 바 */}
+        <div style={{
+          position: "sticky", top: 0, zIndex: 5,
+          background: "rgba(250,249,246,0.92)",
+          backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
+          padding: "12px 16px",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          borderBottom: "1px solid rgba(101,93,84,0.06)",
+        }}>
+          <p style={{ margin: 0, fontFamily: FL, fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", color: C.outlineVariant }}>
+            장소 상세
+          </p>
+          <div style={{ display: "flex", gap: 4 }}>
+            {isPersonalMine && (
+              <IconBtn icon="edit" onClick={() => setEditModalOpen(true)} title="수정" size={28} />
             )}
-            {r.instagram_post_url && (
-              <a href={r.instagram_post_url} target="_blank" rel="noreferrer"
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 5,
-                  padding: "6px 12px",
-                  background: C.surfaceLow, color: C.primary,
-                  borderRadius: 7,
-                  fontFamily: FL, fontSize: 11, fontWeight: 600,
-                  textDecoration: "none",
-                }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>photo_camera</span>
-                인스타
-              </a>
-            )}
-            {r.isPersonal && r.id && (
-              <button onClick={handleShare}
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 5,
-                  padding: "6px 12px",
-                  background: copied ? C.primaryContainer : C.surfaceLow,
-                  color: copied ? C.primary : C.onSurfaceVariant,
-                  border: "none", borderRadius: 7,
-                  fontFamily: FL, fontSize: 11, fontWeight: 600, cursor: "pointer",
-                  transition: "all 0.15s",
-                }}
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
-                  {copied ? "check" : "share"}
-                </span>
-                {copied ? "복사됨" : "공유"}
-              </button>
-            )}
-            {galleryUrls.length > 0 && (
-              <>
-                <button onClick={handleCenterMap}
-                  style={{
-                    display: "inline-flex", alignItems: "center", gap: 5,
-                    padding: "6px 12px",
-                    background: C.surfaceLow, color: C.onSurfaceVariant,
-                    border: "none", borderRadius: 7,
-                    fontFamily: FL, fontSize: 11, fontWeight: 600, cursor: "pointer",
-                  }}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: 14 }}>near_me</span>
-                  지도 보기
-                </button>
-                {!isOthersPlace && (
-                  <button onClick={() => onHide(r.id, r.isPersonal)}
-                    style={{
-                      display: "inline-flex", alignItems: "center", gap: 5,
-                      padding: "6px 12px",
-                      background: "rgba(158,66,44,0.07)", color: C.error,
-                      border: "none", borderRadius: 7,
-                      fontFamily: FL, fontSize: 11, fontWeight: 600, cursor: "pointer",
-                    }}
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>delete_outline</span>
-                    삭제
-                  </button>
-                )}
-              </>
-            )}
+            <IconBtn icon="close" onClick={onClose} title="닫기" size={28} />
           </div>
+        </div>
 
-          {/* ── 이웃이 같이 저장 ─────────────────────────────── */}
-          {neighbors.length > 0 && (
-            <div style={{ marginBottom: 14 }}>
-              <p style={{
-                fontFamily: FL, fontSize: 9, fontWeight: 700,
-                textTransform: "uppercase", letterSpacing: "0.15em",
-                color: C.outlineVariant, margin: "0 0 6px",
-              }}>
-                함께 저장한 이웃 {neighbors.length}명
-              </p>
-              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                {neighbors.map((n) => (
-                  <div key={n.user_id} style={{
-                    display: "flex", alignItems: "center", gap: 5,
-                    background: C.surfaceLow, borderRadius: 6,
-                    padding: "4px 8px",
-                  }}>
-                    <div style={{
-                      width: 18, height: 18, borderRadius: "50%",
-                      background: `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontSize: 8, color: "white", fontWeight: 700, flexShrink: 0,
-                      fontFamily: FL,
-                    }}>
-                      {n.nickname?.[0]?.toUpperCase()}
-                    </div>
-                    <span style={{ fontFamily: FL, fontSize: 11, color: C.onSurfaceVariant }}>
-                      {n.nickname}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+        <div style={{ padding: "16px 20px 24px" }}>
+          {/* 헤더 */}
+          {HeaderBlock}
 
-          {/* ── 좋아요 / 댓글 ────────────────────────────────── */}
-          {isOthersPlace && (
-            <div style={{ marginTop: 4 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-                <button
-                  onClick={handleLike}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 5,
-                    background: liked ? C.primaryContainer : C.surfaceLow,
-                    border: "none", borderRadius: 7, padding: "7px 14px",
-                    fontFamily: FL, fontSize: 12, fontWeight: 600,
-                    color: liked ? C.primary : C.outlineVariant,
-                    cursor: "pointer", transition: "all 0.15s",
-                  }}
-                >
-                  <span className="material-symbols-outlined" style={{
-                    fontSize: 15,
-                    fontVariationSettings: liked ? "'FILL' 1" : "'FILL' 0",
-                  }}>
-                    favorite
-                  </span>
-                  {likeCount > 0 ? likeCount : "좋아요"}
-                </button>
+          {/* 상태/별점 */}
+          {StatusBlock}
 
-                <button
-                  onClick={() => setShowComments(!showComments)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 5,
-                    background: showComments ? C.container : C.surfaceLow,
-                    border: "none", borderRadius: 7, padding: "7px 14px",
-                    fontFamily: FL, fontSize: 12, fontWeight: 600,
-                    color: C.onSurfaceVariant, cursor: "pointer",
-                    transition: "background 0.15s",
-                  }}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: 15 }}>chat_bubble_outline</span>
-                  댓글 {comments.length > 0 ? comments.length : ""}
-                </button>
-              </div>
+          {/* 사진 갤러리 */}
+          {GalleryBlock}
 
-              {showComments && (
-                <div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 12 }}>
-                    {comments.map((c) => (
-                      <div key={c.id} style={{ background: C.surfaceLow, borderRadius: 8, padding: "10px 12px" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                          <p style={{ margin: "0 0 3px", fontFamily: FL, fontSize: 11, fontWeight: 600, color: C.onSurface }}>
-                            {c.author_nickname}
-                          </p>
-                          {c.user_id === user?.user_id && (
-                            <button
-                              onClick={() => handleDeleteComment(c.id)}
-                              style={{
-                                background: "none", border: "none",
-                                fontFamily: FL, fontSize: 9,
-                                color: C.outlineVariant, cursor: "pointer", padding: 0,
-                              }}
-                            >
-                              삭제
-                            </button>
-                          )}
-                        </div>
-                        <p style={{ margin: 0, fontFamily: FL, fontSize: 12, color: C.onSurfaceVariant, lineHeight: 1.5 }}>
-                          {c.content}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <input
-                      value={commentInput}
-                      onChange={(e) => setCommentInput(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && handleComment()}
-                      placeholder="댓글 달기"
-                      style={{
-                        flex: 1, padding: "9px 12px",
-                        background: C.surfaceLow, border: "none", borderRadius: 7,
-                        fontFamily: FL, fontSize: 13, color: C.onSurface,
-                        outline: "none",
-                      }}
-                    />
-                    <button
-                      onClick={handleComment}
-                      disabled={submittingComment}
-                      style={{
-                        padding: "9px 14px",
-                        background: C.primary,
-                        color: "#fff6ef", border: "none", borderRadius: 7,
-                        fontFamily: FL, fontSize: 11, fontWeight: 600,
-                        cursor: submittingComment ? "not-allowed" : "pointer",
-                        opacity: submittingComment ? 0.6 : 1,
-                        transition: "all 0.35s ease",
-                      }}
-                    >
-                      올리기
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+          {/* 인스타 */}
+          {InstaBlock}
+
+          {/* 이웃 */}
+          {NeighborsBlock}
+
+          {/* 좋아요/댓글 */}
+          {SocialBlock}
         </div>
       </div>
 
       {editModalOpen && (
         <SavePlaceModal
-          place={r}
-          editMode
+          place={r} editMode
           onSave={(updated) => { handleEditSave(updated); setEditModalOpen(false); }}
           onClose={() => setEditModalOpen(false)}
+          onDelete={() => { onHide(r.id, r.isPersonal); setEditModalOpen(false); }}
         />
       )}
+
+      <style>{`
+        @keyframes slideInDetail {
+          from { opacity: 0; transform: translateX(-16px); }
+          to   { opacity: 1; transform: translateX(0); }
+        }
+      `}</style>
     </>
+  );
+}
+
+function IconBtn({ icon, onClick, title, danger = false, size = 32 }) {
+  return (
+    <button onClick={onClick} title={title} style={{
+      width: size, height: size,
+      background: danger ? "rgba(158,66,44,0.07)" : C.surfaceLow,
+      border: "none", borderRadius: "50%",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      cursor: "pointer", flexShrink: 0,
+      color: danger ? C.error : C.onSurfaceVariant,
+      transition: "background 0.15s",
+    }}
+      onMouseEnter={(e) => e.currentTarget.style.background = danger ? "rgba(158,66,44,0.12)" : C.container}
+      onMouseLeave={(e) => e.currentTarget.style.background = danger ? "rgba(158,66,44,0.07)" : C.surfaceLow}
+    >
+      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>{icon}</span>
+    </button>
   );
 }

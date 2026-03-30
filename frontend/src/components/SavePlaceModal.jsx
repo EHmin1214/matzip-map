@@ -28,7 +28,7 @@ const STATUS_OPTIONS = [
 const VISITED_STATUSES = ["visited", "want_revisit"];
 const FOLDER_COLORS = ["#655d54", "#3B8BD4", "#1D9E75", "#BA7517", "#7F77DD", "#D4537E"];
 
-export default function SavePlaceModal({ place, onSave, onClose, editMode = false }) {
+export default function SavePlaceModal({ place, onSave, onClose, editMode = false, onDelete }) {
   const { user } = useUser();
   const isMobile = window.innerWidth <= 768;
   const [folders, setFolders] = useState([]);
@@ -75,6 +75,14 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
       setNewFolderName(""); setShowNewFolder(false);
     } catch (e) { alert("폴더 생성 실패"); }
     finally { setCreatingFolder(false); }
+  };
+
+  const handleDeleteFolder = async (folderId) => {
+    try {
+      await axios.delete(`${API_BASE}/folders/${folderId}?user_id=${user.user_id}`);
+      setFolders((prev) => prev.filter((f) => f.id !== folderId));
+      if (selectedFolderId === folderId) setSelectedFolderId(null);
+    } catch (e) { alert("컬렉션 삭제 실패"); }
   };
 
   const handlePhotoSelect = (e) => {
@@ -276,6 +284,7 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
                     key={f.id} label={f.name} color={f.color}
                     selected={selectedFolderId === f.id}
                     onClick={() => setSelectedFolderId(f.id)}
+                    onDelete={() => handleDeleteFolder(f.id)}
                   />
                 ))}
                 <button
@@ -445,6 +454,26 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
             >
               {uploading ? "사진 업로드 중..." : saving ? "저장 중..." : editMode ? "수정하기" : "기록하기"}
             </button>
+
+            {/* 삭제 버튼 (수정 모드에서만) */}
+            {editMode && onDelete && (
+              <button
+                onClick={() => { if (window.confirm("이 장소를 삭제할까요?")) onDelete(); }}
+                style={{
+                  width: "100%", padding: "13px",
+                  border: `1px solid rgba(158,66,44,0.2)`,
+                  borderRadius: 10, background: "none",
+                  color: C.error,
+                  fontFamily: FL, fontSize: 12, fontWeight: 600,
+                  cursor: "pointer", marginTop: 8,
+                  transition: "background 0.15s",
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = "rgba(158,66,44,0.05)"}
+                onMouseLeave={(e) => e.currentTarget.style.background = "none"}
+              >
+                장소 삭제
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -468,24 +497,40 @@ function Section({ label, children }) {
   );
 }
 
-function FolderChip({ label, color, selected, onClick }) {
+function FolderChip({ label, color, selected, onClick, onDelete }) {
   return (
-    <button
-      onClick={onClick}
-      style={{
-        padding: "6px 12px",
-        border: `1.5px solid ${selected ? color : "rgba(175,179,174,0.4)"}`,
-        borderRadius: 999,
-        background: selected ? `${color}18` : "transparent",
-        cursor: "pointer",
-        fontFamily: "'Manrope', sans-serif", fontSize: 11, fontWeight: selected ? 700 : 400,
-        color: selected ? color : "#777c77",
-        display: "flex", alignItems: "center", gap: 5,
-        transition: "all 0.15s",
-      }}
-    >
-      <div style={{ width: 6, height: 6, borderRadius: "50%", background: color, flexShrink: 0 }} />
-      {label}
-    </button>
+    <div style={{ position: "relative", display: "inline-flex" }}>
+      <button
+        onClick={onClick}
+        style={{
+          padding: "6px 12px",
+          paddingRight: onDelete ? 24 : 12,
+          border: `1.5px solid ${selected ? color : "rgba(175,179,174,0.4)"}`,
+          borderRadius: 999,
+          background: selected ? `${color}18` : "transparent",
+          cursor: "pointer",
+          fontFamily: "'Manrope', sans-serif", fontSize: 11, fontWeight: selected ? 700 : 400,
+          color: selected ? color : "#777c77",
+          display: "flex", alignItems: "center", gap: 5,
+          transition: "all 0.15s",
+        }}
+      >
+        <div style={{ width: 6, height: 6, borderRadius: "50%", background: color, flexShrink: 0 }} />
+        {label}
+      </button>
+      {onDelete && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          style={{
+            position: "absolute", top: -4, right: -4,
+            width: 16, height: 16, borderRadius: "50%",
+            background: "rgba(47,52,48,0.5)", color: "#fff",
+            border: "none", cursor: "pointer",
+            fontSize: 10, lineHeight: "16px", padding: 0,
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}
+        >&times;</button>
+      )}
+    </div>
   );
 }
