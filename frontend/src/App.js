@@ -17,6 +17,7 @@ import RefreshButton from "./components/RefreshButton";
 import PublicProfile from "./components/PublicProfile";
 import PublicListPage from "./components/PublicListPage";
 import OnboardingGuide from "./components/OnboardingGuide";
+import LoginPrompt from "./components/LoginPrompt";
 import "./App.css";
 
 export const ACCOUNT_COLORS = ["#E8593C","#3B8BD4","#1D9E75","#BA7517","#7F77DD","#D4537E","#0F6E56","#993C1D"];
@@ -37,6 +38,7 @@ export default function App() {
   const mapRef = useRef(null);
 
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [accounts] = useState([]);
   const [restaurants, setRestaurants] = useState([]);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
@@ -85,7 +87,11 @@ export default function App() {
   }, [user]);
 
   useEffect(() => {
-    if (user) { loadPersonalPlaces(); loadFollowingList(); loadUnread(); loadFolders(); }
+    if (user) {
+      loadPersonalPlaces(); loadFollowingList(); loadUnread(); loadFolders();
+      // 로그인 성공 시 모달 닫기
+      setShowLoginPrompt(false);
+    }
   }, [user, loadPersonalPlaces, loadFollowingList, loadUnread, loadFolders]);
 
   // ── 딥링크 처리 (?place=ID) ───────────────────────────────
@@ -231,7 +237,19 @@ export default function App() {
     return <PublicListPage listId={parseInt(listMatch[1])} />;
   }
 
-  if (!user) return <AuthScreen />;
+  // 로그인 필요한 탭 전환 시 체크
+  const requireAuth = (tab) => {
+    if (!user && tab !== "map") {
+      setShowLoginPrompt(true);
+      return true;
+    }
+    return false;
+  };
+
+  const handleTabChange = (tab) => {
+    if (requireAuth(tab)) return;
+    setActiveTab(tab);
+  };
 
   const renderPanel = (tab) => {
     if (tab === "search")  return <SearchTab onPlaceAdded={addPlace} personalPlaces={personalPlaces} />;
@@ -248,11 +266,15 @@ export default function App() {
 
   return (
     <div className="app">
-      {showOnboarding && (
+      {showOnboarding && user && (
         <OnboardingGuide
           onStart={() => { dismissOnboarding(); setActiveTab("search"); }}
           onDismiss={dismissOnboarding}
         />
+      )}
+
+      {showLoginPrompt && !user && (
+        <LoginPrompt onClose={() => { setShowLoginPrompt(false); setActiveTab("map"); }} />
       )}
 
       {/* ─── 모바일 ──────────────────────────────────────────── */}
@@ -367,7 +389,7 @@ export default function App() {
             />
           )}
 
-          <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} unreadCount={unreadCount} userNickname={user?.nickname} />
+          <BottomTabBar activeTab={activeTab} onTabChange={handleTabChange} unreadCount={unreadCount} userNickname={user?.nickname} />
         </>
       )}
 

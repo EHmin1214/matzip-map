@@ -335,6 +335,51 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
               />
             </Section>
 
+            {/* 사진 */}
+            <Section label={`사진 (${photoPreviews.length}/5)`}>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {photoPreviews.map((src, idx) => (
+                  <div key={idx} style={{ position: "relative", width: 72, height: 72, borderRadius: 10, overflow: "hidden" }}>
+                    <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                    <button
+                      onClick={() => handleRemovePhoto(idx)}
+                      style={{
+                        position: "absolute", top: 2, right: 2,
+                        width: 20, height: 20, borderRadius: "50%",
+                        background: "rgba(0,0,0,0.5)", color: "#fff",
+                        border: "none", cursor: "pointer",
+                        fontSize: 12, lineHeight: "20px", padding: 0,
+                      }}
+                    >&times;</button>
+                  </div>
+                ))}
+                {photoPreviews.length < 5 && (
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      width: 72, height: 72, borderRadius: 10,
+                      border: `1.5px dashed ${C.outline}66`,
+                      background: "none", cursor: "pointer",
+                      display: "flex", flexDirection: "column",
+                      alignItems: "center", justifyContent: "center", gap: 2,
+                      color: C.outline, fontFamily: FL, fontSize: 9,
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 20 }}>add_photo_alternate</span>
+                    추가
+                  </button>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+                multiple
+                onChange={handlePhotoSelect}
+                style={{ display: "none" }}
+              />
+            </Section>
+
             {/* 인스타 링크 */}
             <Section label="인스타 포스트 링크 (선택)">
               <input

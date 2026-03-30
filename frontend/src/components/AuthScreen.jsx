@@ -19,7 +19,7 @@ const FONT_LABEL    = "'Manrope', -apple-system, sans-serif";
 
 const KAKAO_KEY = process.env.REACT_APP_KAKAO_JS_KEY || "";
 
-export default function AuthScreen() {
+export default function AuthScreen({ embedded = false }) {
   const { login, register, kakaoLogin } = useUser();
   const [mode, setMode] = useState("login");
   const [nickname, setNickname] = useState("");
@@ -63,13 +63,13 @@ export default function AuthScreen() {
 
   return (
     <div style={{
-      position: "fixed", inset: 0,
+      ...(embedded ? {} : { position: "fixed", inset: 0, zIndex: 1000 }),
       background: C.bg,
-      display: "flex", zIndex: 1000,
+      display: "flex",
       fontFamily: FONT_LABEL,
     }}>
-      {/* 왼쪽 — 비주얼 패널 (PC) */}
-      <div style={{
+      {/* 왼쪽 — 비주얼 패널 (PC, 전체 화면 모드에서만) */}
+      {!embedded && <div style={{
         display: "none",
         width: "50%", position: "relative", overflow: "hidden",
         background: `linear-gradient(160deg, ${C.primaryDim} 0%, ${C.primary} 60%, #877a6f 100%)`,
@@ -110,7 +110,7 @@ export default function AuthScreen() {
           width: 180, height: 180, borderRadius: "50%",
           border: "1px solid rgba(255,246,239,0.08)",
         }} />
-      </div>
+      </div>}
 
       {/* 오른쪽 — 입력 패널 */}
       <div style={{
