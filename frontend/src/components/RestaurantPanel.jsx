@@ -390,6 +390,11 @@ export default function RestaurantPanel({
       {/* 댓글 펼침 */}
       {showComments && (
         <div style={{ marginTop: 6 }}>
+          {comments.length === 0 && (
+            <p style={{ margin: "0 0 8px", fontFamily: FL, fontSize: 12, color: C.outlineVariant, fontStyle: "italic" }}>
+              첫 댓글을 남겨보세요
+            </p>
+          )}
           {comments.map((c) => (
             <PanelCommentThread key={c.id} comment={c} depth={0} user={user}
               onReply={(c) => { setReplyTo(c); setTimeout(() => commentInputRef.current?.focus(), 0); }}

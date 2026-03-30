@@ -164,15 +164,33 @@ export default function App() {
   }, []);
 
   const handleActivityPlaceClick = useCallback((activity) => {
-    setSelectedRestaurant({
-      id: activity.place_id, name: activity.place_name,
-      lat: activity.place_lat, lng: activity.place_lng,
-      status: activity.place_status, user_id: activity.owner_id,
-      isPersonal: true, sources: [],
-    });
+    // Own places pass _original with full data; following items have activity shape
+    if (activity._original) {
+      setSelectedRestaurant({ ...activity._original, sources: [], isPersonal: true });
+    } else {
+      setSelectedRestaurant({
+        id: activity.place_id, name: activity.place_name,
+        address: activity.place_address,
+        lat: activity.place_lat, lng: activity.place_lng,
+        category: activity.place_category,
+        status: activity.place_status,
+        rating: activity.rating,
+        memo: activity.memo,
+        photo_url: activity.photo_url,
+        photo_urls: activity.photo_urls || [],
+        instagram_post_url: activity.instagram_post_url,
+        like_count: activity.like_count,
+        comment_count: activity.comment_count,
+        user_id: activity.owner_id,
+        owner_nickname: activity.owner_nickname,
+        isPersonal: true, sources: [],
+      });
+    }
     setActiveTab("map");
-    if (mapRef.current && window.naver) {
-      mapRef.current.setCenter(new window.naver.maps.LatLng(activity.place_lat, activity.place_lng));
+    const lat = activity.lat || activity.place_lat;
+    const lng = activity.lng || activity.place_lng;
+    if (mapRef.current && window.naver && lat && lng) {
+      mapRef.current.setCenter(new window.naver.maps.LatLng(lat, lng));
       mapRef.current.setZoom(16);
     }
   }, []);
