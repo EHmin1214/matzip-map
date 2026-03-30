@@ -22,6 +22,28 @@ const C = {
 };
 
 const isMobile = () => window.innerWidth <= 768;
+const KAKAO_KEY = process.env.REACT_APP_KAKAO_JS_KEY || "";
+const FRONTEND_URL = "https://myplace-map.vercel.app";
+
+function initKakao() {
+  if (!window.Kakao) return false;
+  if (!window.Kakao.isInitialized() && KAKAO_KEY) window.Kakao.init(KAKAO_KEY);
+  return window.Kakao.isInitialized();
+}
+
+function shareKakao({ title, description, imageUrl, linkUrl }) {
+  if (!initKakao()) { alert("카카오 SDK 로딩 실패"); return; }
+  window.Kakao.Share.sendDefault({
+    objectType: "feed",
+    content: {
+      title,
+      description,
+      imageUrl: imageUrl || `${FRONTEND_URL}/og-image.png`,
+      link: { mobileWebUrl: linkUrl, webUrl: linkUrl },
+    },
+    buttons: [{ title: "지도 보기", link: { mobileWebUrl: linkUrl, webUrl: linkUrl } }],
+  });
+}
 
 // ── 입력 필드 ────────────────────────────────────────────────
 function ProfileInput({ label, style: extraStyle = {}, ...props }) {
@@ -565,27 +587,46 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
             <Toggle value={isPublic} onChange={handlePublicToggle} />
           </div>
 
-          {/* 내 프로필 공유 링크 */}
+          {/* 내 프로필 공유 */}
           {isPublic && (
-            <button
-              onClick={() => {
-                const url = `${API_BASE}/og/@${user.nickname}`;
-                navigator.clipboard.writeText(url).then(() => {
-                  setSuccessMsg("프로필 링크가 복사됐어요!");
-                  setTimeout(() => setSuccessMsg(""), 2500);
-                });
-              }}
-              style={{
-                width: "100%", padding: "12px 14px",
-                background: C.primaryContainer, border: "none", borderRadius: 8,
-                cursor: "pointer", marginBottom: 16,
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                fontFamily: FL, fontSize: 12, fontWeight: 700, color: C.primary,
-              }}
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>share</span>
-              내 프로필 링크 복사
-            </button>
+            <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+              <button
+                onClick={() => {
+                  const url = `${API_BASE}/og/@${user.nickname}`;
+                  navigator.clipboard.writeText(url).then(() => {
+                    setSuccessMsg("프로필 링크가 복사됐어요!");
+                    setTimeout(() => setSuccessMsg(""), 2500);
+                  });
+                }}
+                style={{
+                  flex: 1, padding: "12px 14px",
+                  background: C.primaryContainer, border: "none", borderRadius: 8,
+                  cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  fontFamily: FL, fontSize: 12, fontWeight: 700, color: C.primary,
+                }}
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>share</span>
+                링크 복사
+              </button>
+              <button
+                onClick={() => shareKakao({
+                  title: `${user.nickname}의 공간`,
+                  description: "나만의 맛집 지도를 구경해보세요!",
+                  linkUrl: `${FRONTEND_URL}/@${user.nickname}`,
+                })}
+                style={{
+                  flex: 1, padding: "12px 14px",
+                  background: "#FEE500", border: "none", borderRadius: 8,
+                  cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  fontFamily: FL, fontSize: 12, fontWeight: 700, color: "#191919",
+                }}
+              >
+                <svg width="16" height="16" viewBox="0 0 18 18"><path fill="#191919" d="M9 1C4.58 1 1 3.79 1 7.21c0 2.17 1.45 4.08 3.64 5.18l-.93 3.44c-.08.3.26.54.52.37l4.12-2.74c.21.02.43.03.65.03 4.42 0 8-2.79 8-6.28S13.42 1 9 1z"/></svg>
+                카톡 공유
+              </button>
+            </div>
           )}
 
           {/* 푸시 알림 설정 */}
@@ -713,6 +754,25 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
           }}>
             팔로우 — {followingList.length} 팔로잉 · {followerList.length} 팔로워
           </p>
+
+          {/* 카카오톡으로 초대 */}
+          <button
+            onClick={() => shareKakao({
+              title: `${user.nickname}님이 초대합니다`,
+              description: "나만의 맛집 지도 '나의 공간'에서 맛집을 공유해요!",
+              linkUrl: `${FRONTEND_URL}/@${user.nickname}`,
+            })}
+            style={{
+              width: "100%", padding: "11px 14px",
+              background: "#FEE500", border: "none", borderRadius: 8,
+              cursor: "pointer", marginBottom: 14,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              fontFamily: FL, fontSize: 12, fontWeight: 700, color: "#191919",
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 18 18"><path fill="#191919" d="M9 1C4.58 1 1 3.79 1 7.21c0 2.17 1.45 4.08 3.64 5.18l-.93 3.44c-.08.3.26.54.52.37l4.12-2.74c.21.02.43.03.65.03 4.42 0 8-2.79 8-6.28S13.42 1 9 1z"/></svg>
+            카카오톡으로 친구 초대
+          </button>
 
           {/* 사용자 검색 */}
           <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
