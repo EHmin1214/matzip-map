@@ -22,7 +22,7 @@ from fastapi.responses import HTMLResponse
 from sqlalchemy import text
 from database import engine
 from models import Base
-from routers import accounts, crawl, restaurants, ad_check, search_place, personal_places
+from routers import accounts, crawl, restaurants, ad_check, search_place
 from routers import users, follows, places, folders, upload, push, lists
 
 Base.metadata.create_all(bind=engine)
@@ -74,7 +74,7 @@ app.include_router(crawl.router)
 app.include_router(restaurants.router)
 app.include_router(ad_check.router)
 app.include_router(search_place.router)
-app.include_router(personal_places.router)
+# personal_places.router 제거 — places.router가 동일 엔드포인트를 photo_urls 포함하여 처리
 app.include_router(folders.router)
 
 # 신규 라우터
