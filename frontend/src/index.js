@@ -16,9 +16,10 @@ root.render(
 
 reportWebVitals();
 
-// PWA 서비스워커 등록
+// 서비스워커 해제 (캐싱 문제 방지)
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  navigator.serviceWorker.getRegistrations().then((regs) => {
+    regs.forEach((r) => r.unregister());
   });
+  caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
 }
