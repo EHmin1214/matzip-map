@@ -32,7 +32,8 @@ class UpdateUserRequest(BaseModel):
     nickname: str | None = None
     pin: str | None = None
     instagram_url: str | None = None
-    blog_url: str | None = None        # ← 신규
+    blog_url: str | None = None
+    profile_photo_url: str | None = None
     is_public: bool | None = None
 
 
@@ -40,7 +41,8 @@ class UserResponse(BaseModel):
     id: int
     nickname: str
     instagram_url: str | None
-    blog_url: str | None               # ← 신규
+    blog_url: str | None
+    profile_photo_url: str | None
     is_public: bool
     follower_count: int
     following_count: int
@@ -55,7 +57,8 @@ class LoginResponse(BaseModel):
     user_id: int
     nickname: str
     instagram_url: str | None
-    blog_url: str | None               # ← 신규
+    blog_url: str | None
+    profile_photo_url: str | None
     is_public: bool
 
 
@@ -77,6 +80,7 @@ def _to_response(user: User, db: Session) -> UserResponse:
         nickname=user.nickname,
         instagram_url=user.instagram_url,
         blog_url=user.blog_url,
+        profile_photo_url=user.profile_photo_url,
         is_public=user.is_public,
         follower_count=follower_count,
         following_count=following_count,
@@ -100,6 +104,7 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)):
     db.refresh(user)
     return LoginResponse(user_id=user.id, nickname=user.nickname,
                          instagram_url=user.instagram_url, blog_url=user.blog_url,
+                         profile_photo_url=user.profile_photo_url,
                          is_public=user.is_public)
 
 
@@ -110,7 +115,21 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="닉네임 또는 PIN이 올바르지 않습니다.")
     return LoginResponse(user_id=user.id, nickname=user.nickname,
                          instagram_url=user.instagram_url, blog_url=user.blog_url,
+                         profile_photo_url=user.profile_photo_url,
                          is_public=user.is_public)
+
+
+@router.get("/search")
+def search_users(q: str, db: Session = Depends(get_db)):
+    """닉네임 부분 매칭 검색."""
+    if not q.strip():
+        return []
+    users = db.query(User).filter(User.nickname.ilike(f"%{q.strip()}%")).limit(20).all()
+    return [
+        {"id": u.id, "nickname": u.nickname, "profile_photo_url": u.profile_photo_url,
+         "instagram_url": u.instagram_url, "blog_url": u.blog_url, "is_public": u.is_public}
+        for u in users
+    ]
 
 
 @router.get("/{nickname}", response_model=UserResponse)
@@ -181,6 +200,7 @@ def kakao_login(body: KakaoLoginRequest, db: Session = Depends(get_db)):
         return LoginResponse(
             user_id=user.id, nickname=user.nickname,
             instagram_url=user.instagram_url, blog_url=user.blog_url,
+            profile_photo_url=user.profile_photo_url,
             is_public=user.is_public,
         )
 
@@ -203,6 +223,7 @@ def kakao_login(body: KakaoLoginRequest, db: Session = Depends(get_db)):
     return LoginResponse(
         user_id=user.id, nickname=user.nickname,
         instagram_url=user.instagram_url, blog_url=user.blog_url,
+        profile_photo_url=user.profile_photo_url,
         is_public=user.is_public,
     )
 
@@ -232,6 +253,9 @@ def update_user(user_id: int, body: UpdateUserRequest, db: Session = Depends(get
     if body.blog_url is not None:
         user.blog_url = body.blog_url or None
 
+    if body.profile_photo_url is not None:
+        user.profile_photo_url = body.profile_photo_url or None
+
     if body.is_public is not None:
         user.is_public = body.is_public
 
@@ -239,4 +263,5 @@ def update_user(user_id: int, body: UpdateUserRequest, db: Session = Depends(get
     db.refresh(user)
     return LoginResponse(user_id=user.id, nickname=user.nickname,
                          instagram_url=user.instagram_url, blog_url=user.blog_url,
+                         profile_photo_url=user.profile_photo_url,
                          is_public=user.is_public)

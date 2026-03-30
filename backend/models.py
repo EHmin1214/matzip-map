@@ -94,6 +94,7 @@ class User(Base):
     kakao_id: Mapped[str | None] = mapped_column(String(50), unique=True, nullable=True)
     instagram_url: Mapped[str | None] = mapped_column(String(200), nullable=True)
     blog_url: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    profile_photo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_public: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 

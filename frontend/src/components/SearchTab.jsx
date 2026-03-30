@@ -1,6 +1,6 @@
 // src/components/SearchTab.jsx
 // 디자인: desktopsearch.html (Discovery/Search) 기반
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { useUser, API_BASE } from "../context/UserContext";
 import SavePlaceModal from "./SavePlaceModal";
@@ -23,28 +23,65 @@ const isMobile = () => window.innerWidth <= 768;
 
 const SUGGESTIONS = ["조용한 카페", "이자카야", "브런치", "빵집", "스시"];
 
-export default function SearchTab({ onPlaceAdded, personalPlaces = [] }) {
+export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUserProfile }) {
   const { user } = useUser();
   const mobile = isMobile();
   const savedPlaceIds = new Set(personalPlaces.map((p) => p.naver_place_id).filter(Boolean));
+  const [searchMode, setSearchMode] = useState("place"); // "place" | "person"
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [results, setResults] = useState([]);
+  const [userResults, setUserResults] = useState([]);
+  const [followingIds, setFollowingIds] = useState(new Set());
+  const [followActionLoading, setFollowActionLoading] = useState(null);
   const [error, setError] = useState("");
   const [pendingPlace, setPendingPlace] = useState(null);
   const [savedMsg, setSavedMsg] = useState("");
 
+  // 팔로잉 목록 로드
+  useEffect(() => {
+    if (!user) return;
+    axios.get(`${API_BASE}/follows/${user.user_id}/following`)
+      .then((res) => setFollowingIds(new Set(res.data.map((f) => f.id || f.user_id))))
+      .catch(() => {});
+  }, [user]);
+
   const handleSearch = async (q = query) => {
     if (!q.trim()) return;
-    setError(""); setResults([]);
+    setError(""); setResults([]); setUserResults([]);
     setSearching(true);
     try {
-      const res = await axios.get(`${API_BASE}/search-place/`, { params: { name: q.trim() } });
-      if (res.data && res.data.length > 0) setResults(res.data);
-      else setError("공간을 찾을 수 없어요");
+      if (searchMode === "place") {
+        const res = await axios.get(`${API_BASE}/search-place/`, { params: { name: q.trim() } });
+        if (res.data && res.data.length > 0) setResults(res.data);
+        else setError("공간을 찾을 수 없어요");
+      } else {
+        const res = await axios.get(`${API_BASE}/users/search?q=${encodeURIComponent(q.trim())}`);
+        const filtered = Array.isArray(res.data) ? res.data.filter((u) => u.id !== user?.user_id) : [];
+        if (filtered.length > 0) setUserResults(filtered);
+        else setError("사용자를 찾을 수 없어요");
+      }
     } catch (e) {
       setError("검색 실패. 다시 시도해주세요");
     } finally { setSearching(false); }
+  };
+
+  const handleFollow = async (targetId) => {
+    if (!user) return;
+    setFollowActionLoading(targetId);
+    try {
+      await axios.post(`${API_BASE}/follows/${targetId}?follower_id=${user.user_id}`);
+      setFollowingIds((prev) => new Set([...prev, targetId]));
+    } catch {} finally { setFollowActionLoading(null); }
+  };
+
+  const handleUnfollow = async (targetId) => {
+    if (!user) return;
+    setFollowActionLoading(targetId);
+    try {
+      await axios.delete(`${API_BASE}/follows/${targetId}?follower_id=${user.user_id}`);
+      setFollowingIds((prev) => { const s = new Set(prev); s.delete(targetId); return s; });
+    } catch {} finally { setFollowActionLoading(null); }
   };
 
   const handleSave = async (place) => {
@@ -111,6 +148,30 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [] }) {
           </div>
         </div>
 
+        {/* 검색 모드 토글 */}
+        <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+          {[
+            { key: "place", label: "장소", icon: "location_on" },
+            { key: "person", label: "사람", icon: "person_search" },
+          ].map((m) => (
+            <button key={m.key}
+              onClick={() => { setSearchMode(m.key); setResults([]); setUserResults([]); setError(""); }}
+              style={{
+                flex: 1, padding: "10px 16px",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                background: searchMode === m.key ? C.primary : C.containerLow,
+                color: searchMode === m.key ? "#fff6ef" : "#78716c",
+                border: "none", borderRadius: 10, cursor: "pointer",
+                fontFamily: FL, fontSize: 13, fontWeight: 700,
+                transition: "all 0.15s",
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{m.icon}</span>
+              {m.label}
+            </button>
+          ))}
+        </div>
+
         {/* 검색창 */}
         <section style={{ marginBottom: 48 }}>
           <div style={{ position: "relative" }}>
@@ -124,7 +185,7 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [] }) {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              placeholder="공간, 위치, 분위기로 검색..."
+              placeholder={searchMode === "place" ? "공간, 위치, 분위기로 검색..." : "닉네임으로 검색..."}
               autoFocus={!mobile}
               style={{
                 width: "100%", padding: "20px 20px 20px 54px",
@@ -146,28 +207,30 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [] }) {
             </div>
           </div>
 
-          {/* 추천 태그 */}
-          <div style={{ marginTop: 16, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
-            <span style={{ fontFamily: FL, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.15em", color: "#a8a29e", marginRight: 4 }}>
-              Suggested:
-            </span>
-            {SUGGESTIONS.map((s) => (
-              <button key={s} onClick={() => { setQuery(s); handleSearch(s); }}
-                style={{
-                  padding: "5px 14px",
-                  borderRadius: 999, border: "none",
-                  background: C.containerLow,
-                  fontFamily: FL, fontSize: 10, fontWeight: 600,
-                  textTransform: "uppercase", letterSpacing: "0.1em",
-                  color: "#78716c", cursor: "pointer", transition: "all 0.15s",
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.background = C.primaryContainer; e.currentTarget.style.color = C.primary; }}
-                onMouseLeave={(e) => { e.currentTarget.style.background = C.containerLow; e.currentTarget.style.color = "#78716c"; }}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
+          {/* 추천 태그 (장소 모드만) */}
+          {searchMode === "place" && (
+            <div style={{ marginTop: 16, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+              <span style={{ fontFamily: FL, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.15em", color: "#a8a29e", marginRight: 4 }}>
+                Suggested:
+              </span>
+              {SUGGESTIONS.map((s) => (
+                <button key={s} onClick={() => { setQuery(s); handleSearch(s); }}
+                  style={{
+                    padding: "5px 14px",
+                    borderRadius: 999, border: "none",
+                    background: C.containerLow,
+                    fontFamily: FL, fontSize: 10, fontWeight: 600,
+                    textTransform: "uppercase", letterSpacing: "0.1em",
+                    color: "#78716c", cursor: "pointer", transition: "all 0.15s",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.background = C.primaryContainer; e.currentTarget.style.color = C.primary; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = C.containerLow; e.currentTarget.style.color = "#78716c"; }}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* 저장 성공 메시지 */}
@@ -194,7 +257,90 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [] }) {
           </div>
         )}
 
-        {/* 검색 결과 */}
+        {/* 사람 검색 결과 */}
+        {userResults.length > 0 && (
+          <section style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <span style={{
+              fontFamily: FL, fontSize: 9, fontWeight: 600,
+              textTransform: "uppercase", letterSpacing: "0.2em",
+              color: C.primary, padding: "0 4px",
+            }}>
+              검색된 사람
+            </span>
+            {userResults.map((u) => {
+              const isFollowing = followingIds.has(u.id);
+              return (
+                <div key={u.id} style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  padding: "12px 16px", borderRadius: 12,
+                  background: C.containerLowest, transition: "background 0.2s",
+                }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = C.bg}
+                  onMouseLeave={(e) => e.currentTarget.style.background = C.containerLowest}
+                >
+                  <div
+                    onClick={() => onViewUserProfile?.(u.nickname)}
+                    style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer", flex: 1 }}
+                  >
+                    <div style={{
+                      width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
+                      background: u.profile_photo_url
+                        ? `url(${u.profile_photo_url}) center/cover`
+                        : `linear-gradient(135deg, #595149, #655d54)`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      fontFamily: "'Noto Serif', Georgia, serif", fontStyle: "italic",
+                      fontSize: 16, color: "#fff6ef", fontWeight: 700,
+                    }}>
+                      {!u.profile_photo_url && u.nickname?.[0]?.toUpperCase()}
+                    </div>
+                    <div>
+                      <p style={{ margin: 0, fontFamily: FL, fontSize: 14, fontWeight: 600, color: C.onSurface }}>
+                        {u.nickname}
+                      </p>
+                      {u.instagram_url && (
+                        <p style={{ margin: "2px 0 0", fontFamily: FL, fontSize: 10, color: "#E1306C" }}>
+                          Instagram
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {isFollowing ? (
+                    <button
+                      onClick={() => handleUnfollow(u.id)}
+                      disabled={followActionLoading === u.id}
+                      style={{
+                        padding: "6px 14px",
+                        border: "1px solid rgba(101,93,84,0.15)",
+                        borderRadius: 8, background: "none",
+                        fontFamily: FL, fontSize: 11, fontWeight: 600,
+                        color: C.outlineVariant, cursor: "pointer",
+                        opacity: followActionLoading === u.id ? 0.5 : 1,
+                      }}
+                    >
+                      팔로잉
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleFollow(u.id)}
+                      disabled={followActionLoading === u.id}
+                      style={{
+                        padding: "6px 14px", border: "none", borderRadius: 8,
+                        background: C.primary, color: "#fff6ef",
+                        fontFamily: FL, fontSize: 11, fontWeight: 700,
+                        cursor: "pointer",
+                        opacity: followActionLoading === u.id ? 0.5 : 1,
+                      }}
+                    >
+                      팔로우
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </section>
+        )}
+
+        {/* 장소 검색 결과 */}
         {results.length > 0 && (
           <section style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {results.map((place, idx) => (
@@ -302,16 +448,16 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [] }) {
         )}
 
         {/* 초기 상태 — 빈 화면 */}
-        {results.length === 0 && !error && !savedMsg && !searching && (
+        {results.length === 0 && userResults.length === 0 && !error && !savedMsg && !searching && (
           <div style={{ textAlign: "center", padding: "80px 0" }}>
             <span className="material-symbols-outlined" style={{ fontSize: 40, color: "#d6d3d1", display: "block", marginBottom: 20 }}>
-              search
+              {searchMode === "place" ? "search" : "person_search"}
             </span>
             <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 18, color: "#a8a29e", margin: "0 0 8px" }}>
-              가게 이름으로 검색해보세요
+              {searchMode === "place" ? "가게 이름으로 검색해보세요" : "닉네임으로 사람을 찾아보세요"}
             </p>
             <p style={{ fontFamily: FL, fontSize: 11, color: "#a8a29e", letterSpacing: "0.1em" }}>
-              예: 을지면옥, 스타벅스 강남점
+              {searchMode === "place" ? "예: 을지면옥, 스타벅스 강남점" : "팔로우하고 서로의 공간을 공유하세요"}
             </p>
           </div>
         )}

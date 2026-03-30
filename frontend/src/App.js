@@ -15,6 +15,7 @@ import LocationButton from "./components/LocationButton";
 import MapFilter from "./components/MapFilter";
 import RefreshButton from "./components/RefreshButton";
 import PublicProfile from "./components/PublicProfile";
+import UserProfileView from "./components/UserProfileView";
 import PublicListPage from "./components/PublicListPage";
 import OnboardingGuide from "./components/OnboardingGuide";
 import LoginPrompt from "./components/LoginPrompt";
@@ -50,6 +51,7 @@ export default function App() {
   const [followingPlacesMap, setFollowingPlacesMap] = useState({});
   const [followingList, setFollowingList] = useState([]);
   const [folders, setFolders] = useState([]);
+  const [viewingUserNickname, setViewingUserNickname] = useState(null);
 
   const isMobile = window.innerWidth <= 768;
   const showMap = activeTab === "map";
@@ -163,6 +165,10 @@ export default function App() {
     setSelectedRestaurant({ ...place, sources: [], isPersonal: true });
   }, []);
 
+  const handleViewUserProfile = useCallback((nickname) => {
+    setViewingUserNickname(nickname);
+  }, []);
+
   const handleActivityPlaceClick = useCallback((activity) => {
     // Own places pass _original with full data; following items have activity shape
     if (activity._original) {
@@ -270,10 +276,10 @@ export default function App() {
   };
 
   const renderPanel = (tab) => {
-    if (tab === "search")        return <SearchTab onPlaceAdded={addPlace} personalPlaces={personalPlaces} />;
+    if (tab === "search")        return <SearchTab onPlaceAdded={addPlace} personalPlaces={personalPlaces} onViewUserProfile={handleViewUserProfile} />;
     if (tab === "feed")          return <FeedTab personalPlaces={personalPlaces} onPlaceClick={handleActivityPlaceClick} onDataChange={loadPersonalPlaces} />;
     if (tab === "notifications") return <NotificationTab onUnreadChange={setUnreadCount} />;
-    if (tab === "profile")       return <ProfilePage personalPlaces={personalPlaces} onViewMap={() => setActiveTab("map")} onPlaceClick={(p) => {
+    if (tab === "profile")       return <ProfilePage personalPlaces={personalPlaces} onViewMap={() => setActiveTab("map")} onViewUserProfile={handleViewUserProfile} onPlaceClick={(p) => {
       setSelectedRestaurant({ id: p.id, name: p.name, lat: p.lat, lng: p.lng, status: p.status, user_id: p.user_id, isPersonal: true, sources: [] });
       setActiveTab("map");
       if (mapRef.current && window.naver) { mapRef.current.setCenter(new window.naver.maps.LatLng(p.lat, p.lng)); mapRef.current.setZoom(16); }
@@ -511,6 +517,14 @@ export default function App() {
             />
           )}
         </>
+      )}
+
+      {/* 다른 사용자 프로필 오버레이 */}
+      {viewingUserNickname && (
+        <UserProfileView
+          nickname={viewingUserNickname}
+          onClose={() => setViewingUserNickname(null)}
+        />
       )}
 
       <style>{`

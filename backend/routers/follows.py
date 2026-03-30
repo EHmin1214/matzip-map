@@ -24,6 +24,7 @@ class FollowUserResponse(BaseModel):
     nickname: str
     instagram_url: str | None
     blog_url: str | None
+    profile_photo_url: str | None = None
     is_public: bool
     place_count: int
     status: str | None = None
@@ -126,6 +127,7 @@ def get_following(user_id: int, db: Session = Depends(get_db)):
                 id=u.id, nickname=u.nickname,
                 instagram_url=u.instagram_url,
                 blog_url=getattr(u, 'blog_url', None),
+                profile_photo_url=getattr(u, 'profile_photo_url', None),
                 is_public=u.is_public,
                 place_count=_place_count(db, u.id),
                 status="accepted",
@@ -148,6 +150,7 @@ def get_followers(user_id: int, db: Session = Depends(get_db)):
                 id=u.id, nickname=u.nickname,
                 instagram_url=u.instagram_url,
                 blog_url=getattr(u, 'blog_url', None),
+                profile_photo_url=getattr(u, 'profile_photo_url', None),
                 is_public=u.is_public,
                 place_count=_place_count(db, u.id),
                 status="accepted",
@@ -170,6 +173,7 @@ def get_pending_sent(user_id: int, db: Session = Depends(get_db)):
                 id=u.id, nickname=u.nickname,
                 instagram_url=u.instagram_url,
                 blog_url=getattr(u, 'blog_url', None),
+                profile_photo_url=getattr(u, 'profile_photo_url', None),
                 is_public=u.is_public,
                 place_count=0,
                 status="pending",

@@ -355,10 +355,12 @@ function PlaceFeedCard({ place: p, mobile }) {
   );
 }
 
-export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceClick }) {
+export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceClick, onViewUserProfile }) {
   const { user, updateUser, logout } = useUser();
   const mobile = isMobile();
   const [showMyPlaces, setShowMyPlaces] = useState(false);
+  const photoInputRef = useRef(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [editing, setEditing]       = useState(false);
   const [nickname, setNickname]     = useState(user?.nickname || "");
   const [instagramUrl, setInstagramUrl] = useState(user?.instagram_url || "");
@@ -486,6 +488,24 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
     } catch (e) { setIsPublic(!newVal); }
   };
 
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const uploadRes = await axios.post(`${API_BASE}/upload/photo?user_id=${user.user_id}`, form);
+      const url = uploadRes.data.url;
+      await axios.patch(`${API_BASE}/users/${user.user_id}`, { profile_photo_url: url });
+      updateUser({ profile_photo_url: url });
+      setSuccessMsg("프로필 사진이 변경됐어요!");
+      setTimeout(() => setSuccessMsg(""), 2500);
+    } catch (err) {
+      setError("사진 업로드 실패");
+    } finally { setUploadingPhoto(false); }
+  };
+
   const handlePinChange = async () => {
     setPinError("");
     if (!/^\d{4}$/.test(currentPin)) { setPinError("현재 PIN 4자리를 입력해주세요"); return; }
@@ -534,14 +554,31 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
         <Card>
           {/* 아바타 + 이름 */}
           <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
-            <div style={{
-              width: 52, height: 52, borderRadius: "50%",
-              background: `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`,
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontFamily: FH, fontStyle: "italic",
-              fontSize: 22, color: "#fff6ef", fontWeight: 700, flexShrink: 0,
-            }}>
-              {user.nickname?.[0]?.toUpperCase()}
+            <input ref={photoInputRef} type="file" accept="image/*" style={{ display: "none" }}
+              onChange={handlePhotoUpload} />
+            <div
+              onClick={() => photoInputRef.current?.click()}
+              style={{
+                width: 52, height: 52, borderRadius: "50%",
+                background: user.profile_photo_url
+                  ? `url(${user.profile_photo_url}) center/cover`
+                  : `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontFamily: FH, fontStyle: "italic",
+                fontSize: 22, color: "#fff6ef", fontWeight: 700, flexShrink: 0,
+                cursor: "pointer", position: "relative",
+                opacity: uploadingPhoto ? 0.5 : 1, transition: "opacity 0.2s",
+              }}
+            >
+              {!user.profile_photo_url && user.nickname?.[0]?.toUpperCase()}
+              <div style={{
+                position: "absolute", bottom: -2, right: -2,
+                width: 18, height: 18, borderRadius: "50%",
+                background: C.primaryContainer, border: `2px solid ${C.surfaceLowest}`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 10, color: C.primary }}>edit</span>
+              </div>
             </div>
             <div>
               <h2 style={{ margin: "0 0 4px", fontFamily: FH, fontSize: 19, fontWeight: 700, color: C.onSurface }}>
@@ -553,7 +590,7 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
               <div style={{ display: "flex", gap: 10, marginTop: 5 }}>
                 {user.instagram_url && (
                   <a href={user.instagram_url} target="_blank" rel="noreferrer"
-                    style={{ fontFamily: FL, fontSize: 11, color: C.primary, textDecoration: "none", fontWeight: 600 }}>
+                    style={{ fontFamily: FL, fontSize: 11, color: "#E1306C", textDecoration: "none", fontWeight: 600 }}>
                     Instagram
                   </a>
                 )}
@@ -774,89 +811,6 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
             카카오톡으로 친구 초대
           </button>
 
-          {/* 사용자 검색 */}
-          <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-            <input
-              value={followSearch}
-              onChange={(e) => setFollowSearch(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleFollowSearch()}
-              placeholder="닉네임으로 검색"
-              style={{
-                flex: 1, padding: "9px 12px",
-                background: C.surfaceLow, border: "none", borderRadius: 8,
-                fontFamily: FL, fontSize: 12, color: C.onSurface,
-                outline: "none", boxSizing: "border-box",
-              }}
-            />
-            <button
-              onClick={handleFollowSearch}
-              disabled={followSearching}
-              style={{
-                padding: "9px 14px", border: "none", borderRadius: 8,
-                background: C.primary, color: "#fff6ef",
-                fontFamily: FL, fontSize: 11, fontWeight: 700,
-                cursor: followSearching ? "not-allowed" : "pointer",
-                opacity: followSearching ? 0.6 : 1,
-              }}
-            >
-              {followSearching ? "…" : "검색"}
-            </button>
-          </div>
-
-          {/* 검색 결과 */}
-          {followSearchResults.length > 0 && (
-            <div style={{ marginBottom: 16 }}>
-              <p style={{
-                margin: "0 0 8px", fontFamily: FL, fontSize: 10, fontWeight: 600,
-                color: C.onSurfaceVariant,
-              }}>
-                검색 결과
-              </p>
-              {followSearchResults.map((u) => {
-                const alreadyFollowing = followingList.some((f) => f.id === u.id || f.user_id === u.id);
-                return (
-                  <div key={u.id} style={{
-                    display: "flex", alignItems: "center", justifyContent: "space-between",
-                    padding: "8px 10px", borderRadius: 8,
-                    background: C.surfaceLow, marginBottom: 4,
-                  }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{
-                        width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
-                        background: `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontFamily: FH, fontStyle: "italic",
-                        fontSize: 13, color: "#fff6ef", fontWeight: 700,
-                      }}>
-                        {u.nickname?.[0]?.toUpperCase()}
-                      </div>
-                      <span style={{ fontFamily: FL, fontSize: 13, fontWeight: 600, color: C.onSurface }}>
-                        {u.nickname}
-                      </span>
-                    </div>
-                    {alreadyFollowing ? (
-                      <span style={{ fontFamily: FL, fontSize: 10, color: C.outlineVariant }}>팔로잉</span>
-                    ) : (
-                      <button
-                        onClick={() => handleFollow(u.id)}
-                        disabled={followActionLoading === u.id}
-                        style={{
-                          padding: "5px 12px", border: "none", borderRadius: 6,
-                          background: C.primaryContainer, color: C.primary,
-                          fontFamily: FL, fontSize: 11, fontWeight: 700,
-                          cursor: followActionLoading === u.id ? "not-allowed" : "pointer",
-                          opacity: followActionLoading === u.id ? 0.6 : 1,
-                        }}
-                      >
-                        팔로우
-                      </button>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
           {/* 팔로잉 목록 */}
           {followingList.length > 0 && (
             <div style={{ marginBottom: 14 }}>
@@ -872,15 +826,20 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
                   padding: "8px 10px", borderRadius: 8,
                   background: C.surfaceLow, marginBottom: 4,
                 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div
+                    onClick={() => onViewUserProfile?.(u.nickname)}
+                    style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
+                  >
                     <div style={{
                       width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
-                      background: `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`,
+                      background: u.profile_photo_url
+                        ? `url(${u.profile_photo_url}) center/cover`
+                        : `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`,
                       display: "flex", alignItems: "center", justifyContent: "center",
                       fontFamily: FH, fontStyle: "italic",
                       fontSize: 13, color: "#fff6ef", fontWeight: 700,
                     }}>
-                      {u.nickname?.[0]?.toUpperCase()}
+                      {!u.profile_photo_url && u.nickname?.[0]?.toUpperCase()}
                     </div>
                     <span style={{ fontFamily: FL, fontSize: 13, fontWeight: 600, color: C.onSurface }}>
                       {u.nickname}
@@ -915,19 +874,25 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
                 팔로워
               </p>
               {followerList.map((u) => (
-                <div key={u.id || u.user_id} style={{
-                  display: "flex", alignItems: "center",
-                  padding: "8px 10px", borderRadius: 8,
-                  background: C.surfaceLow, marginBottom: 4, gap: 10,
-                }}>
+                <div key={u.id || u.user_id}
+                  onClick={() => onViewUserProfile?.(u.nickname)}
+                  style={{
+                    display: "flex", alignItems: "center",
+                    padding: "8px 10px", borderRadius: 8,
+                    background: C.surfaceLow, marginBottom: 4, gap: 10,
+                    cursor: "pointer",
+                  }}
+                >
                   <div style={{
                     width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
-                    background: `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`,
+                    background: u.profile_photo_url
+                      ? `url(${u.profile_photo_url}) center/cover`
+                      : `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`,
                     display: "flex", alignItems: "center", justifyContent: "center",
                     fontFamily: FH, fontStyle: "italic",
                     fontSize: 13, color: "#fff6ef", fontWeight: 700,
                   }}>
-                    {u.nickname?.[0]?.toUpperCase()}
+                    {!u.profile_photo_url && u.nickname?.[0]?.toUpperCase()}
                   </div>
                   <span style={{ fontFamily: FL, fontSize: 13, fontWeight: 600, color: C.onSurface }}>
                     {u.nickname}
@@ -937,12 +902,12 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
             </div>
           )}
 
-          {followingList.length === 0 && followerList.length === 0 && followSearchResults.length === 0 && (
+          {followingList.length === 0 && followerList.length === 0 && (
             <p style={{
               fontFamily: FH, fontStyle: "italic", fontSize: 13,
               color: C.outlineVariant, margin: 0, textAlign: "center",
             }}>
-              닉네임을 검색해서 팔로우해보세요
+              검색 탭에서 사람을 찾아 팔로우해보세요
             </p>
           )}
         </Card>
