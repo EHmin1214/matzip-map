@@ -1,36 +1,45 @@
 // src/components/MapFilter.jsx
-// 지도 상단 필터 바 — 미니멀 텍스트 pill
+// 지도 우측 세로 컨트롤 — 이모지 상태 필터 + 팔로잉 선택
 import { useState, useRef } from "react";
 
 const FL = "'Manrope', -apple-system, sans-serif";
 const C = {
   primary:          "#655d54",
   primaryContainer: "#ede0d5",
-  bg:               "#faf9f6",
-  surfaceLow:       "#f4f4f0",
-  container:        "#edeeea",
+  bg:               "rgba(250,249,246,0.94)",
   outlineVariant:   "#afb3ae",
 };
 
 const STATUS_FILTERS = [
-  { value: null,              label: "전체" },
-  { value: "want_to_go",      label: "가고싶어요" },
-  { value: "visited",         label: "가봤어요" },
-  { value: "want_revisit",    label: "또 가고싶어요" },
-  { value: "not_recommended", label: "별로" },
+  { value: "want_to_go",      emoji: "🔖" },
+  { value: "visited",         emoji: "✅" },
+  { value: "want_revisit",    emoji: "❤️" },
+  { value: "not_recommended", emoji: "👎" },
 ];
 
 const FOLLOWING_COLORS = ["#3B8BD4","#1D9E75","#BA7517","#7F77DD","#D4537E","#0F6E56"];
 const getColor = (idx) => FOLLOWING_COLORS[idx % FOLLOWING_COLORS.length];
 
-const isMobile = () => window.innerWidth <= 768;
+const GLASS_BTN = {
+  width: 38, height: 38,
+  borderRadius: "50%",
+  background: C.bg,
+  backdropFilter: "blur(12px)",
+  WebkitBackdropFilter: "blur(12px)",
+  border: "none",
+  boxShadow: "0 2px 16px rgba(101,93,84,0.10)",
+  cursor: "pointer",
+  display: "flex", alignItems: "center", justifyContent: "center",
+  WebkitTapHighlightColor: "transparent",
+  flexShrink: 0,
+  transition: "box-shadow 0.15s",
+};
 
 export default function MapFilter({
-  activeFilter, onFilterChange, sidebarWidth = 0,
+  activeFilter, onFilterChange,
   followingList = [], selectedFollowingIds = [], onToggleFollowing,
   showPersonal, onTogglePersonal,
 }) {
-  const mobile = isMobile();
   const [orderedFollowing, setOrderedFollowing] = useState(followingList);
   const longPressTimer = useRef(null);
   const [draggingId, setDraggingId] = useState(null);
@@ -67,137 +76,103 @@ export default function MapFilter({
     setDraggingId(null); setDragOverId(null);
   };
 
-  const hasFollowing = orderedFollowing.length > 0;
-
   return (
     <div style={{
-      position: "fixed",
-      top: 14,
-      left: mobile ? 8 : sidebarWidth + 14,
-      right: mobile ? 52 : 60,
-      zIndex: 25,
-      display: "flex",
-      flexDirection: "column",
-      gap: 6,
-      pointerEvents: "none",
+      display: "flex", flexDirection: "column",
+      alignItems: "flex-end", gap: 8,
     }}>
-      {/* ── 상태 필터 pill ────────────────────────────── */}
-      <div style={{ display: "flex", justifyContent: "center", pointerEvents: "auto" }}>
+      {/* 상태 이모지 필터 */}
+      {STATUS_FILTERS.map((f) => {
+        const isActive = activeFilter === f.value;
+        return (
+          <button
+            key={f.value}
+            onClick={() => onFilterChange(isActive ? null : f.value)}
+            title={f.value}
+            style={{
+              ...GLASS_BTN,
+              background: isActive ? C.primaryContainer : C.bg,
+              boxShadow: isActive
+                ? "0 2px 16px rgba(101,93,84,0.18)"
+                : "0 2px 16px rgba(101,93,84,0.10)",
+              fontSize: 17,
+            }}
+          >
+            {f.emoji}
+          </button>
+        );
+      })}
+
+      {/* 내 맛집 토글 */}
+      <button
+        onClick={onTogglePersonal}
+        title="내 맛집"
+        style={{
+          ...GLASS_BTN,
+          background: showPersonal ? C.primaryContainer : C.bg,
+          color: showPersonal ? C.primary : C.outlineVariant,
+          boxShadow: showPersonal
+            ? "0 2px 16px rgba(101,93,84,0.18)"
+            : "0 2px 16px rgba(101,93,84,0.10)",
+        }}
+      >
+        <span className="material-symbols-outlined" style={{ fontSize: 17 }}>
+          person_pin
+        </span>
+      </button>
+
+      {/* 팔로잉 선택 — 세로 스크롤 */}
+      {orderedFollowing.length > 0 && (
         <div style={{
-          display: "inline-flex", alignItems: "center", gap: 2,
-          background: "rgba(250,249,246,0.94)",
-          backdropFilter: "blur(16px)",
-          WebkitBackdropFilter: "blur(16px)",
-          padding: "4px 5px",
-          borderRadius: 999,
-          boxShadow: "0 4px 20px rgba(101,93,84,0.08)",
-          maxWidth: "calc(100vw - 80px)",
-          overflowX: "auto",
+          display: "flex", flexDirection: "column",
+          alignItems: "flex-end", gap: 6,
+          maxHeight: 200,
+          overflowY: "auto",
           msOverflowStyle: "none", scrollbarWidth: "none",
         }}>
-          {STATUS_FILTERS.map((f) => {
-            const isActive = activeFilter === f.value;
+          {orderedFollowing.map((f) => {
+            const color = getColor(orderedFollowing.findIndex((x) => x.id === f.id));
+            const isSelected = selectedFollowingIds.includes(f.id);
+            const isDragging = draggingId === f.id;
+
             return (
               <button
-                key={String(f.value)}
-                onClick={() => onFilterChange(isActive ? null : f.value)}
+                key={f.id}
+                onClick={() => !draggingId && onToggleFollowing(f.id)}
+                onMouseDown={() => handleLongPressStart(f.id)}
+                onMouseUp={() => { handleLongPressEnd(); if (draggingId) handleDrop(f.id); }}
+                onMouseLeave={handleLongPressEnd}
+                onMouseEnter={() => { if (draggingId) setDragOverId(f.id); }}
+                onTouchStart={() => handleLongPressStart(f.id)}
+                onTouchEnd={() => { handleLongPressEnd(); if (draggingId && dragOverId) handleDrop(dragOverId); }}
                 style={{
-                  padding: mobile ? "5px 9px" : "5px 12px",
+                  padding: "5px 10px 5px 8px",
                   border: "none", borderRadius: 999,
-                  background: isActive ? C.primaryContainer : "transparent",
-                  color: isActive ? C.primary : C.outlineVariant,
+                  background: isSelected ? color : C.bg,
+                  backdropFilter: "blur(12px)",
+                  WebkitBackdropFilter: "blur(12px)",
+                  color: isSelected ? "white" : C.outlineVariant,
                   fontFamily: FL, fontSize: 11,
-                  fontWeight: isActive ? 700 : 500,
-                  cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
-                  transition: "all 0.15s",
+                  fontWeight: isSelected ? 600 : 400,
+                  cursor: isDragging ? "grabbing" : "pointer",
+                  whiteSpace: "nowrap", flexShrink: 0,
+                  opacity: isDragging ? 0.4 : 1,
+                  transition: "all 0.12s",
                   WebkitTapHighlightColor: "transparent",
-                  letterSpacing: "0.01em",
+                  userSelect: "none",
+                  boxShadow: "0 2px 12px rgba(101,93,84,0.08)",
+                  display: "flex", alignItems: "center", gap: 5,
                 }}
               >
-                {/* 모바일: 첫 글자만 */}
-                {mobile && f.value !== null
-                  ? f.label.slice(0, 2)
-                  : f.label
-                }
+                <span style={{
+                  width: 7, height: 7, borderRadius: "50%",
+                  background: isSelected ? "rgba(255,255,255,0.7)" : color,
+                  flexShrink: 0,
+                }} />
+                {f.nickname}
               </button>
             );
           })}
-
-          {/* 내 맛집 토글 */}
-          {(hasFollowing || !mobile) && (
-            <>
-              <div style={{ width: 1, height: 14, background: "rgba(101,93,84,0.12)", margin: "0 3px", flexShrink: 0 }} />
-              <button
-                onClick={onTogglePersonal}
-                style={{
-                  padding: "5px 10px",
-                  border: "none", borderRadius: 999,
-                  background: showPersonal ? C.primaryContainer : "transparent",
-                  color: showPersonal ? C.primary : C.outlineVariant,
-                  fontFamily: FL, fontSize: 11,
-                  fontWeight: showPersonal ? 700 : 500,
-                  cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0,
-                  transition: "all 0.15s",
-                  WebkitTapHighlightColor: "transparent",
-                }}
-              >
-                {mobile ? "나" : "내 맛집"}
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* ── 팔로잉 선택 ───────────────────────────────── */}
-      {hasFollowing && (
-        <div style={{ display: "flex", justifyContent: "center", pointerEvents: "auto" }}>
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: 3,
-            background: "rgba(250,249,246,0.92)",
-            backdropFilter: "blur(16px)",
-            WebkitBackdropFilter: "blur(16px)",
-            padding: "4px 5px",
-            borderRadius: 999,
-            boxShadow: "0 2px 12px rgba(101,93,84,0.07)",
-            maxWidth: "calc(100vw - 80px)",
-            overflowX: "auto",
-            msOverflowStyle: "none", scrollbarWidth: "none",
-          }}>
-            {orderedFollowing.map((f) => {
-              const color = getColor(orderedFollowing.findIndex((x) => x.id === f.id));
-              const isSelected = selectedFollowingIds.includes(f.id);
-              const isDragging = draggingId === f.id;
-
-              return (
-                <button
-                  key={f.id}
-                  onClick={() => !draggingId && onToggleFollowing(f.id)}
-                  onMouseDown={() => handleLongPressStart(f.id)}
-                  onMouseUp={() => { handleLongPressEnd(); if (draggingId) handleDrop(f.id); }}
-                  onMouseLeave={handleLongPressEnd}
-                  onMouseEnter={() => { if (draggingId) setDragOverId(f.id); }}
-                  onTouchStart={() => handleLongPressStart(f.id)}
-                  onTouchEnd={() => { handleLongPressEnd(); if (draggingId && dragOverId) handleDrop(dragOverId); }}
-                  style={{
-                    padding: "5px 10px",
-                    border: "none", borderRadius: 999,
-                    background: isSelected ? color : "transparent",
-                    color: isSelected ? "white" : C.outlineVariant,
-                    fontFamily: FL, fontSize: 11,
-                    fontWeight: isSelected ? 600 : 400,
-                    cursor: isDragging ? "grabbing" : "pointer",
-                    whiteSpace: "nowrap", flexShrink: 0,
-                    opacity: isDragging ? 0.4 : 1,
-                    transition: "all 0.12s",
-                    WebkitTapHighlightColor: "transparent",
-                    userSelect: "none",
-                  }}
-                >
-                  {f.nickname}
-                </button>
-              );
-            })}
-          </div>
         </div>
       )}
     </div>

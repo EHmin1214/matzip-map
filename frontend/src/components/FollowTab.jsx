@@ -308,12 +308,14 @@ function PendingItem({ f, onCancel, loadingFollow }) {
 export default function FollowTab({ onViewMap, onFollowChange }) {
   const { user } = useUser();
   const mobile = isMobile();
+  const [activeSubTab, setActiveSubTab] = useState("팔로잉");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResult, setSearchResult] = useState(null);
   const [searchPlaces, setSearchPlaces] = useState([]);
   const [searchError, setSearchError] = useState("");
   const [searching, setSearching] = useState(false);
   const [following, setFollowing] = useState([]);
+  const [followers, setFollowers] = useState([]);
   const [loadingFollow, setLoadingFollow] = useState(false);
   const [profileSheet, setProfileSheet] = useState(null);
 
@@ -323,7 +325,13 @@ export default function FollowTab({ onViewMap, onFollowChange }) {
       .then((res) => setFollowing(res.data)).catch(() => {});
   }, [user]);
 
-  useEffect(() => { loadFollowing(); }, [loadFollowing]);
+  const loadFollowers = useCallback(() => {
+    if (!user) return;
+    axios.get(`${API_BASE}/follows/${user.user_id}/followers`)
+      .then((res) => setFollowers(res.data)).catch(() => {});
+  }, [user]);
+
+  useEffect(() => { loadFollowing(); loadFollowers(); }, [loadFollowing, loadFollowers]);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -367,6 +375,7 @@ export default function FollowTab({ onViewMap, onFollowChange }) {
       }
       if (onFollowChange) onFollowChange();
       if (profileSheet?.id === targetId) setProfileSheet((p) => ({ ...p }));
+      loadFollowers();
     } catch (e) {
       alert(e.response?.data?.detail || "오류가 발생했어요");
     } finally { setLoadingFollow(false); }
@@ -392,7 +401,7 @@ export default function FollowTab({ onViewMap, onFollowChange }) {
           {/* ── Archival Header ────────────────────────────── */}
           <div style={{
             display: "flex", justifyContent: "space-between",
-            alignItems: "flex-end", marginBottom: 36,
+            alignItems: "flex-end", marginBottom: 28,
           }}>
             <div>
               <h2 style={{
@@ -401,7 +410,7 @@ export default function FollowTab({ onViewMap, onFollowChange }) {
                 color: C.onSurface, margin: "0 0 8px",
                 letterSpacing: "-0.02em",
               }}>
-                Following
+                {activeSubTab === "팔로잉" ? "Following" : "Followers"}
               </h2>
               <div style={{ width: 28, height: 1.5, background: C.primaryContainer }} />
             </div>
@@ -410,8 +419,42 @@ export default function FollowTab({ onViewMap, onFollowChange }) {
               textTransform: "uppercase", letterSpacing: "0.2em",
               color: C.primary,
             }}>
-              {acceptedFollowing.length} Curators
+              {activeSubTab === "팔로잉" ? `${acceptedFollowing.length} Curators` : `${followers.length} Followers`}
             </span>
+          </div>
+
+          {/* ── 서브탭 ──────────────────────────────────────── */}
+          <div style={{
+            display: "flex", gap: 0,
+            background: C.surfaceLow,
+            borderRadius: 8, padding: 3,
+            marginBottom: 28,
+          }}>
+            {["팔로잉", "팔로워"].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveSubTab(tab)}
+                style={{
+                  flex: 1, padding: "8px 0",
+                  border: "none", borderRadius: 6,
+                  background: activeSubTab === tab ? C.bg : "transparent",
+                  fontFamily: FL, fontSize: 12, fontWeight: activeSubTab === tab ? 700 : 400,
+                  color: activeSubTab === tab ? C.onSurface : C.outlineVariant,
+                  cursor: "pointer", transition: "all 0.15s",
+                  boxShadow: activeSubTab === tab ? "0 1px 6px rgba(47,52,48,0.06)" : "none",
+                }}
+              >
+                {tab}
+                {tab === "팔로워" && followers.length > 0 && (
+                  <span style={{
+                    marginLeft: 5, fontFamily: FL, fontSize: 10,
+                    color: activeSubTab === tab ? C.primary : C.outlineVariant,
+                  }}>
+                    {followers.length}
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
 
           {/* ── 닉네임 검색 ────────────────────────────────── */}
@@ -558,8 +601,77 @@ export default function FollowTab({ onViewMap, onFollowChange }) {
             )}
           </section>
 
+          {/* ── 팔로워 탭 ───────────────────────────────────── */}
+          {activeSubTab === "팔로워" && (
+            followers.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "56px 0" }}>
+                <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 17, color: C.outlineVariant, margin: "0 0 8px" }}>
+                  아직 팔로워가 없어요
+                </p>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {followers.map((f) => {
+                  const isFollowingBack = following.some((fl) => fl.id === f.id && fl.status === "accepted");
+                  const isPendingBack = following.some((fl) => fl.id === f.id && fl.status === "pending");
+                  return (
+                    <div
+                      key={f.id}
+                      onClick={() => setProfileSheet(f)}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 14,
+                        padding: "12px 14px", borderRadius: 10,
+                        background: C.surfaceLowest, cursor: "pointer",
+                        transition: "background 0.15s",
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = "#f9f8f5"}
+                      onMouseLeave={(e) => e.currentTarget.style.background = C.surfaceLowest}
+                    >
+                      <Avatar nickname={f.nickname} size={40} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{
+                          margin: 0, fontFamily: FH, fontSize: 15, fontWeight: 700,
+                          color: C.onSurface, overflow: "hidden",
+                          textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        }}>
+                          {f.nickname}
+                        </p>
+                        {isFollowingBack && (
+                          <p style={{ margin: "2px 0 0", fontFamily: FL, fontSize: 10, color: C.primary }}>
+                            맞팔로우
+                          </p>
+                        )}
+                      </div>
+                      {!isFollowingBack && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleFollowToggle(f.id); }}
+                          disabled={loadingFollow || isPendingBack}
+                          style={{
+                            padding: "5px 12px",
+                            background: isPendingBack
+                              ? "transparent"
+                              : `linear-gradient(to bottom, ${C.primary}, ${C.primaryDim})`,
+                            border: isPendingBack ? "1px solid rgba(101,93,84,0.15)" : "none",
+                            borderRadius: 6,
+                            fontFamily: FL, fontSize: 10, fontWeight: 700,
+                            textTransform: "uppercase", letterSpacing: "0.08em",
+                            color: isPendingBack ? C.outlineVariant : "#fff6ef",
+                            cursor: loadingFollow ? "not-allowed" : "pointer",
+                            flexShrink: 0,
+                          }}
+                        >
+                          {isPendingBack ? "신청됨" : "팔로우"}
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )
+          )}
+
           {/* ── 신청 대기 ───────────────────────────────────── */}
-          {pendingFollowing.length > 0 && (
+          {activeSubTab === "팔로잉" && pendingFollowing.length > 0 && (
             <section style={{ marginBottom: 28 }}>
               <p style={{
                 fontFamily: FL, fontSize: 9, fontWeight: 700,
@@ -578,7 +690,7 @@ export default function FollowTab({ onViewMap, onFollowChange }) {
           )}
 
           {/* ── 팔로잉 목록 ─────────────────────────────────── */}
-          {acceptedFollowing.length === 0 ? (
+          {activeSubTab === "팔로잉" && (acceptedFollowing.length === 0 ? (
             <div style={{
               textAlign: "center",
               padding: "56px 0",
@@ -615,7 +727,7 @@ export default function FollowTab({ onViewMap, onFollowChange }) {
                 ))}
               </div>
             </>
-          )}
+          ))}
         </div>
       </div>
 

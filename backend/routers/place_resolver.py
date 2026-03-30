@@ -150,57 +150,58 @@ class PlaceResolver:
 
     # ── 네이버 장소 검색 ────────────────────
 
+    def _search_places(
+        self,
+        name: str,
+        address_hint: str | None,
+        post,
+        max_results: int = 5,
+    ) -> list[ResolvedPlace]:
+        """가게명으로 네이버 장소 검색 후 최대 max_results개 반환."""
+        if not address_hint:
+            address_hint = self._extract_location_from_title(post.title)
+
+        query = f"{address_hint} {name}" if address_hint else name
+        logger.info(f"장소 검색 시도: '{query}' (최대 {max_results}개)")
+
+        params = {
+            "query": query,
+            "display": max_results,
+            "sort": "comment",
+        }
+
+        try:
+            resp = self.session.get(NAVER_LOCAL_SEARCH_API, params=params, timeout=10)
+            resp.raise_for_status()
+            items = resp.json().get("items", [])
+
+            if not items and address_hint:
+                logger.info(f"힌트 없이 재시도: '{name}'")
+                resp2 = self.session.get(
+                    NAVER_LOCAL_SEARCH_API,
+                    params={"query": name, "display": max_results, "sort": "comment"},
+                    timeout=10,
+                )
+                items = resp2.json().get("items", [])
+
+            return [
+                self._build_resolved_place(item, name, address_hint, post)
+                for item in items[:max_results]
+            ]
+
+        except Exception as e:
+            logger.error(f"장소 검색 에러 ('{query}'): {type(e).__name__}: {e}")
+            return []
+
     def _search_place(
         self,
         name: str,
         address_hint: str | None,
         post,
     ) -> ResolvedPlace | None:
-
-        if not address_hint:
-            address_hint = self._extract_location_from_title(post.title)
-
-        query = f"{address_hint} {name}" if address_hint else name
-        logger.info(f"장소 검색 시도: '{query}'")
-
-        params = {
-            "query": query,
-            "display": 1,
-            "sort": "comment",
-        }
-
-        try:
-            resp = self.session.get(NAVER_LOCAL_SEARCH_API, params=params, timeout=10)
-            logger.info(f"API 응답 코드: {resp.status_code}")
-            resp.raise_for_status()
-
-            data = resp.json()
-            items = data.get("items", [])
-            logger.info(f"검색 결과 수: {len(items)}개 (query='{query}')")
-
-            if not items:
-                # 위치 힌트 붙였는데 결과 없으면 힌트 없이 재시도
-                if address_hint:
-                    logger.info(f"힌트 없이 재시도: '{name}'")
-                    resp2 = self.session.get(
-                        NAVER_LOCAL_SEARCH_API,
-                        params={"query": name, "display": 1, "sort": "comment"},
-                        timeout=10,
-                    )
-                    items = resp2.json().get("items", [])
-                    logger.info(f"재시도 결과 수: {len(items)}개")
-
-                if not items:
-                    return None
-
-            item = items[0]
-            logger.info(f"검색 결과: {item.get('title')} / {item.get('roadAddress')}")
-
-            return self._build_resolved_place(item, name, address_hint, post)
-
-        except Exception as e:
-            logger.error(f"장소 검색 에러 ('{query}'): {type(e).__name__}: {e}")
-            return None
+        """단건 검색 (기존 코드와의 호환성 유지)."""
+        results = self._search_places(name, address_hint, post, max_results=1)
+        return results[0] if results else None
 
     @staticmethod
     def _build_resolved_place(

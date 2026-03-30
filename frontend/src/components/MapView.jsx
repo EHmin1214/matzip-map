@@ -129,10 +129,20 @@ export default function MapView({
   const panToPlace = (lat, lng) => {
     if (!mapInstance.current || !window.naver) return;
     const isMobile = window.innerWidth <= 768;
-    const offset = isMobile ? window.innerHeight * 0.28 : window.innerHeight * 0.22;
     const proj = mapInstance.current.getProjection();
-    const pt = proj.fromCoordToOffset(new window.naver.maps.LatLng(lat, lng));
-    const adjusted = proj.fromOffsetToCoord(new window.naver.maps.Point(pt.x, pt.y + offset));
+    const targetLatLng = new window.naver.maps.LatLng(lat, lng);
+
+    if (!isMobile) {
+      mapInstance.current.panTo(targetLatLng, { duration: 280 });
+      return;
+    }
+
+    // 모바일: x는 건드리지 않고 y만 아래로 이동 (하단 시트 위에 마커 표시)
+    const pt = proj.fromCoordToOffset(targetLatLng);
+    const offset = window.innerHeight * 0.22;
+    const adjusted = proj.fromOffsetToCoord(
+      new window.naver.maps.Point(pt.x, pt.y + offset)
+    );
     mapInstance.current.panTo(adjusted, { duration: 280 });
   };
 

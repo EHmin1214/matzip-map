@@ -212,18 +212,25 @@ export default function App() {
             />
           </div>
 
-          {/* 지도 오버레이 컨트롤 */}
+          {/* 지도 오버레이 컨트롤 — 우측 세로 스택 */}
           {showMap && (
-            <div style={{ position: "fixed", inset: 0, zIndex: 20, pointerEvents: "none" }}>
-              <div style={{ pointerEvents: "auto" }}>
+            <div style={{
+              position: "fixed",
+              right: 14, top: 14, bottom: 80,
+              zIndex: 26,
+              display: "flex", flexDirection: "column",
+              alignItems: "flex-end", gap: 8,
+              pointerEvents: "none",
+            }}>
+              <div style={{ pointerEvents: "auto", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
+                <RefreshButton onRefresh={handleRefresh} />
+                <LocationButton map={mapRef.current} />
                 <MapFilter
-                  activeFilter={activeFilter} onFilterChange={setActiveFilter} sidebarWidth={0}
+                  activeFilter={activeFilter} onFilterChange={setActiveFilter}
                   followingList={followingList} selectedFollowingIds={selectedFollowingIds}
                   onToggleFollowing={handleToggleFollowing}
                   showPersonal={showPersonal} onTogglePersonal={() => setShowPersonal((v) => !v)}
                 />
-                <RefreshButton onRefresh={handleRefresh} />
-                <LocationButton map={mapRef.current} />
               </div>
             </div>
           )}
@@ -294,16 +301,23 @@ export default function App() {
               }}
             />
 
-            {/* 지도 위 컨트롤 — 지도 탭이거나 패널 열려있을 때 */}
-            <MapFilter
-              activeFilter={activeFilter} onFilterChange={setActiveFilter}
-              sidebarWidth={!showMap ? PANEL_W : 0}
-              followingList={[]} selectedFollowingIds={selectedFollowingIds}
-              onToggleFollowing={handleToggleFollowing}
-              showPersonal={showPersonal} onTogglePersonal={() => setShowPersonal((v) => !v)}
-            />
-            <RefreshButton onRefresh={handleRefresh} />
-            <LocationButton map={mapRef.current} />
+            {/* 지도 위 컨트롤 — 우측 세로 스택 */}
+            <div style={{
+              position: "absolute",
+              right: 14, top: 14,
+              display: "flex", flexDirection: "column",
+              alignItems: "flex-end", gap: 8,
+              zIndex: 26,
+            }}>
+              <RefreshButton onRefresh={handleRefresh} />
+              <LocationButton map={mapRef.current} />
+              <MapFilter
+                activeFilter={activeFilter} onFilterChange={setActiveFilter}
+                followingList={[]} selectedFollowingIds={selectedFollowingIds}
+                onToggleFollowing={handleToggleFollowing}
+                showPersonal={showPersonal} onTogglePersonal={() => setShowPersonal((v) => !v)}
+              />
+            </div>
           </div>
 
           {/* 슬라이드 패널 — 비지도 탭일 때 */}

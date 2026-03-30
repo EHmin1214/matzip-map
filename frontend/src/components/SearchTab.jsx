@@ -28,18 +28,18 @@ export default function SearchTab({ onPlaceAdded }) {
   const mobile = isMobile();
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
-  const [result, setResult] = useState(null);
+  const [results, setResults] = useState([]);
   const [error, setError] = useState("");
   const [pendingPlace, setPendingPlace] = useState(null);
   const [savedMsg, setSavedMsg] = useState("");
 
   const handleSearch = async (q = query) => {
     if (!q.trim()) return;
-    setError(""); setResult(null);
+    setError(""); setResults([]);
     setSearching(true);
     try {
       const res = await axios.get(`${API_BASE}/search-place/`, { params: { name: q.trim() } });
-      if (res.data) setResult(res.data);
+      if (res.data && res.data.length > 0) setResults(res.data);
       else setError("공간을 찾을 수 없어요");
     } catch (e) {
       setError("검색 실패. 다시 시도해주세요");
@@ -61,7 +61,7 @@ export default function SearchTab({ onPlaceAdded }) {
     const res = await axios.post(url, payload);
     if (onPlaceAdded) onPlaceAdded(res.data);
     setSavedMsg(`'${place.name}' 기록됐어요!`);
-    setResult(null); setQuery("");
+    setResults([]); setQuery("");
     setTimeout(() => setSavedMsg(""), 3000);
   };
 
@@ -191,57 +191,60 @@ export default function SearchTab({ onPlaceAdded }) {
           </div>
         )}
 
-        {/* 검색 결과 — desktopsearch.html의 asymmetric bento grid 스타일 */}
-        {result && (
-          <section>
-            {/* Featured 결과 카드 */}
-            <div style={{
-              background: C.containerLowest, borderRadius: 16,
-              overflow: "hidden", transition: "background 0.3s",
-            }}
-              onMouseEnter={(e) => e.currentTarget.style.background = C.bg}
-              onMouseLeave={(e) => e.currentTarget.style.background = C.containerLowest}
-            >
-              {/* 상단 태그 */}
-              <div style={{ padding: "24px 32px 0" }}>
-                <span style={{
-                  fontFamily: FL, fontSize: 9, fontWeight: 600,
-                  textTransform: "uppercase", letterSpacing: "0.2em",
-                  color: C.primary,
-                }}>
-                  발견된 공간
-                </span>
-              </div>
-
-              <div style={{ padding: mobile ? "20px" : "24px 32px 32px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16 }}>
-                  <div>
-                    {result.category && (
-                      <p style={{ margin: "0 0 8px", fontFamily: FL, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.15em", color: "#a8a29e" }}>
-                        {result.category}
-                      </p>
-                    )}
-                    <h3 style={{
-                      margin: "0 0 6px", fontFamily: FH,
-                      fontSize: mobile ? 24 : 36, fontWeight: 400,
-                      color: C.onSurface, letterSpacing: "-0.01em",
+        {/* 검색 결과 */}
+        {results.length > 0 && (
+          <section style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {results.map((place, idx) => (
+              <div
+                key={place.naver_place_id || idx}
+                style={{
+                  background: C.containerLowest, borderRadius: 16,
+                  overflow: "hidden", transition: "background 0.3s",
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = C.bg}
+                onMouseLeave={(e) => e.currentTarget.style.background = C.containerLowest}
+              >
+                {idx === 0 && (
+                  <div style={{ padding: "24px 32px 0" }}>
+                    <span style={{
+                      fontFamily: FL, fontSize: 9, fontWeight: 600,
+                      textTransform: "uppercase", letterSpacing: "0.2em",
+                      color: C.primary,
                     }}>
-                      {result.name}
-                    </h3>
-                    {result.address && (
-                      <p style={{
-                        margin: "0 0 16px", fontFamily: FH, fontStyle: "italic",
-                        fontSize: 14, color: "#78716c",
-                        display: "flex", alignItems: "center", gap: 4,
+                      발견된 공간
+                    </span>
+                  </div>
+                )}
+
+                <div style={{ padding: mobile ? "20px" : idx === 0 ? "24px 32px 32px" : "20px 32px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      {place.category && (
+                        <p style={{ margin: "0 0 6px", fontFamily: FL, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.15em", color: "#a8a29e" }}>
+                          {place.category}
+                        </p>
+                      )}
+                      <h3 style={{
+                        margin: "0 0 4px", fontFamily: FH,
+                        fontSize: idx === 0 ? (mobile ? 24 : 36) : (mobile ? 18 : 22),
+                        fontWeight: 400, color: C.onSurface, letterSpacing: "-0.01em",
                       }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: 16 }}>location_on</span>
-                        {result.address}
-                      </p>
-                    )}
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      {result.naver_place_url && (
-                        <a href={result.naver_place_url} target="_blank" rel="noreferrer" style={{
-                          padding: "6px 14px", background: C.container,
+                        {place.name}
+                      </h3>
+                      {place.address && (
+                        <p style={{
+                          margin: "0 0 12px", fontFamily: FH, fontStyle: "italic",
+                          fontSize: 13, color: "#78716c",
+                          display: "flex", alignItems: "center", gap: 4,
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        }}>
+                          <span className="material-symbols-outlined" style={{ fontSize: 14, flexShrink: 0 }}>location_on</span>
+                          {place.address}
+                        </p>
+                      )}
+                      {place.naver_place_url && (
+                        <a href={place.naver_place_url} target="_blank" rel="noreferrer" style={{
+                          padding: "5px 12px", background: C.container,
                           borderRadius: 4, fontFamily: FL, fontSize: 9,
                           fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em",
                           color: "#78716c", textDecoration: "none",
@@ -250,35 +253,34 @@ export default function SearchTab({ onPlaceAdded }) {
                         </a>
                       )}
                     </div>
-                  </div>
 
-                  {/* 저장 버튼 — HTML의 "Add to My Space" 버튼 */}
-                  <button
-                    onClick={() => setPendingPlace(result)}
-                    style={{
-                      display: "flex", alignItems: "center", gap: 8,
-                      padding: mobile ? "14px 24px" : "14px 28px",
-                      background: C.primary, color: "#fff6ef",
-                      border: "none", borderRadius: 6,
-                      fontFamily: FL, fontSize: 11, fontWeight: 700,
-                      textTransform: "uppercase", letterSpacing: "0.1em",
-                      cursor: "pointer", transition: "background 0.15s",
-                      flexShrink: 0,
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.background = C.primaryDim}
-                    onMouseLeave={(e) => e.currentTarget.style.background = C.primary}
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
-                    Add to My Space
-                  </button>
+                    <button
+                      onClick={() => setPendingPlace(place)}
+                      style={{
+                        display: "flex", alignItems: "center", gap: 8,
+                        padding: idx === 0 ? (mobile ? "14px 24px" : "14px 28px") : "10px 18px",
+                        background: C.primary, color: "#fff6ef",
+                        border: "none", borderRadius: 6,
+                        fontFamily: FL, fontSize: 11, fontWeight: 700,
+                        textTransform: "uppercase", letterSpacing: "0.1em",
+                        cursor: "pointer", transition: "background 0.15s",
+                        flexShrink: 0,
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = C.primaryDim}
+                      onMouseLeave={(e) => e.currentTarget.style.background = C.primary}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
+                      {idx === 0 ? "Add to My Space" : "추가"}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
+            ))}
           </section>
         )}
 
         {/* 초기 상태 — 빈 화면 */}
-        {!result && !error && !savedMsg && !searching && (
+        {results.length === 0 && !error && !savedMsg && !searching && (
           <div style={{ textAlign: "center", padding: "80px 0" }}>
             <span className="material-symbols-outlined" style={{ fontSize: 40, color: "#d6d3d1", display: "block", marginBottom: 20 }}>
               search
@@ -293,7 +295,7 @@ export default function SearchTab({ onPlaceAdded }) {
         )}
 
         {/* 하단 Load More 스타일 */}
-        {!result && !error && !savedMsg && (
+        {results.length === 0 && !error && !savedMsg && (
           <div style={{ marginTop: 80, textAlign: "center" }}>
             <p style={{ fontFamily: FL, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.4em", color: "#a8a29e" }}>
               Explore New Records

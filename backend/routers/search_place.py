@@ -26,11 +26,12 @@ class PlaceResponse(BaseModel):
     lng: float
     category: str
     naver_place_url: str
+    naver_place_id: str
 
 
-@router.get("/", response_model=PlaceResponse | None)
+@router.get("/", response_model=list[PlaceResponse])
 def search_place(name: str = Query(...)):
-    """가게명으로 네이버 장소 검색 후 좌표 반환."""
+    """가게명으로 네이버 장소 검색 후 최대 5개 반환."""
     resolver = PlaceResolver()
 
     dummy_post = PostData(
@@ -41,15 +42,16 @@ def search_place(name: str = Query(...)):
         published_at=datetime.now(),
     )
 
-    result = resolver._search_place(name, None, dummy_post)
-    if not result:
-        return None
-
-    return PlaceResponse(
-        name=result.name,
-        address=result.address,
-        lat=result.lat,
-        lng=result.lng,
-        category=result.category,
-        naver_place_url=result.naver_place_url,
-    )
+    results = resolver._search_places(name, None, dummy_post, max_results=5)
+    return [
+        PlaceResponse(
+            name=r.name,
+            address=r.address,
+            lat=r.lat,
+            lng=r.lng,
+            category=r.category,
+            naver_place_url=r.naver_place_url,
+            naver_place_id=r.naver_place_id,
+        )
+        for r in results
+    ]

@@ -415,7 +415,7 @@ export default function ProfilePage() {
           fontFamily: FL, fontSize: 9, color: C.outlineVariant,
           textAlign: "center", marginTop: 20, letterSpacing: "0.12em",
         }}>
-          나의 맛집 지도 v2.0
+          나의 공간 v2.0
         </p>
       </div>
     </div>

@@ -68,14 +68,14 @@ export default function AuthScreen() {
             fontSize: 40, fontWeight: 700, color: "#fff6ef",
             margin: "0 0 8px", letterSpacing: "-0.5px",
           }}>
-            나의 맛집 지도
+            나의 공간
           </h1>
           <p style={{
             fontFamily: FONT_LABEL, fontSize: 11,
             textTransform: "uppercase", letterSpacing: "0.3em",
             color: "rgba(255,246,239,0.6)", margin: 0,
           }}>
-            내가 신뢰하는 사람의 맛집
+            The Curated Archive
           </p>
         </div>
         {/* 장식 원 */}
@@ -107,7 +107,7 @@ export default function AuthScreen() {
               fontSize: 28, fontWeight: 700, color: C.primary,
               margin: 0,
             }}>
-              나의 맛집 지도
+              나의 공간
             </h1>
             <div style={{
               width: 32, height: 2,
@@ -128,8 +128,8 @@ export default function AuthScreen() {
               color: C.variant, lineHeight: 1.6, margin: 0,
             }}>
               {mode === "login"
-                ? "닉네임과 PIN으로 나만의 맛집 지도를 열어보세요"
-                : "닉네임과 PIN을 설정하고 나만의 맛집 지도를 시작해보세요"}
+                ? "닉네임과 PIN으로 나의 공간을 열어보세요"
+                : "닉네임과 PIN을 설정하고 나의 공간을 시작해보세요"}
             </p>
           </div>
 

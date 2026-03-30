@@ -30,6 +30,7 @@ const FOLDER_COLORS = ["#655d54", "#3B8BD4", "#1D9E75", "#BA7517", "#7F77DD", "#
 
 export default function SavePlaceModal({ place, onSave, onClose, editMode = false }) {
   const { user } = useUser();
+  const isMobile = window.innerWidth <= 768;
   const [folders, setFolders] = useState([]);
   const [selectedFolderId, setSelectedFolderId] = useState(place?.folder_id || null);
   const [status, setStatus] = useState(place?.status || "want_to_go");
@@ -95,15 +96,20 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
           position: "fixed", inset: 0,
           background: "rgba(47,52,48,0.3)",
           backdropFilter: "blur(4px)",
-          display: "flex", alignItems: "flex-end",
+          display: "flex", alignItems: isMobile ? "flex-end" : "center",
           justifyContent: "center", zIndex: 100,
         }}
       >
         <div style={{
-          background: C.bg, borderRadius: "20px 20px 0 0",
+          background: C.bg,
+          borderRadius: isMobile ? "20px 20px 0 0" : 20,
           width: "100%", maxWidth: 520,
-          maxHeight: "90vh", overflowY: "auto",
-          boxShadow: "0 -8px 40px rgba(47,52,48,0.12)",
+          maxHeight: isMobile ? "90vh" : "85vh",
+          overflowY: "auto",
+          boxShadow: isMobile
+            ? "0 -8px 40px rgba(47,52,48,0.12)"
+            : "0 20px 60px rgba(47,52,48,0.18)",
+          margin: isMobile ? 0 : 24,
         }}>
           {/* 핸들 */}
           <div style={{ display: "flex", justifyContent: "center", padding: "14px 0 6px" }}>
@@ -133,7 +139,7 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
             }}>✕</button>
           </div>
 
-          <div style={{ padding: "20px 24px" }}>
+          <div style={{ padding: "20px 24px", paddingBottom: isMobile ? "calc(64px + 24px)" : 24 }}>
 
             {/* 상태 선택 */}
             <Section label="방문 상태">
