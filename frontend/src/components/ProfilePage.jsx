@@ -613,7 +613,7 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
                 onClick={() => shareKakao({
                   title: `${user.nickname}의 공간`,
                   description: `${user.nickname}님이 아끼는 공간을 구경해보세요!`,
-                  linkUrl: `${API_BASE}/og/@${user.nickname}`,
+                  linkUrl: `${FRONTEND_URL}/@${user.nickname}`,
                 })}
                 style={{
                   flex: 1, padding: "12px 14px",
@@ -760,7 +760,7 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
             onClick={() => shareKakao({
               title: `${user.nickname}님이 초대합니다`,
               description: `${user.nickname}님이 아끼는 공간을 구경해보세요!`,
-              linkUrl: `${API_BASE}/og/@${user.nickname}`,
+              linkUrl: `${FRONTEND_URL}/@${user.nickname}`,
             })}
             style={{
               width: "100%", padding: "11px 14px",
