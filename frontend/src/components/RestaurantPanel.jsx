@@ -96,17 +96,32 @@ export default function RestaurantPanel({
 
   const handleCenterMap = () => {
     if (!mapInstance || !r.lat || !r.lng || !window.naver) return;
-    const coord = new window.naver.maps.LatLng(r.lat, r.lng);
     mapInstance.setZoom(17);
-    // First pan to exact coord, then apply offset in one smooth move
-    mapInstance.panTo(coord, { duration: 280 });
-    setTimeout(() => {
-      if (mobile) {
-        mapInstance.panBy(new window.naver.maps.Point(0, window.innerHeight * 0.22));
-      } else {
-        mapInstance.panBy(new window.naver.maps.Point(-180, 0));
-      }
-    }, 300);
+
+    const proj = mapInstance.getProjection();
+    const coord = new window.naver.maps.LatLng(r.lat, r.lng);
+    const size = mapInstance.getSize();
+    const mapCX = size.width / 2;
+    const mapCY = size.height / 2;
+    const pillOffsetX = 34; // 기본 pill 중앙 오프셋
+
+    let visibleCX, visibleCY;
+    if (mobile) {
+      visibleCX = mapCX;
+      visibleCY = (size.height - 274) / 2;
+    } else {
+      const panelW = 360;
+      visibleCX = panelW + (size.width - panelW) / 2;
+      visibleCY = mapCY;
+    }
+
+    const markerPx = proj.fromCoordToOffset(coord);
+    const newCenterPx = new window.naver.maps.Point(
+      markerPx.x + pillOffsetX - (visibleCX - mapCX),
+      markerPx.y - (visibleCY - mapCY)
+    );
+    const newCenter = proj.fromOffsetToCoord(newCenterPx);
+    mapInstance.panTo(newCenter, { duration: 280 });
   };
 
   const [heartAnim, setHeartAnim] = useState(false);

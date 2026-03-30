@@ -109,10 +109,9 @@ export default function MapView({
   const activeMarkerRef = useRef(null);
 
   const bringToFront = (marker) => {
-    // Reset previous active marker
-    if (activeMarkerRef.current && activeMarkerRef.current !== marker) {
-      try { activeMarkerRef.current.setZIndex(5); } catch (e) {}
-    }
+    // Reset ALL markers to base zIndex, then set clicked one high
+    const allMarkers = [...markersRef.current, ...personalMarkersRef.current, ...followingMarkersRef.current];
+    allMarkers.forEach((m) => { try { m.setZIndex(1); } catch (e) {} });
     try { marker.setZIndex(100); } catch (e) {}
     activeMarkerRef.current = marker;
   };
@@ -149,34 +148,55 @@ export default function MapView({
     return () => clearInterval(check);
   }, []); // eslint-disable-line
 
-  // 마커 클릭 시 지도 이동
+  // 마커 클릭 시 지도 이동 — pill 중앙을 보이는 영역 중앙에 배치
   const panToPlace = (lat, lng, markerEl) => {
-    if (!mapInstance.current || !window.naver) return;
-    const isMobile = window.innerWidth <= 768;
-    const proj = mapInstance.current.getProjection();
-    const targetLatLng = new window.naver.maps.LatLng(lat, lng);
+    const map = mapInstance.current;
+    if (!map || !window.naver) return;
 
-    if (!isMobile) {
-      mapInstance.current.panTo(targetLatLng, { duration: 280 });
-      return;
-    }
+    const isMob = window.innerWidth <= 768;
+    const proj = map.getProjection();
+    const coord = new window.naver.maps.LatLng(lat, lng);
+    const size = map.getSize();
 
-    // 모바일: 마커 중앙을 화면 중앙에, y는 하단 시트 위에 표시
-    const pt = proj.fromCoordToOffset(targetLatLng);
-    const yOffset = window.innerHeight * 0.22;
-    // 마커 pill 너비의 절반만큼 x 보정 (anchor.x=6이므로 중앙까지의 차이)
-    let xCorrection = 40; // 기본값
+    // pill 중앙 오프셋 (anchor x=6 기준)
+    let pillOffsetX = 34;
     if (markerEl) {
       const el = markerEl.getElement?.() || markerEl._element;
       if (el) {
         const pill = el.querySelector("div");
-        if (pill) xCorrection = (pill.offsetWidth / 2) - 6;
+        if (pill) pillOffsetX = pill.offsetWidth / 2 - 6;
       }
     }
-    const adjusted = proj.fromOffsetToCoord(
-      new window.naver.maps.Point(pt.x + xCorrection, pt.y + yOffset)
+
+    // 보이는 영역의 중앙 (맵 픽셀 좌표)
+    const mapCX = size.width / 2;
+    const mapCY = size.height / 2;
+    let visibleCX, visibleCY;
+
+    if (isMob) {
+      // 모바일: 하단 시트(~210) + 탭바(64) = ~274px 가림
+      visibleCX = mapCX;
+      visibleCY = (size.height - 274) / 2;
+    } else {
+      // 데스크톱: 좌측 패널 360px 가림
+      const panelW = 360;
+      visibleCX = panelW + (size.width - panelW) / 2;
+      visibleCY = mapCY;
+    }
+
+    // 마커 좌표의 픽셀 위치
+    const markerPx = proj.fromCoordToOffset(coord);
+
+    // panTo(coord) 시 마커 anchor → (mapCX, mapCY)
+    // pill 중앙 → (mapCX + pillOffsetX, mapCY)
+    // pill 중앙을 (visibleCX, visibleCY)에 놓으려면
+    // 뷰포트 중앙을 (markerPx + pillOffsetX - (visibleCX - mapCX), markerPx.y - (visibleCY - mapCY))로 이동
+    const newCenterPx = new window.naver.maps.Point(
+      markerPx.x + pillOffsetX - (visibleCX - mapCX),
+      markerPx.y - (visibleCY - mapCY)
     );
-    mapInstance.current.panTo(adjusted, { duration: 280 });
+    const newCenter = proj.fromOffsetToCoord(newCenterPx);
+    map.panTo(newCenter, { duration: 280 });
   };
 
   // 블로거 맛집 마커
@@ -193,6 +213,7 @@ export default function MapView({
         position: new window.naver.maps.LatLng(r.lat, r.lng),
         map: mapInstance.current,
         title: r.name,
+        zIndex: 1,
         icon: { content: blogMarker({ name: r.name, color }), anchor: new window.naver.maps.Point(6, 12) },
       });
       window.naver.maps.Event.addListener(marker, "click", () => {
@@ -235,7 +256,7 @@ export default function MapView({
           content: myMarker({ name: r.name, status: r.status, shared: sharedWith.length > 0, folderColor: getFolderColor(r.folder_id) }),
           anchor: new window.naver.maps.Point(6, 12),
         },
-        zIndex: sharedWith.length > 0 ? 10 : 5,
+        zIndex: sharedWith.length > 0 ? 2 : 1,
       });
       window.naver.maps.Event.addListener(marker, "click", () => {
         bringToFront(marker);
@@ -266,6 +287,7 @@ export default function MapView({
           position: new window.naver.maps.LatLng(r.lat, r.lng),
           map: mapInstance.current,
           title: `${nickname}: ${r.name}`,
+          zIndex: 1,
           icon: {
             content: followingMarker({ name: r.name, color, nickname }),
             anchor: new window.naver.maps.Point(6, 12),

@@ -185,6 +185,15 @@ def _create_notification(db, user_id, actor_id, ntype, place_id=None):
 
 # ══ 맛집 CRUD ═════════════════════════════════════════════════
 
+@router.get("/personal-places/{place_id}/detail", response_model=PlaceResponse)
+def get_place_detail(place_id: int, db: Session = Depends(get_db)):
+    """장소 ID로 상세 조회 (공개 장소만, 딥링크/공유용)."""
+    place = db.query(PersonalPlace).filter(PersonalPlace.id == place_id).first()
+    if not place:
+        raise HTTPException(status_code=404, detail="장소를 찾을 수 없습니다.")
+    return _to_place_response(place, db)
+
+
 @router.get("/personal-places/", response_model=list[PlaceResponse])
 def list_my_places(
     user_id: int,
