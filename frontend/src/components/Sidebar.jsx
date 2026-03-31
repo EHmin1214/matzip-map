@@ -164,6 +164,9 @@ export default function Sidebar({
         })}
       </nav>
 
+      {/* 구분선 */}
+      <div style={{ height: 1, background: "rgba(101,93,84,0.08)", margin: "0 0 6px", flexShrink: 0 }} />
+
       {/* ── 지도 탭 전용 콘텐츠 ───────────────────────────── */}
       {activeTab === "map" && (
         <div style={{
@@ -188,7 +191,7 @@ export default function Sidebar({
                   style={{
                     width: "100%", padding: "4px 6px 4px 22px",
                     background: C.surfaceLow, border: "none", borderRadius: 5,
-                    fontFamily: FL, fontSize: 8, color: C.onSurface,
+                    fontFamily: FL, fontSize: 11, color: C.onSurface,
                     outline: "none", boxSizing: "border-box",
                   }}
                 />
