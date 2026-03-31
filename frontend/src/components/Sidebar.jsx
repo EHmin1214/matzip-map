@@ -104,8 +104,8 @@ export default function Sidebar({
         <img src="/logo.svg" alt="" style={{ width: 50, height: 50, flexShrink: 0, position: "relative", top: -1 }} />
         <div style={{ display: "flex", flexDirection: "column" }}>
           {[
-            { mode: "personal", label: "🏠 나의 공간" },
-            { mode: "shared", label: "🌐 우리의 공간" },
+            { mode: "personal", label: "나의 공간" },
+            { mode: "shared", label: "우리의 공간" },
           ]
             .sort((a, b) => (a.mode === mapMode ? -1 : 1))
             .map(({ mode, label }) => {
@@ -365,7 +365,6 @@ export default function Sidebar({
                       width: 3, height: 18, borderRadius: 2,
                       background: getFolderColor(p.folder_id), flexShrink: 0,
                     }} />}
-                    <span style={{ fontSize: 11 }}>{statusEmoji(p.status)}</span>
                     <p style={{
                       margin: 0, fontFamily: FL, fontSize: 11, fontWeight: 600,
                       color: C.onSurface, flex: 1,
@@ -439,28 +438,11 @@ export default function Sidebar({
 
           {/* 팔로잉 레이어 */}
           {followingList.length > 0 && (
-            <div style={{
-              flex: followingOpen ? 1 : "none", minHeight: 0, display: "flex", flexDirection: "column",
-            }}>
-              <div
-                onClick={() => setFollowingOpen(!followingOpen)}
-                style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  cursor: "pointer", padding: "2px 2px",
-                }}
-              >
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <div style={{ padding: "2px 2px" }}>
                 <SectionLabel>팔로잉 ({followingList.length})</SectionLabel>
-                <span className="material-symbols-outlined" style={{
-                  fontSize: 14, color: "#8a8e8a",
-                  transform: followingOpen ? "rotate(180deg)" : "rotate(0deg)",
-                  transition: "transform 0.2s ease",
-                }}>expand_more</span>
               </div>
-              <div style={{
-                maxHeight: followingOpen ? 400 : 0,
-                overflow: "hidden",
-                transition: "max-height 0.25s ease",
-              }}>
+              <div>
                 {followingList.map((f, idx) => {
                   const color = getFollowingColor(idx);
                   const isSelected = selectedFollowingIds.includes(f.id);
@@ -476,19 +458,7 @@ export default function Sidebar({
                         transition: "background 0.15s",
                       }}
                     >
-                      {/* 체크박스 — 지도 레이어 토글 */}
-                      <div
-                        onClick={() => onToggleFollowing(f.id)}
-                        style={{
-                          width: 14, height: 14, borderRadius: 3, flexShrink: 0,
-                          background: isSelected ? color : C.container,
-                          display: "flex", alignItems: "center", justifyContent: "center",
-                          cursor: "pointer", transition: "background 0.15s",
-                        }}
-                      >
-                        {isSelected && <span style={{ color: "white", fontSize: 9, fontWeight: 700 }}>✓</span>}
-                      </div>
-                      {/* 아바타 + 닉네임 — 프로필 열기 */}
+                      {/* 아바타 + 닉네임 — 프로필 열기 (좌측) */}
                       <div
                         onClick={() => onViewUserProfile && onViewUserProfile(f.nickname)}
                         style={{
@@ -511,6 +481,18 @@ export default function Sidebar({
                         }}>
                           {f.nickname}
                         </span>
+                      </div>
+                      {/* 체크박스 — 지도 레이어 토글 (우측) */}
+                      <div
+                        onClick={() => onToggleFollowing(f.id)}
+                        style={{
+                          width: 14, height: 14, borderRadius: 3, flexShrink: 0,
+                          background: isSelected ? color : C.container,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          cursor: "pointer", transition: "background 0.15s",
+                        }}
+                      >
+                        {isSelected && <span style={{ color: "white", fontSize: 9, fontWeight: 700 }}>✓</span>}
                       </div>
                     </div>
                   );

@@ -907,6 +907,7 @@ export default function RestaurantPanel({
 
           {/* 함께 추가한 사람들 */}
           {NeighborsBlock}
+          {PickersBlock}
         </div>
       </div>
 

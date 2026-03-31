@@ -85,21 +85,20 @@ const blogMarker = ({ name, color }) => `
   ">${name}</div>
 `;
 
-// 우리의 공간 마커 — (N) 장소명
+// 우리의 공간 마커 — (N) 장소명, 채움 스타일
 const sharedMarker = ({ name, count, category }) => {
   const color = SHARED_CAT_COLOR[category] || "#655d54";
   return `
   <div class="map-pill" style="
     display:inline-flex;align-items:center;gap:4px;
-    background:rgba(255,255,255,0.92);
-    color:${color};
+    background:${color};
+    color:#fff6ef;
     padding:4px 9px;
     border-radius:6px;
-    border:1.5px solid ${color};
     font-family:'Manrope',-apple-system,sans-serif;
     font-size:11px;
     white-space:nowrap;
-    box-shadow:0 2px 8px rgba(0,0,0,0.08);
+    box-shadow:0 2px 10px rgba(0,0,0,0.18);
     cursor:pointer;
     letter-spacing:0.01em;
   ">
