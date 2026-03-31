@@ -85,6 +85,13 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
     } catch (e) { alert("컬렉션 삭제 실패"); }
   };
 
+  const handleFolderColorChange = async (folderId, newColor) => {
+    try {
+      await axios.patch(`${API_BASE}/folders/${folderId}?user_id=${user.user_id}`, { color: newColor });
+      setFolders((prev) => prev.map((f) => f.id === folderId ? { ...f, color: newColor } : f));
+    } catch {}
+  };
+
   const handlePhotoSelect = (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
@@ -283,6 +290,7 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
                     selected={selectedFolderId === f.id}
                     onClick={() => setSelectedFolderId(f.id)}
                     onDelete={() => handleDeleteFolder(f.id)}
+                    onColorChange={(c) => handleFolderColorChange(f.id, c)}
                   />
                 ))}
                 <button
@@ -513,7 +521,7 @@ function Section({ label, children }) {
   );
 }
 
-function FolderChip({ label, color, selected, onClick, onDelete }) {
+function FolderChip({ label, color, selected, onClick, onDelete, onColorChange }) {
   return (
     <div style={{ position: "relative", display: "inline-flex" }}>
       <button
@@ -531,7 +539,18 @@ function FolderChip({ label, color, selected, onClick, onDelete }) {
           transition: "all 0.15s",
         }}
       >
-        <div style={{ width: 6, height: 6, borderRadius: "50%", background: color, flexShrink: 0 }} />
+        {onColorChange ? (
+          <label style={{ position: "relative", width: 6, height: 6, flexShrink: 0, cursor: "pointer" }}
+            onClick={(e) => e.stopPropagation()}>
+            <input type="color" value={color}
+              onChange={(e) => onColorChange(e.target.value)}
+              style={{ position: "absolute", inset: 0, opacity: 0, width: "100%", height: "100%", cursor: "pointer", border: "none", padding: 0 }}
+            />
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: color }} />
+          </label>
+        ) : (
+          <div style={{ width: 6, height: 6, borderRadius: "50%", background: color, flexShrink: 0 }} />
+        )}
         {label}
       </button>
       {onDelete && (

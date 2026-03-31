@@ -32,7 +32,7 @@ export default function UserProfileView({ nickname, onClose }) {
   const [curatedLists, setCuratedLists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [isFollowing, setIsFollowing] = useState(false);
+  const [followStatus, setFollowStatus] = useState("none"); // "none" | "pending" | "accepted"
   const [followLoading, setFollowLoading] = useState(false);
   const mapContainerRef = useRef(null);
   const mapRef = useRef(null);
@@ -63,14 +63,21 @@ export default function UserProfileView({ nickname, onClose }) {
       .finally(() => setLoading(false));
   }, [nickname]); // eslint-disable-line
 
-  // 팔로우 상태 확인
+  // 팔로우 상태 확인 (accepted + pending 모두 체크)
   useEffect(() => {
     if (!user || !profile) return;
-    axios.get(`${API_BASE}/follows/${user.user_id}/following`)
-      .then((res) => {
-        setIsFollowing(res.data.some((f) => (f.id || f.user_id) === profile.id));
-      })
-      .catch(() => {});
+    Promise.all([
+      axios.get(`${API_BASE}/follows/${user.user_id}/following`),
+      axios.get(`${API_BASE}/follows/${user.user_id}/pending`),
+    ]).then(([followingRes, pendingRes]) => {
+      if (followingRes.data.some((f) => (f.id || f.user_id) === profile.id)) {
+        setFollowStatus("accepted");
+      } else if (pendingRes.data.some((f) => (f.id || f.user_id) === profile.id)) {
+        setFollowStatus("pending");
+      } else {
+        setFollowStatus("none");
+      }
+    }).catch(() => {});
   }, [user, profile]);
 
   // 지도 초기화
@@ -109,12 +116,12 @@ export default function UserProfileView({ nickname, onClose }) {
     if (!user || !profile) return;
     setFollowLoading(true);
     try {
-      if (isFollowing) {
+      if (followStatus === "accepted" || followStatus === "pending") {
         await axios.delete(`${API_BASE}/follows/${profile.id}?follower_id=${user.user_id}`);
-        setIsFollowing(false);
+        setFollowStatus("none");
       } else {
-        await axios.post(`${API_BASE}/follows/${profile.id}?follower_id=${user.user_id}`);
-        setIsFollowing(true);
+        const res = await axios.post(`${API_BASE}/follows/${profile.id}?follower_id=${user.user_id}`);
+        setFollowStatus(res.data.status === "accepted" ? "accepted" : "pending");
       }
     } catch {} finally { setFollowLoading(false); }
   };
@@ -212,18 +219,18 @@ export default function UserProfileView({ nickname, onClose }) {
                 <button onClick={handleFollow} disabled={followLoading}
                   style={{
                     width: "100%", padding: "11px", border: "none", borderRadius: 8,
-                    background: isFollowing ? "none" : C.primary,
-                    color: isFollowing ? C.outlineVariant : "#fff6ef",
-                    borderWidth: isFollowing ? 1 : 0,
+                    background: followStatus === "none" ? C.primary : "none",
+                    color: followStatus === "none" ? "#fff6ef" : followStatus === "pending" ? "#BA7517" : C.outlineVariant,
+                    borderWidth: followStatus === "none" ? 0 : 1,
                     borderStyle: "solid",
-                    borderColor: "rgba(101,93,84,0.15)",
+                    borderColor: followStatus === "pending" ? "rgba(186,117,23,0.3)" : "rgba(101,93,84,0.15)",
                     fontFamily: FL, fontSize: 12, fontWeight: 700,
                     cursor: followLoading ? "not-allowed" : "pointer",
                     opacity: followLoading ? 0.6 : 1,
                     transition: "all 0.15s",
                   }}
                 >
-                  {isFollowing ? "팔로잉" : "팔로우"}
+                  {followStatus === "accepted" ? "팔로잉" : followStatus === "pending" ? "요청됨" : "팔로우"}
                 </button>
               )}
             </div>
