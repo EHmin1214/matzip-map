@@ -178,17 +178,17 @@ export default function Sidebar({
             {personalPlaces.length > 5 && (
               <div style={{ position: "relative", marginBottom: 6, flexShrink: 0 }}>
                 <span className="material-symbols-outlined" style={{
-                  position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)",
-                  fontSize: 13, color: C.outlineVariant, pointerEvents: "none",
+                  position: "absolute", left: 6, top: "50%", transform: "translateY(-50%)",
+                  fontSize: 12, color: C.outlineVariant, pointerEvents: "none",
                 }}>search</span>
                 <input
                   value={placeFilter}
                   onChange={(e) => setPlaceFilter(e.target.value)}
-                  placeholder="장소 검색..."
+                  placeholder="내 공간 검색..."
                   style={{
-                    width: "100%", padding: "6px 8px 6px 28px",
-                    background: C.surfaceLow, border: "none", borderRadius: 6,
-                    fontFamily: FL, fontSize: 11, color: C.onSurface,
+                    width: "100%", padding: "4px 6px 4px 24px",
+                    background: C.surfaceLow, border: "none", borderRadius: 5,
+                    fontFamily: FL, fontSize: 10, color: C.onSurface,
                     outline: "none", boxSizing: "border-box",
                   }}
                 />
@@ -214,7 +214,7 @@ export default function Sidebar({
                   }} />
                   <span style={{ fontSize: 11 }}>{statusEmoji(p.status)}</span>
                   <p style={{
-                    margin: 0, fontFamily: FH, fontSize: 11, fontWeight: 600,
+                    margin: 0, fontFamily: FL, fontSize: 11, fontWeight: 600,
                     color: C.onSurface, flex: 1,
                     overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                   }}>
@@ -236,7 +236,7 @@ export default function Sidebar({
                 </div>
               ))}
               {personalPlaces.length === 0 && (
-                <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 11, color: C.outlineVariant, margin: "8px 4px" }}>
+                <p style={{ fontFamily: FL, fontSize: 11, color: C.outlineVariant, margin: "8px 4px" }}>
                   아직 저장된 공간이 없어요
                 </p>
               )}
