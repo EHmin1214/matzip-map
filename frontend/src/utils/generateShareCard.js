@@ -224,7 +224,7 @@ export default async function generateShareCard(place) {
    ══════════════════════════════════════════════════════════ */
 
 const STATUS_DOT = { want_to_go: "#BA7517", visited: "#1D9E75", want_revisit: "#D4537E" };
-const MAP_H = 400;
+const MAP_H = 544;  // 5:4 ratio (INNER 680 * 4/5)
 
 function drawDotMap(ctx, places, x, y, w, h, r) {
   ctx.save();
@@ -295,15 +295,11 @@ export async function generateProfileCard(user, places) {
   /* stat line */
   const statLine = `총 ${places.length}개의 큐레이션 공간`;
 
-  /* profile url */
-  const profileUrl = `myplace-map.vercel.app/@${user.nickname}`;
-
   /* card height */
   let ch = PAD + MAP_H + 24;   // map + gap
   ch += 48;                      // avatar row
   ch += 8 + 20;                  // gap + stat line
-  ch += 24 + 1 + 16 + 32;       // divider area + brand
-  ch += 20 + PAD;                // url + bottom
+  ch += 24 + 1 + 16 + 32 + PAD; // divider area + brand + bottom
 
   const W = CARD_W + EDGE * 2;
   const H = ch + EDGE * 2;
@@ -354,7 +350,7 @@ export async function generateProfileCard(user, places) {
   const tx = L + avatarSize + 14;
   ctx.font = `700 28px ${FH}`;
   ctx.fillStyle = "#1c1c1e";
-  ctx.fillText(user.nickname, tx, y + 8);
+  ctx.fillText(user.nickname, tx, y + 7);
   y += 48;
 
   /* stat line */
@@ -375,12 +371,6 @@ export async function generateProfileCard(user, places) {
   ctx.font = `italic 700 17px ${FH}`;
   ctx.fillStyle = "#655d54";
   ctx.fillText("나의 공간", L + 34, y + 1);
-  y += 32;
-
-  /* profile url */
-  ctx.font = `400 13px ${FL}`;
-  ctx.fillStyle = "#a8a29e";
-  ctx.fillText(profileUrl, L, y);
 
   ctx.restore();
 

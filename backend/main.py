@@ -138,15 +138,15 @@ def og_profile(nickname: str):
         ln_r = (mx_ln - mn_ln) or 0.01
         sp = []
         for i in range(1, 6):
-            gx, gy = round(300 / 6 * i, 1), round(160 / 6 * i, 1)
-            sp.append(f'<line x1="{gx}" y1="0" x2="{gx}" y2="160" stroke="#e4e2de" stroke-width="0.5"/>')
+            gx, gy = round(300 / 6 * i, 1), round(240 / 6 * i, 1)
+            sp.append(f'<line x1="{gx}" y1="0" x2="{gx}" y2="240" stroke="#e4e2de" stroke-width="0.5"/>')
             sp.append(f'<line x1="0" y1="{gy}" x2="300" y2="{gy}" stroke="#e4e2de" stroke-width="0.5"/>')
         for la, ln, st in coords:
             px = round(14 + ((ln - mn_ln) / ln_r) * 272, 1)
-            py = round(14 + ((mx_la - la) / la_r) * 132, 1)
+            py = round(14 + ((mx_la - la) / la_r) * 212, 1)
             c = _SC.get(st, "#655d54")
             sp.append(f'<circle cx="{px}" cy="{py}" r="4.5" fill="{c}" stroke="#fff" stroke-width="1"/>')
-        map_html = '<div class="map"><svg viewBox="0 0 300 160">' + "".join(sp) + "</svg></div>"
+        map_html = '<div class="map"><svg viewBox="0 0 300 240">' + "".join(sp) + "</svg></div>"
     else:
         map_html = '<div class="map empty">지도 미리보기</div>'
 
@@ -176,22 +176,22 @@ def og_profile(nickname: str):
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 *{{margin:0;padding:0;box-sizing:border-box}}
-body{{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#faf9f6;font-family:'Manrope',sans-serif;padding:16px}}
-.card{{max-width:340px;width:100%;background:#fff;border-radius:16px;padding:20px;box-shadow:0 2px 20px rgba(47,52,48,0.06);text-decoration:none;color:inherit;display:block}}
-.map{{border-radius:10px;background:#f0efec;margin-bottom:14px;overflow:hidden;line-height:0}}
+body{{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#faf9f6;font-family:'Manrope',sans-serif;padding:20px}}
+.card{{max-width:380px;width:100%;background:#fff;border-radius:20px;padding:28px 24px;box-shadow:0 2px 24px rgba(47,52,48,0.06);text-decoration:none;color:inherit;display:block}}
+.map{{border-radius:12px;background:#f0efec;margin-bottom:18px;overflow:hidden;line-height:0}}
 .map svg{{width:100%;height:auto;display:block}}
-.map.empty{{padding:36px 0;text-align:center;font-style:italic;font-size:11px;color:#a8a29e;line-height:1}}
-.avatar-row{{display:flex;align-items:center;gap:10px;margin-bottom:2px}}
-.avatar{{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#595149,#655d54);display:flex;align-items:center;justify-content:center;font-family:'Noto Serif',Georgia,serif;font-style:italic;font-size:14px;color:#fff6ef;font-weight:700;overflow:hidden;flex-shrink:0}}
+.map.empty{{padding:48px 0;text-align:center;font-style:italic;font-size:12px;color:#a8a29e;line-height:1}}
+.avatar-row{{display:flex;align-items:center;gap:12px;margin-bottom:4px}}
+.avatar{{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#595149,#655d54);display:flex;align-items:center;justify-content:center;font-family:'Noto Serif',Georgia,serif;font-style:italic;font-size:18px;color:#fff6ef;font-weight:700;overflow:hidden;flex-shrink:0}}
 .avatar img{{width:100%;height:100%;object-fit:cover}}
-.name{{font-family:'Noto Serif',Georgia,serif;font-size:15px;font-weight:700;color:#2f3430;margin:0;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
-.stats{{font-size:11px;font-weight:600;color:#5c605c;margin:5px 0 14px;text-align:left}}
-.divider{{height:1px;background:#e8e8ed;margin-bottom:10px}}
-.brand-row{{display:flex;align-items:center;gap:6px}}
-.logo{{width:16px;height:16px;position:relative;flex-shrink:0}}
-.logo .b{{position:absolute;top:0;left:4px;width:9px;height:12px;border-radius:1px;background:#a89a8e}}
-.logo .f{{position:absolute;top:2px;left:1px;width:9px;height:12px;border-radius:1px;background:#867a6e}}
-.brand-name{{font-family:'Noto Serif',Georgia,serif;font-style:italic;font-weight:700;font-size:11px;color:#655d54}}
+.name{{font-family:'Noto Serif',Georgia,serif;font-size:17px;font-weight:700;color:#2f3430;margin:0;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
+.stats{{font-size:12px;font-weight:600;color:#5c605c;margin:6px 0 18px;text-align:left}}
+.divider{{height:1px;background:#e8e8ed;margin-bottom:14px}}
+.brand-row{{display:flex;align-items:center;gap:8px}}
+.logo{{width:20px;height:20px;position:relative;flex-shrink:0}}
+.logo .b{{position:absolute;top:1px;left:5px;width:11px;height:14px;border-radius:1.5px;background:#a89a8e}}
+.logo .f{{position:absolute;top:3px;left:2px;width:11px;height:14px;border-radius:1.5px;background:#867a6e}}
+.brand-name{{font-family:'Noto Serif',Georgia,serif;font-style:italic;font-weight:700;font-size:13px;color:#655d54}}
 </style>
 <meta http-equiv="refresh" content="1;url={redirect_url}" />
 </head>
