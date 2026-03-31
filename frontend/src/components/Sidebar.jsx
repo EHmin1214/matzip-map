@@ -101,7 +101,7 @@ export default function Sidebar({
         <img src="/logo.svg" alt="" style={{ width: 50, height: 50, flexShrink: 0 }} />
         <div>
           <h1 style={{
-            fontFamily: FH, fontStyle: "italic",
+            fontFamily: FH,
             fontSize: 18, color: C.primary,
             margin: "0 0 1px", letterSpacing: "-0.02em",
           }}>
