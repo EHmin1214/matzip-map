@@ -57,7 +57,7 @@ export default function Sidebar({
   const { user } = useUser();
   const [folders, setFolders] = useState([]);
   const [placeFilter, setPlaceFilter] = useState("");
-  const [sortMode, setSortMode] = useState("newest"); // "newest" | "oldest" | "collection"
+  const [sortMode, setSortMode] = useState("collection"); // "newest" | "oldest" | "collection"
   const [followingOpen, setFollowingOpen] = useState(false);
 
   useEffect(() => {
@@ -438,11 +438,11 @@ export default function Sidebar({
 
           {/* 팔로잉 레이어 */}
           {followingList.length > 0 && (
-            <div style={{ display: "flex", flexDirection: "column" }}>
+            <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
               <div style={{ padding: "2px 2px" }}>
                 <SectionLabel>팔로잉 ({followingList.length})</SectionLabel>
               </div>
-              <div>
+              <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
                 {followingList.map((f, idx) => {
                   const color = getFollowingColor(idx);
                   const isSelected = selectedFollowingIds.includes(f.id);

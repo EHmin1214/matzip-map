@@ -70,10 +70,10 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
 
   const markAllRead = async () => {
     try {
-      await axios.patch(`${API_BASE}/notifications/read?user_id=${user.user_id}`);
-      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+      await axios.delete(`${API_BASE}/notifications/?user_id=${user.user_id}`);
+      setNotifications([]);
       if (onUnreadChange) onUnreadChange(0);
-    } catch { alert("읽음 처리에 실패했습니다."); }
+    } catch { alert("알림 삭제에 실패했습니다."); }
   };
 
   const deleteNotification = async (id) => {

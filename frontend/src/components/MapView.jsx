@@ -334,8 +334,7 @@ export default function MapView({
     if (!mapReady) return;
     const isPersonal = mapMode === "personal";
     markersRef.current.forEach((m) => m.setMap(isPersonal ? mapInstance.current : null));
-    // 내 장소 마커는 shared 모드에서도 보여줌 (showPersonal로 App에서 빈 배열 전달하면 알아서 사라짐)
-    personalMarkersRef.current.forEach((m) => m.setMap(mapInstance.current));
+    personalMarkersRef.current.forEach((m) => m.setMap(isPersonal ? mapInstance.current : null));
     followingMarkersRef.current.forEach((m) => m.setMap(isPersonal ? mapInstance.current : null));
     sharedMarkersRef.current.forEach((m) => m.setMap(!isPersonal ? mapInstance.current : null));
   }, [mapMode, mapReady]);

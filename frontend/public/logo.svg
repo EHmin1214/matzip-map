@@ -1,4 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- 배경 -->
+  <rect width="64" height="64" rx="12" ry="12" fill="#faf9f6"/>
   <!-- 뒤쪽 카드 -->
   <rect x="20" y="14" width="28" height="34" rx="2" ry="2" fill="#a89a8e"/>
 

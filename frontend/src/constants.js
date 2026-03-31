@@ -31,10 +31,10 @@ export const STATUS_LABEL = {
 };
 
 export const SHARED_CAT_COLOR = {
-  restaurant:    "#8B5E3C",
-  cafe:          "#6B7B3A",
-  bar:           "#7B5078",
-  general_store: "#4A7B8C",
+  restaurant:    "#BA7517",
+  cafe:          "#1D9E75",
+  bar:           "#7F77DD",
+  general_store: "#3B8BD4",
 };
 
 export const BEST_CATEGORIES = [

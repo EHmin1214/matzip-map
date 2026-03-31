@@ -321,8 +321,8 @@ export default function App() {
     setTimeout(() => {
       setMapMode(mode);
       setModeTransition("out");
-      setTimeout(() => setModeTransition(null), 400);
-    }, 400);
+      setTimeout(() => setModeTransition(null), 600);
+    }, 600);
   }, [mapMode]);
 
   const filteredPersonalPlaces = activeFilter ? personalPlaces.filter((p) => p.status === activeFilter) : personalPlaces;
@@ -428,9 +428,10 @@ export default function App() {
             {modeTransition && (
               <div style={{
                 position: "absolute", inset: 0, zIndex: 50,
-                background: "#faf9f6",
+                background: "linear-gradient(135deg, #faf9f6 0%, #ede0d5 50%, #faf9f6 100%)",
+                backgroundSize: "200% 200%",
                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6,
-                animation: `${modeTransition === "in" ? "modeOverlayIn" : "modeOverlayOut"} 0.35s ease forwards`,
+                animation: `${modeTransition === "in" ? "modeOverlayIn" : "modeOverlayOut"} 0.5s ease forwards, modeGradient 1.2s ease infinite`,
               }}>
                 <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 17, color: "#655d54", letterSpacing: "-0.02em", margin: 0, fontWeight: 600 }}>
                   {mapMode === "shared" ? "우리의 공간" : "나의 공간"}
@@ -700,9 +701,10 @@ export default function App() {
             {modeTransition && (
               <div style={{
                 position: "absolute", inset: 0, zIndex: 50,
-                background: "#faf9f6",
+                background: "linear-gradient(135deg, #faf9f6 0%, #ede0d5 50%, #faf9f6 100%)",
+                backgroundSize: "200% 200%",
                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6,
-                animation: `${modeTransition === "in" ? "modeOverlayIn" : "modeOverlayOut"} 0.35s ease forwards`,
+                animation: `${modeTransition === "in" ? "modeOverlayIn" : "modeOverlayOut"} 0.5s ease forwards, modeGradient 1.2s ease infinite`,
               }}>
                 <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 17, color: "#655d54", letterSpacing: "-0.02em", margin: 0, fontWeight: 600 }}>
                   {mapMode === "shared" ? "우리의 공간" : "나의 공간"}
