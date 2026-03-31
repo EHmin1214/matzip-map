@@ -358,7 +358,22 @@ export default function App() {
   // 공개 라우트 — 비회원 접근 가능
   const profileMatch = window.location.pathname.match(/^\/@(.+)$/);
   if (profileMatch) {
-    return <PublicProfile nickname={decodeURIComponent(profileMatch[1])} />;
+    const pNick = decodeURIComponent(profileMatch[1]);
+    // 모바일: UserProfileView 재사용 (팔로우 가능, 미로그인 시 로그인 유도)
+    if (isMobile) {
+      return (
+        <>
+          <UserProfileView
+            nickname={pNick}
+            onClose={() => { window.location.href = "/"; }}
+          />
+          {!user && (
+            <LoginPrompt onClose={() => { window.location.href = "/"; }} />
+          )}
+        </>
+      );
+    }
+    return <PublicProfile nickname={pNick} />;
   }
   const listMatch = window.location.pathname.match(/^\/list\/(\d+)$/);
   if (listMatch) {
@@ -485,21 +500,21 @@ export default function App() {
                   borderRadius: 999, padding: "5px 14px",
                   boxShadow: "0 2px 8px rgba(47,52,48,0.1)",
                 }}>
-                  <button onClick={() => handleMapModeChange("personal")} style={{
-                    background: "none", border: "none", cursor: "pointer", padding: 0,
-                    fontFamily: FH, fontStyle: "italic", fontSize: 13,
-                    fontWeight: mapMode === "personal" ? 700 : 400,
-                    color: mapMode === "personal" ? "#655d54" : "#8a8e8a",
-                    transition: "all 0.15s",
-                  }}>나의 공간</button>
-                  <span style={{ margin: "0 8px", color: "#c7c4bf", fontSize: 11 }}>·</span>
-                  <button onClick={() => handleMapModeChange("shared")} style={{
-                    background: "none", border: "none", cursor: "pointer", padding: 0,
-                    fontFamily: FH, fontStyle: "italic", fontSize: 13,
-                    fontWeight: mapMode === "shared" ? 700 : 400,
-                    color: mapMode === "shared" ? "#655d54" : "#8a8e8a",
-                    transition: "all 0.15s",
-                  }}>우리의 공간</button>
+                  {[
+                    { key: "personal", label: "나의 공간" },
+                    { key: "shared", label: "우리의 공간" },
+                  ].sort((a, b) => (a.key === mapMode ? -1 : 1)).map((m, i) => (
+                    <span key={m.key} style={{ display: "inline-flex", alignItems: "center" }}>
+                      {i > 0 && <span style={{ margin: "0 8px", color: "#c7c4bf", fontSize: 11 }}>·</span>}
+                      <button onClick={() => handleMapModeChange(m.key)} style={{
+                        background: "none", border: "none", cursor: "pointer", padding: 0,
+                        fontFamily: FH, fontStyle: "italic", fontSize: 13,
+                        fontWeight: mapMode === m.key ? 700 : 400,
+                        color: mapMode === m.key ? "#655d54" : "#8a8e8a",
+                        transition: "all 0.15s",
+                      }}>{m.label}</button>
+                    </span>
+                  ))}
                 </div>
               </div>
 

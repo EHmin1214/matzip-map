@@ -477,6 +477,7 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
   const [showMyPlaces, setShowMyPlaces] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [myFolders, setMyFolders] = useState([]);
   const [openSections, setOpenSections] = useState({ curation: false, best: false, follow: false, pin: false });
   const toggleSection = (key) => setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
@@ -504,6 +505,13 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushLoading, setPushLoading] = useState(false);
   const pushSupported = "PushManager" in window;
+
+  // ── 폴더 로드 ──
+  useEffect(() => {
+    if (!user) return;
+    axios.get(`${API_BASE}/folders/?user_id=${user.user_id}`)
+      .then((res) => setMyFolders(res.data)).catch(() => {});
+  }, [user]);
 
   // ── 팔로우 관리 state ──
   const [followingList, setFollowingList] = useState([]);
@@ -663,35 +671,16 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
       }}>
 
         {/* ── Archival Header ────────────────────────────── */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 32 }}>
-          <div>
-            <h2 style={{
-              fontFamily: FH, fontStyle: "italic",
-              fontSize: mobile ? 28 : 36, fontWeight: 400,
-              color: C.onSurface, margin: "0 0 8px",
-              letterSpacing: "-0.02em",
-            }}>
-              Profile
-            </h2>
-            <div style={{ width: 28, height: 1.5, background: C.primaryContainer }} />
-          </div>
-          <button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            style={{
-              padding: "6px 12px", border: "1px solid rgba(101,93,84,0.12)",
-              borderRadius: 8, background: "none", cursor: "pointer",
-              display: "flex", alignItems: "center", gap: 5,
-              fontFamily: FL, fontSize: 11, fontWeight: 600, color: C.primary,
-              opacity: refreshing ? 0.5 : 1, transition: "opacity 0.2s",
-            }}
-          >
-            <span className="material-symbols-outlined" style={{
-              fontSize: 15,
-              animation: refreshing ? "spin 0.8s linear infinite" : "none",
-            }}>refresh</span>
-            {refreshing ? "새로고침 중" : "새로고침"}
-          </button>
+        <div style={{ marginBottom: 16 }}>
+          <h2 style={{
+            fontFamily: FH, fontStyle: "italic",
+            fontSize: mobile ? 28 : 36, fontWeight: 400,
+            color: C.onSurface, margin: "0 0 8px",
+            letterSpacing: "-0.02em",
+          }}>
+            Profile
+          </h2>
+          <div style={{ width: 28, height: 1.5, background: C.primaryContainer }} />
         </div>
 
         {/* ── 프로필 카드 ─────────────────────────────────── */}
@@ -704,13 +693,13 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
               <div
                 onClick={() => photoInputRef.current?.click()}
                 style={{
-                  width: 68, height: 68, borderRadius: "50%",
+                  width: 48, height: 48, borderRadius: "50%",
                   background: user.profile_photo_url
                     ? `url(${user.profile_photo_url}) center/cover`
                     : `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontFamily: FH, fontStyle: "italic",
-                  fontSize: 28, color: "#fff6ef", fontWeight: 700, flexShrink: 0,
+                  fontSize: 20, color: "#fff6ef", fontWeight: 700, flexShrink: 0,
                   cursor: "pointer", position: "relative",
                   opacity: uploadingPhoto ? 0.5 : 1, transition: "opacity 0.2s",
                 }}
@@ -725,21 +714,40 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
                   <span className="material-symbols-outlined" style={{ fontSize: 10, color: C.primary }}>edit</span>
                 </div>
               </div>
-              <h2 style={{ margin: 0, fontFamily: FH, fontSize: 28, fontWeight: 700, color: C.onSurface }}>
-                {user.nickname}
-              </h2>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <h2 style={{ margin: 0, fontFamily: FH, fontSize: 28, fontWeight: 700, color: C.onSurface }}>
+                  {user.nickname}
+                </h2>
+                {!editing && (
+                  <button
+                    onClick={() => {
+                      setNickname(user.nickname);
+                      setInstagramUrl(user.instagram_url || "");
+                      setBlogUrl(user.blog_url || "");
+                      setEditing(true);
+                    }}
+                    style={{
+                      border: "none", background: "none", cursor: "pointer", padding: 4,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      color: C.outlineVariant, borderRadius: 6,
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>edit</span>
+                  </button>
+                )}
+              </div>
             </div>
             <div>
-              <div style={{ display: "flex", gap: 6, marginTop: 6, flexWrap: "wrap", position: "relative" }}>
+              <div style={{ display: "flex", gap: 6, marginTop: 6, position: "relative" }}>
                 {user.instagram_url && (
                   <a href={user.instagram_url} target="_blank" rel="noreferrer"
-                    style={{ fontFamily: FL, fontSize: 12, color: "#E1306C", textDecoration: "none", fontWeight: 600, padding: "4px 10px", background: "#fce4ec", borderRadius: 6, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    style={{ flex: 1, fontFamily: FL, fontSize: 12, color: "#E1306C", textDecoration: "none", fontWeight: 600, padding: "8px 0", background: "#fce4ec", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
                     Instagram
                   </a>
                 )}
                 {user.blog_url && (
                   <a href={user.blog_url} target="_blank" rel="noreferrer"
-                    style={{ fontFamily: FL, fontSize: 12, color: "#03C75A", textDecoration: "none", fontWeight: 600, padding: "4px 10px", background: "#e6f9ee", borderRadius: 6, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                    style={{ flex: 1, fontFamily: FL, fontSize: 12, color: "#03C75A", textDecoration: "none", fontWeight: 600, padding: "8px 0", background: "#e6f9ee", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
                     블로그
                   </a>
                 )}
@@ -747,9 +755,9 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
                   <button
                     onClick={() => setShowShareMenu(!showShareMenu)}
                     style={{
-                      background: C.surfaceLow, border: "none", padding: "4px 10px", borderRadius: 6, cursor: "pointer",
+                      flex: 1, background: C.surfaceLow, border: "none", padding: "8px 0", borderRadius: 8, cursor: "pointer",
                       fontFamily: FL, fontSize: 12, fontWeight: 600, color: C.primary,
-                      display: "inline-flex", alignItems: "center", gap: 4,
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
                     }}
                   >
                     <span className="material-symbols-outlined" style={{ fontSize: 14 }}>share</span>
@@ -878,30 +886,7 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
           )}
 
           {/* 수정 폼 */}
-          {!editing ? (
-            <button
-              onClick={() => {
-                setNickname(user.nickname);
-                setInstagramUrl(user.instagram_url || "");
-                setBlogUrl(user.blog_url || "");
-                setEditing(true);
-              }}
-              style={{
-                width: "100%", padding: "11px",
-                /* Ghost Border Fallback at 15% */
-                border: "1px solid rgba(101,93,84,0.15)",
-                borderRadius: 8, background: "none",
-                fontFamily: FL, fontSize: 12, fontWeight: 700,
-                textTransform: "uppercase", letterSpacing: "0.08em",
-                color: C.primary, cursor: "pointer",
-                transition: "background 0.15s",
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = C.primaryContainer}
-              onMouseLeave={(e) => e.currentTarget.style.background = "none"}
-            >
-              프로필 수정
-            </button>
-          ) : (
+          {editing && (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <ProfileInput
                 label="닉네임"
@@ -1184,75 +1169,138 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
           )}
         </Card>
 
-        {/* ── 나의 기록 상세 오버레이 ─────────────────────── */}
-        {showMyPlaces && (
-          <div style={{
-            position: "fixed", inset: 0, zIndex: 60,
-            background: C.bg,
-            overflowY: "auto",
-            WebkitOverflowScrolling: "touch",
-          }}>
+        {/* ── 나의 기록 상세 오버레이 (인스타 그리드) ────── */}
+        {showMyPlaces && (() => {
+          const grouped = {};
+          personalPlaces.forEach((p) => {
+            const fid = p.folder_id || 0;
+            (grouped[fid] = grouped[fid] || []).push(p);
+          });
+          const orderedFids = myFolders.map((f) => f.id).filter((id) => grouped[id]);
+          if (grouped[0]) orderedFids.push(0);
+
+          return (
             <div style={{
-              maxWidth: 520, margin: "0 auto",
-              padding: mobile ? "0 0 100px" : "0 28px 60px",
+              position: "fixed", inset: 0, zIndex: 60,
+              background: C.bg,
+              overflowY: "auto",
+              WebkitOverflowScrolling: "touch",
             }}>
-              {/* 상단 헤더 */}
               <div style={{
-                position: "sticky", top: 0, zIndex: 10,
-                background: "rgba(250,249,246,0.92)",
-                backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
-                padding: mobile ? "16px 18px" : "20px 0",
-                display: "flex", alignItems: "center", justifyContent: "space-between",
+                maxWidth: 520, margin: "0 auto",
+                padding: mobile ? "0 0 100px" : "0 28px 60px",
               }}>
-                <button
-                  onClick={() => setShowMyPlaces(false)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 4,
-                    border: "none", background: "none", cursor: "pointer",
-                    fontFamily: FL, fontSize: 13, fontWeight: 600, color: C.primary,
-                    padding: 0,
-                  }}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>arrow_back</span>
-                  프로필
-                </button>
-                <p style={{
-                  margin: 0, fontFamily: FL, fontSize: 9, fontWeight: 700,
-                  textTransform: "uppercase", letterSpacing: "0.15em", color: C.outlineVariant,
+                {/* 상단 헤더 */}
+                <div style={{
+                  position: "sticky", top: 0, zIndex: 10,
+                  background: "rgba(250,249,246,0.92)",
+                  backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
+                  padding: mobile ? "16px 18px" : "20px 0",
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
                 }}>
-                  나의 기록 — {personalPlaces.length}곳
-                </p>
-              </div>
-
-              {/* 장소 카드 리스트 */}
-              <div style={{
-                display: "flex", flexDirection: "column",
-                gap: mobile ? 2 : 12,
-                padding: mobile ? 0 : undefined,
-              }}>
-                {personalPlaces.map((p) => (
-                  <div key={p.id} onClick={() => onPlaceClick?.(p)} style={{ cursor: onPlaceClick ? "pointer" : "default" }}>
-                    <PlaceFeedCard place={p} mobile={mobile} />
-                  </div>
-                ))}
-              </div>
-
-              {personalPlaces.length === 0 && (
-                <div style={{ textAlign: "center", padding: "60px 20px" }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 48, color: C.outlineVariant, marginBottom: 12 }}>
-                    add_location
-                  </span>
-                  <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 16, color: C.onSurfaceVariant }}>
-                    아직 저장된 장소가 없어요
-                  </p>
-                  <p style={{ fontFamily: FL, fontSize: 12, color: C.outlineVariant }}>
-                    지도에서 장소를 검색하고 저장해보세요
+                  <button
+                    onClick={() => setShowMyPlaces(false)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 4,
+                      border: "none", background: "none", cursor: "pointer",
+                      fontFamily: FL, fontSize: 13, fontWeight: 600, color: C.primary,
+                      padding: 0,
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>arrow_back</span>
+                    프로필
+                  </button>
+                  <p style={{
+                    margin: 0, fontFamily: FL, fontSize: 9, fontWeight: 700,
+                    textTransform: "uppercase", letterSpacing: "0.15em", color: C.outlineVariant,
+                  }}>
+                    나의 기록 — {personalPlaces.length}곳
                   </p>
                 </div>
-              )}
+
+                {/* 컬렉션별 그리드 */}
+                {orderedFids.map((fid) => {
+                  const folder = myFolders.find((f) => f.id === fid);
+                  const color = folder?.color || C.outlineVariant;
+                  const name = folder?.name || "미분류";
+                  const items = grouped[fid];
+                  return (
+                    <div key={fid} style={{ marginBottom: 24 }}>
+                      <div style={{
+                        display: "flex", alignItems: "center", gap: 6,
+                        padding: mobile ? "0 16px 8px" : "0 0 8px",
+                      }}>
+                        <div style={{ width: 3, height: 14, borderRadius: 2, background: color, flexShrink: 0 }} />
+                        <p style={{
+                          margin: 0, fontFamily: FL, fontSize: 11, fontWeight: 700,
+                          color: C.onSurfaceVariant,
+                        }}>{name} <span style={{ fontWeight: 500, color: C.outlineVariant }}>({items.length})</span></p>
+                      </div>
+                      <div style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(3, 1fr)",
+                        gap: 2,
+                        padding: mobile ? "0" : undefined,
+                      }}>
+                        {items.map((p) => {
+                          const photo = p.photo_urls?.[0] || p.photo_url;
+                          const sc = STATUS_COLOR[p.status];
+                          return (
+                            <div
+                              key={p.id}
+                              onClick={() => onPlaceClick?.(p)}
+                              style={{
+                                position: "relative", aspectRatio: "1", overflow: "hidden",
+                                background: photo ? "#f0efec" : `linear-gradient(135deg, ${C.primaryDim}18, ${C.primary}0a)`,
+                                cursor: onPlaceClick ? "pointer" : "default",
+                              }}
+                            >
+                              {photo && (
+                                <img src={photo} alt={p.name}
+                                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                              )}
+                              <div style={{
+                                position: "absolute", bottom: 0, left: 0, right: 0,
+                                background: "linear-gradient(transparent, rgba(0,0,0,0.55))",
+                                padding: "16px 6px 5px",
+                              }}>
+                                <p style={{
+                                  margin: 0, fontFamily: FL, fontSize: 10, fontWeight: 700,
+                                  color: "#fff", lineHeight: 1.3,
+                                  overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                                }}>{p.name}</p>
+                              </div>
+                              <div style={{
+                                position: "absolute", top: 4, left: 4,
+                                width: 8, height: 8, borderRadius: "50%",
+                                background: sc?.color || C.outlineVariant,
+                                border: "1.5px solid rgba(255,255,255,0.8)",
+                              }} />
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {personalPlaces.length === 0 && (
+                  <div style={{ textAlign: "center", padding: "60px 20px" }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 48, color: C.outlineVariant, marginBottom: 12 }}>
+                      add_location
+                    </span>
+                    <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 16, color: C.onSurfaceVariant }}>
+                      아직 저장된 장소가 없어요
+                    </p>
+                    <p style={{ fontFamily: FL, fontSize: 12, color: C.outlineVariant }}>
+                      지도에서 장소를 검색하고 저장해보세요
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* ── 설정 (접기/펼치기) ─────────────────────────── */}
         <Card>

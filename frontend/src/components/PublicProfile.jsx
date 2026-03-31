@@ -174,9 +174,15 @@ export default function PublicProfile({ nickname }) {
           </button>
           {profile.instagram_url && (
             <a href={profile.instagram_url} target="_blank" rel="noreferrer" style={{
-              fontFamily: FL, fontSize: 10, color: C.primary, textDecoration: "none",
-              padding: "6px 12px", background: C.primaryContainer, borderRadius: 6, fontWeight: 600,
+              fontFamily: FL, fontSize: 10, color: "#E1306C", textDecoration: "none",
+              padding: "6px 12px", background: "#fce4ec", borderRadius: 6, fontWeight: 600,
             }}>Instagram</a>
+          )}
+          {profile.blog_url && (
+            <a href={profile.blog_url} target="_blank" rel="noreferrer" style={{
+              fontFamily: FL, fontSize: 10, color: "#03C75A", textDecoration: "none",
+              padding: "6px 12px", background: "#e6f9ee", borderRadius: 6, fontWeight: 600,
+            }}>블로그</a>
           )}
           <a href="/" style={{
             fontFamily: FL, fontSize: 11, fontWeight: 700, color: "#fff6ef",

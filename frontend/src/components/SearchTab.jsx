@@ -434,19 +434,11 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUse
               {searchMode === "place" ? "내 공간을 만들어보세요" : "닉네임으로 사람을 찾아보세요"}
             </p>
             <p style={{ fontFamily: FL, fontSize: 11, color: "#a8a29e", letterSpacing: "0.1em" }}>
-              {searchMode === "place" ? "예: 을지면옥, 스타벅스 강남점" : "팔로우하고 서로의 공간을 공유하세요"}
+              {searchMode === "place" ? "" : "팔로우하고 서로의 공간을 공유하세요"}
             </p>
           </div>
         )}
 
-        {/* 하단 Load More 스타일 */}
-        {results.length === 0 && !error && !savedMsg && (
-          <div style={{ marginTop: 80, textAlign: "center" }}>
-            <p style={{ fontFamily: FL, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.4em", color: "#a8a29e" }}>
-              Explore New Records
-            </p>
-          </div>
-        )}
       </main>
 
       {pendingPlace && (
