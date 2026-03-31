@@ -21,7 +21,7 @@ const C = {
 
 const isMobile = () => window.innerWidth <= 768;
 
-const SUGGESTIONS = ["에임즈커피로스터스", "신세계 양꼬치 첨단점", "하바티 홍대", "하나샤부정 강남"];
+const SUGGESTIONS = ["에임즈커피로스터스", "신세계 양꼬치 첨단점", "하바티 홍대", "하나샤부정"];
 
 export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUserProfile }) {
   const { user } = useUser();
