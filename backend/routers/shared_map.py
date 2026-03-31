@@ -81,11 +81,8 @@ def list_shared_places(
     db: Session = Depends(get_db),
 ):
     """집계된 장소 목록 (비로그인 접근 가능)."""
-    q = db.query(BestPick)
-    if category and category in VALID_CATEGORIES:
-        q = q.filter(BestPick.category == category)
-
-    all_picks = q.all()
+    # 항상 전체 조회 후 그룹핑 — 같은 장소를 다른 카테고리로 등록한 유저도 합산
+    all_picks = db.query(BestPick).all()
 
     # 좌표 반올림으로 그룹핑 (카테고리 무관 — 같은 장소면 합산)
     # naver_place_id가 있는 유저/없는 유저가 섞여도 같은 좌표면 합산
@@ -131,6 +128,9 @@ def list_shared_places(
             pick_count=len(seen_users),
             pickers=pickers,
         ))
+    # 카테고리 필터는 그룹핑 후 적용 (pick_count는 전체 기준 유지)
+    if category and category in VALID_CATEGORIES:
+        result = [r for r in result if r.category == category]
     result.sort(key=lambda x: x.pick_count, reverse=True)
     return result
 

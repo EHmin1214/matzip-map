@@ -26,8 +26,6 @@ const NAV_ITEMS = [
 
 import { FOLLOWING_COLORS, getFollowingColor, BEST_CATEGORIES, SHARED_CAT_COLOR } from "../constants";
 
-const statusEmoji = (s) => ({ want_to_go: "🔖", visited: "✅", want_revisit: "❤️" }[s] || "📍");
-
 function SectionLabel({ children }) {
   return (
     <p style={{

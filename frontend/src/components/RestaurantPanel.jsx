@@ -341,7 +341,7 @@ export default function RestaurantPanel({
                 display: "flex", gap: 4, zIndex: 10,
                 background: C.surfaceLowest, borderRadius: 8, padding: 4,
                 boxShadow: "0 4px 16px rgba(47,52,48,0.15)",
-                animation: "fadeIn 0.12s ease-out",
+                animation: "panelFadeIn 0.12s ease-out",
               }}>
                 {naverUrl && (
                   <a href={naverUrl} target="_blank" rel="noreferrer" onClick={() => setShowMapMenu(false)} style={{
@@ -387,7 +387,7 @@ export default function RestaurantPanel({
                 display: "flex", gap: 4, zIndex: 10,
                 background: C.surfaceLowest, borderRadius: 8, padding: 4,
                 boxShadow: "0 4px 16px rgba(47,52,48,0.15)",
-                animation: "fadeIn 0.12s ease-out",
+                animation: "panelFadeIn 0.12s ease-out",
               }}>
                 <button onClick={() => { handleShare(); setShowShareMenu(false); }} style={{
                   display: "inline-flex", alignItems: "center", gap: 4, padding: "7px 12px",
@@ -445,7 +445,7 @@ export default function RestaurantPanel({
                 display: "flex", flexDirection: "column", gap: 2, zIndex: 10,
                 background: C.surfaceLowest, borderRadius: 8, padding: 6,
                 boxShadow: "0 4px 16px rgba(47,52,48,0.15)",
-                animation: "fadeIn 0.12s ease-out", minWidth: 120,
+                animation: "panelFadeIn 0.12s ease-out", minWidth: 120,
               }}>
                 {BEST_CATEGORIES.map((cat) => (
                   <button key={cat.key} onClick={() => handleBestCategorySelect(cat.key)} style={{
@@ -466,7 +466,7 @@ export default function RestaurantPanel({
                 position: "absolute", top: "100%", left: 0, marginTop: 4,
                 zIndex: 10, background: C.surfaceLowest, borderRadius: 8, padding: 8,
                 boxShadow: "0 4px 16px rgba(47,52,48,0.15)",
-                animation: "fadeIn 0.12s ease-out", minWidth: 180,
+                animation: "panelFadeIn 0.12s ease-out", minWidth: 180,
               }}>
                 <p style={{ margin: "0 0 6px", fontFamily: FL, fontSize: 10, fontWeight: 700, color: C.outlineVariant }}>
                   슬롯이 가득 찼어요. 교체할 장소 선택:
@@ -932,7 +932,7 @@ export default function RestaurantPanel({
           from { opacity: 0; transform: translateX(-16px); }
           to   { opacity: 1; transform: translateX(0); }
         }
-        @keyframes fadeIn {
+        @keyframes panelFadeIn {
           from { opacity: 0; transform: translateY(-4px); }
           to   { opacity: 1; transform: translateY(0); }
         }

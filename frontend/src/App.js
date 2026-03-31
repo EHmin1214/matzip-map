@@ -314,8 +314,10 @@ export default function App() {
   }, []);
 
   const [modeTransition, setModeTransition] = useState(null); // null | "in" | "out"
+  const modeTarget = useRef(null);
   const handleMapModeChange = useCallback((mode) => {
     if (mode === mapMode) return;
+    modeTarget.current = mode;
     setModeTransition("in");
     setSelectedRestaurant(null);
     setTimeout(() => {
@@ -434,10 +436,10 @@ export default function App() {
                 animation: `${modeTransition === "in" ? "modeOverlayIn" : "modeOverlayOut"} 0.5s ease forwards, modeGradient 1.2s ease infinite`,
               }}>
                 <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 17, color: "#655d54", letterSpacing: "-0.02em", margin: 0, fontWeight: 600 }}>
-                  {mapMode === "shared" ? "우리의 공간" : "나의 공간"}
+                  {modeTarget.current === "shared" ? "우리의 공간" : "나의 공간"}
                 </p>
                 <p style={{ fontFamily: FL, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.2em", color: "#b5b0ab", margin: 0 }}>
-                  {mapMode === "shared" ? "Shared Curation" : "My Archive"}
+                  {modeTarget.current === "shared" ? "Shared Curation" : "My Archive"}
                 </p>
               </div>
             )}
@@ -689,6 +691,7 @@ export default function App() {
                 handleFollowingMarkerClick(place);
                 setActiveTab("map");
               }}
+              folders={folders}
               focusPlace={selectedRestaurant}
               mapMode={mapMode}
               sharedPlaces={sharedPlaces}
@@ -707,10 +710,10 @@ export default function App() {
                 animation: `${modeTransition === "in" ? "modeOverlayIn" : "modeOverlayOut"} 0.5s ease forwards, modeGradient 1.2s ease infinite`,
               }}>
                 <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 17, color: "#655d54", letterSpacing: "-0.02em", margin: 0, fontWeight: 600 }}>
-                  {mapMode === "shared" ? "우리의 공간" : "나의 공간"}
+                  {modeTarget.current === "shared" ? "우리의 공간" : "나의 공간"}
                 </p>
                 <p style={{ fontFamily: FL, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.2em", color: "#b5b0ab", margin: 0 }}>
-                  {mapMode === "shared" ? "Shared Curation" : "My Archive"}
+                  {modeTarget.current === "shared" ? "Shared Curation" : "My Archive"}
                 </p>
               </div>
             )}
