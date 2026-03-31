@@ -95,7 +95,7 @@ const blogMarker = ({ name, color }) => `
   ">${name}</div>
 `;
 
-const ZOOM_THRESHOLD = 14; // 이 줌 이하면 dot, 이상이면 pill
+const ZOOM_THRESHOLD = 12; // 이 줌 이하면 dot, 이상이면 pill
 
 // 축소 시 보이는 dot 마커
 const dotMarker = (color) => `
@@ -359,7 +359,7 @@ export default function MapView({
       });
 
       const folderColor = getFolderColor(r.folder_id);
-      const dotColor = STATUS_DOT[r.status] || folderColor || MY_PRIMARY;
+      const dotColor = folderColor || MY_PRIMARY;
       const pillIcon = {
         content: myMarker({ name: r.name, status: r.status, shared: sharedWith.length > 0, folderColor }),
         anchor: new window.naver.maps.Point(6, 12),

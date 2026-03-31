@@ -51,6 +51,7 @@ export default function RestaurantPanel({
   const [showComments, setShowComments] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
+  const [showMapMenu, setShowMapMenu] = useState(false);
   const [galleryIdx, setGalleryIdx] = useState(0);
   const [replyTo, setReplyTo] = useState(null); // { id, author_nickname }
   const commentInputRef = useRef(null);
@@ -62,7 +63,7 @@ export default function RestaurantPanel({
   const dragStartY = useRef(null);
   const dragStartScroll = useRef(0);
 
-  useEffect(() => { setR(restaurant); setSheetMode("peek"); setShowShareMenu(false); }, [restaurant]);
+  useEffect(() => { setR(restaurant); setSheetMode("peek"); setShowShareMenu(false); setShowMapMenu(false); }, [restaurant]);
 
   const isPersonalMine = r.isPersonal && (!r.user_id || (user && r.user_id === user.user_id));
   const isOthersPlace  = r.isPersonal && r.user_id && user && r.user_id !== user.user_id;
@@ -246,81 +247,106 @@ export default function RestaurantPanel({
         margin: "0 0 4px", fontFamily: FH, fontSize: mobile ? 20 : 22,
         fontWeight: 700, color: C.onSurface, letterSpacing: "-0.01em",
       }}>{r.name}</h2>
-      {/* 주소 + 네이버/공유 */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        {r.address && (
-          <p style={{
-            margin: 0, fontFamily: FL, fontSize: 12, color: C.outlineVariant, flex: 1, minWidth: 0,
-            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-          }}>{r.address}</p>
-        )}
-        <div style={{ display: "flex", gap: 4, flexShrink: 0 }}>
-          {naverUrl && (
-            <a href={naverUrl} target="_blank" rel="noreferrer" style={{
+      {/* 주소 */}
+      {r.address && (
+        <p style={{
+          margin: "0 0 6px", fontFamily: FL, fontSize: 12, color: C.outlineVariant,
+          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+        }}>{r.address}</p>
+      )}
+      {/* 지도/공유 버튼 — 우측 정렬 */}
+      <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
+        {(naverUrl || kakaoMapUrl) && (
+          <div style={{ position: "relative" }}>
+            <button onClick={() => { setShowMapMenu((v) => !v); setShowShareMenu(false); }} style={{
               display: "inline-flex", alignItems: "center", gap: 3, padding: "4px 8px",
-              background: "#03C75A", color: "white", borderRadius: 5,
-              fontFamily: FL, fontSize: 10, fontWeight: 600, textDecoration: "none",
+              background: showMapMenu ? C.primaryContainer : C.surfaceLow,
+              color: showMapMenu ? C.primary : C.onSurfaceVariant,
+              border: "none", borderRadius: 5, fontFamily: FL, fontSize: 10, fontWeight: 600,
+              cursor: "pointer", transition: "all 0.15s",
             }}>
-              <span style={{ fontWeight: 800, fontSize: 11 }}>N</span>
+              <span className="material-symbols-outlined" style={{ fontSize: 12 }}>map</span>
               지도
-            </a>
-          )}
-          {kakaoMapUrl && (
-            <a href={kakaoMapUrl} target="_blank" rel="noreferrer" style={{
-              display: "inline-flex", alignItems: "center", gap: 3, padding: "4px 8px",
-              background: "#FEE500", color: "#191919", borderRadius: 5,
-              fontFamily: FL, fontSize: 10, fontWeight: 600, textDecoration: "none",
-            }}>
-              <svg width="10" height="10" viewBox="0 0 18 18"><path fill="#191919" d="M9 1C4.58 1 1 3.79 1 7.21c0 2.17 1.45 4.08 3.64 5.18l-.93 3.44c-.08.3.26.54.52.37l4.12-2.74c.21.02.43.03.65.03 4.42 0 8-2.79 8-6.28S13.42 1 9 1z"/></svg>
-              지도
-            </a>
-          )}
-          {r.isPersonal && r.id && (
-            <div style={{ position: "relative" }}>
-              <button onClick={() => setShowShareMenu((v) => !v)} style={{
-                display: "inline-flex", alignItems: "center", gap: 3, padding: "4px 8px",
-                background: showShareMenu ? C.primaryContainer : C.surfaceLow,
-                color: showShareMenu ? C.primary : C.onSurfaceVariant,
-                border: "none", borderRadius: 5, fontFamily: FL, fontSize: 10, fontWeight: 600,
-                cursor: "pointer", transition: "all 0.15s",
+            </button>
+            {showMapMenu && (
+              <div style={{
+                position: "absolute", top: "100%", right: 0, marginTop: 4,
+                display: "flex", gap: 4, zIndex: 10,
+                background: C.surfaceLowest, borderRadius: 8, padding: 4,
+                boxShadow: "0 4px 16px rgba(47,52,48,0.15)",
+                animation: "fadeIn 0.12s ease-out",
               }}>
-                <span className="material-symbols-outlined" style={{ fontSize: 12 }}>share</span>
-                공유
-              </button>
-              {showShareMenu && (
-                <div style={{
-                  position: "absolute", top: "100%", right: 0, marginTop: 4,
-                  display: "flex", gap: 4, zIndex: 10,
-                  background: C.surfaceLowest, borderRadius: 8, padding: 4,
-                  boxShadow: "0 4px 16px rgba(47,52,48,0.15)",
-                  animation: "fadeIn 0.12s ease-out",
-                }}>
-                  <button onClick={() => { handleShare(); setShowShareMenu(false); }} style={{
+                {naverUrl && (
+                  <a href={naverUrl} target="_blank" rel="noreferrer" onClick={() => setShowMapMenu(false)} style={{
                     display: "inline-flex", alignItems: "center", gap: 4, padding: "7px 12px",
-                    background: copied ? C.primaryContainer : C.surfaceLow,
-                    color: copied ? C.primary : C.onSurfaceVariant,
+                    background: "#03C75A", color: "white",
                     border: "none", borderRadius: 6, fontFamily: FL, fontSize: 10, fontWeight: 600,
-                    cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s",
+                    textDecoration: "none", whiteSpace: "nowrap",
                   }}>
-                    <span className="material-symbols-outlined" style={{ fontSize: 13 }}>
-                      {copied ? "check" : "link"}
-                    </span>
-                    {copied ? "복사됨" : "링크 복사"}
-                  </button>
-                  <button onClick={() => { handleKakaoShare(); setShowShareMenu(false); }} style={{
+                    <span style={{ fontWeight: 800, fontSize: 11 }}>N</span>
+                    네이버지도
+                  </a>
+                )}
+                {kakaoMapUrl && (
+                  <a href={kakaoMapUrl} target="_blank" rel="noreferrer" onClick={() => setShowMapMenu(false)} style={{
                     display: "inline-flex", alignItems: "center", gap: 4, padding: "7px 12px",
                     background: "#FEE500", color: "#191919",
                     border: "none", borderRadius: 6, fontFamily: FL, fontSize: 10, fontWeight: 600,
-                    cursor: "pointer", whiteSpace: "nowrap",
+                    textDecoration: "none", whiteSpace: "nowrap",
                   }}>
-                    <svg width="12" height="12" viewBox="0 0 18 18"><path fill="#191919" d="M9 1C4.58 1 1 3.79 1 7.21c0 2.17 1.45 4.08 3.64 5.18l-.93 3.44c-.08.3.26.54.52.37l4.12-2.74c.21.02.43.03.65.03 4.42 0 8-2.79 8-6.28S13.42 1 9 1z"/></svg>
-                    카카오톡
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+                    <svg width="10" height="10" viewBox="0 0 18 18"><path fill="#191919" d="M9 1C4.58 1 1 3.79 1 7.21c0 2.17 1.45 4.08 3.64 5.18l-.93 3.44c-.08.3.26.54.52.37l4.12-2.74c.21.02.43.03.65.03 4.42 0 8-2.79 8-6.28S13.42 1 9 1z"/></svg>
+                    카카오맵
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+        {r.isPersonal && r.id && (
+          <div style={{ position: "relative" }}>
+            <button onClick={() => { setShowShareMenu((v) => !v); setShowMapMenu(false); }} style={{
+              display: "inline-flex", alignItems: "center", gap: 3, padding: "4px 8px",
+              background: showShareMenu ? C.primaryContainer : C.surfaceLow,
+              color: showShareMenu ? C.primary : C.onSurfaceVariant,
+              border: "none", borderRadius: 5, fontFamily: FL, fontSize: 10, fontWeight: 600,
+              cursor: "pointer", transition: "all 0.15s",
+            }}>
+              <span className="material-symbols-outlined" style={{ fontSize: 12 }}>share</span>
+              공유
+            </button>
+            {showShareMenu && (
+              <div style={{
+                position: "absolute", top: "100%", right: 0, marginTop: 4,
+                display: "flex", gap: 4, zIndex: 10,
+                background: C.surfaceLowest, borderRadius: 8, padding: 4,
+                boxShadow: "0 4px 16px rgba(47,52,48,0.15)",
+                animation: "fadeIn 0.12s ease-out",
+              }}>
+                <button onClick={() => { handleShare(); setShowShareMenu(false); }} style={{
+                  display: "inline-flex", alignItems: "center", gap: 4, padding: "7px 12px",
+                  background: copied ? C.primaryContainer : C.surfaceLow,
+                  color: copied ? C.primary : C.onSurfaceVariant,
+                  border: "none", borderRadius: 6, fontFamily: FL, fontSize: 10, fontWeight: 600,
+                  cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s",
+                }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 13 }}>
+                    {copied ? "check" : "link"}
+                  </span>
+                  {copied ? "복사됨" : "링크 복사"}
+                </button>
+                <button onClick={() => { handleKakaoShare(); setShowShareMenu(false); }} style={{
+                  display: "inline-flex", alignItems: "center", gap: 4, padding: "7px 12px",
+                  background: "#FEE500", color: "#191919",
+                  border: "none", borderRadius: 6, fontFamily: FL, fontSize: 10, fontWeight: 600,
+                  cursor: "pointer", whiteSpace: "nowrap",
+                }}>
+                  <svg width="12" height="12" viewBox="0 0 18 18"><path fill="#191919" d="M9 1C4.58 1 1 3.79 1 7.21c0 2.17 1.45 4.08 3.64 5.18l-.93 3.44c-.08.3.26.54.52.37l4.12-2.74c.21.02.43.03.65.03 4.42 0 8-2.79 8-6.28S13.42 1 9 1z"/></svg>
+                  카카오톡
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

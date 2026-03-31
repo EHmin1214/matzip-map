@@ -314,7 +314,7 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
                       outline: "none", boxSizing: "border-box", marginBottom: 10,
                     }}
                   />
-                  <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+                  <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
                     {FOLDER_COLORS.map((c) => (
                       <button
                         key={c} onClick={() => setNewFolderColor(c)}
@@ -325,6 +325,24 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
                         }}
                       />
                     ))}
+                    <label style={{ position: "relative", width: 22, height: 22, cursor: "pointer" }}>
+                      <input
+                        type="color" value={newFolderColor}
+                        onChange={(e) => setNewFolderColor(e.target.value)}
+                        style={{
+                          position: "absolute", inset: 0, opacity: 0,
+                          width: "100%", height: "100%", cursor: "pointer", border: "none", padding: 0,
+                        }}
+                      />
+                      <div style={{
+                        width: 22, height: 22, borderRadius: "50%",
+                        background: `conic-gradient(red, yellow, lime, aqua, blue, magenta, red)`,
+                        border: FOLDER_COLORS.includes(newFolderColor) ? "2px solid transparent" : `2px solid ${C.onSurface}`,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                      }}>
+                        <span className="material-symbols-outlined" style={{ fontSize: 12, color: "white", textShadow: "0 0 2px rgba(0,0,0,0.5)" }}>palette</span>
+                      </div>
+                    </label>
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
                     <button onClick={() => setShowNewFolder(false)} style={{

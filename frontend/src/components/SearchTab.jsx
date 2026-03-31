@@ -185,7 +185,7 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUse
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              placeholder={searchMode === "place" ? "공간, 위치, 분위기로 검색..." : "닉네임으로 검색..."}
+              placeholder={searchMode === "place" ? "장소 이름과 지역으로 검색..." : "닉네임으로 검색..."}
               autoFocus={!mobile}
               style={{
                 width: "100%", padding: "20px 20px 20px 54px",
