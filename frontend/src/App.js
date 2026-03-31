@@ -20,6 +20,7 @@ import PublicListPage from "./components/PublicListPage";
 import OnboardingGuide from "./components/OnboardingGuide";
 import LoginPrompt from "./components/LoginPrompt";
 import Toast from "./components/Toast";
+import FeedbackButton from "./components/FeedbackButton";
 import "./App.css";
 
 const FH = "'Noto Serif', Georgia, serif";
@@ -417,6 +418,13 @@ export default function App() {
             </div>
           )}
 
+          {/* 피드백 버튼 — 좌측 하단 */}
+          {showMap && (
+            <div style={{ position: "fixed", left: 14, bottom: 80, zIndex: 26 }}>
+              <FeedbackButton />
+            </div>
+          )}
+
           {/* 비지도 탭 콘텐츠 */}
           {!showMap && (
             <div style={{ position: "fixed", inset: 0, zIndex: 20, paddingBottom: "calc(64px + env(safe-area-inset-bottom, 0px))", overflowY: "auto", background: "#faf9f6" }}>
@@ -508,6 +516,10 @@ export default function App() {
                 showPersonal={showPersonal} onTogglePersonal={() => setShowPersonal((v) => !v)}
               />
               <LocationButton map={mapRef.current} />
+            </div>
+            {/* 피드백 버튼 — 좌측 하단 */}
+            <div style={{ position: "absolute", left: 14, bottom: 14, zIndex: 26 }}>
+              <FeedbackButton />
             </div>
           </div>
 

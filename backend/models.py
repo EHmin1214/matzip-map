@@ -218,6 +218,15 @@ class Notification(Base):
     user: Mapped["User"] = relationship("User", foreign_keys=[user_id], back_populates="notifications")
 
 
+class Feedback(Base):
+    """사용자 이슈/아이디어 보고."""
+    __tablename__ = "feedbacks"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    nickname: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
 class CuratedList(Base):
     """큐레이션 리스트 — 테마별 장소 모음."""
     __tablename__ = "curated_lists"

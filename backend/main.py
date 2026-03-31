@@ -23,7 +23,7 @@ from sqlalchemy import text
 from database import engine
 from models import Base
 from routers import accounts, crawl, restaurants, ad_check, search_place
-from routers import users, follows, places, folders, upload, push, lists
+from routers import users, follows, places, folders, upload, push, lists, feedback
 
 Base.metadata.create_all(bind=engine)
 
@@ -87,6 +87,7 @@ app.include_router(places.router)
 app.include_router(upload.router)
 app.include_router(push.router)
 app.include_router(lists.router)
+app.include_router(feedback.router)
 
 
 FRONTEND_URL = "https://myplace-map.vercel.app"
