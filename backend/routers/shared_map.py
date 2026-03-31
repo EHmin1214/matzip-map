@@ -2,6 +2,8 @@
 우리의 공간 — 공유 큐레이션 맵 API.
 카테고리당 5개 베스트 슬롯, 집계 데이터 공개.
 """
+from collections import Counter
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -78,16 +80,21 @@ def list_shared_places(
 
     all_picks = q.all()
 
-    # naver_place_id 또는 좌표 반올림으로 그룹핑
+    # naver_place_id 또는 좌표 반올림으로 그룹핑 (카테고리 무관 — 같은 장소면 합산)
+    # 단, 같은 user_id의 중복 추가는 1회로 카운트 (유저 수 기준)
     groups: dict[str, list] = {}
     for p in all_picks:
         key = p.naver_place_id or f"{round(p.lat, 3)}_{round(p.lng, 3)}"
-        cat_key = f"{key}_{p.category}"
-        groups.setdefault(cat_key, []).append(p)
+        groups.setdefault(key, []).append(p)
 
     result = []
     for picks in groups.values():
-        rep = picks[0]  # 대표 데이터
+        rep = picks[0]
+        # 유니크 유저 수 = 실제 추천 인원
+        unique_users = len(set(p.user_id for p in picks))
+        # 대표 카테고리 = 가장 많이 선택된 카테고리
+        cat_counts = Counter(p.category for p in picks)
+        top_category = cat_counts.most_common(1)[0][0]
         result.append(SharedPlaceOut(
             name=rep.name,
             address=rep.address,
@@ -95,8 +102,8 @@ def list_shared_places(
             lng=rep.lng,
             naver_place_id=rep.naver_place_id,
             naver_place_url=rep.naver_place_url,
-            category=rep.category,
-            pick_count=len(picks),
+            category=top_category,
+            pick_count=unique_users,
         ))
     result.sort(key=lambda x: x.pick_count, reverse=True)
     return result

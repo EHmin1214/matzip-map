@@ -30,6 +30,13 @@ export const STATUS_LABEL = {
   want_revisit: "또 가고 싶어요",
 };
 
+export const SHARED_CAT_COLOR = {
+  restaurant:    "#8B5E3C",
+  cafe:          "#6B7B3A",
+  bar:           "#7B5078",
+  general_store: "#4A7B8C",
+};
+
 export const BEST_CATEGORIES = [
   { key: "restaurant", emoji: "🍽", label: "음식점" },
   { key: "cafe",       emoji: "☕", label: "카페" },

@@ -2,7 +2,7 @@
 // 마커: 미니멀 — 이름 + 상태 도트만. 이모지/아바타 스택 제거.
 import { useEffect, useRef, useState } from "react";
 
-import { FOLLOWING_COLORS, getFollowingColor } from "../constants";
+import { FOLLOWING_COLORS, getFollowingColor, SHARED_CAT_COLOR } from "../constants";
 
 const MY_PRIMARY = "#655d54";
 const MY_DIM     = "#595149";
@@ -86,14 +86,16 @@ const blogMarker = ({ name, color }) => `
 `;
 
 // 우리의 공간 마커 — (N) 장소명
-const sharedMarker = ({ name, count }) => `
+const sharedMarker = ({ name, count, category }) => {
+  const color = SHARED_CAT_COLOR[category] || "#655d54";
+  return `
   <div class="map-pill" style="
     display:inline-flex;align-items:center;gap:4px;
     background:rgba(255,255,255,0.92);
-    color:#655d54;
+    color:${color};
     padding:4px 9px;
     border-radius:6px;
-    border:1.5px solid #655d54;
+    border:1.5px solid ${color};
     font-family:'Manrope',-apple-system,sans-serif;
     font-size:11px;
     white-space:nowrap;
@@ -105,6 +107,7 @@ const sharedMarker = ({ name, count }) => `
     <span style="font-weight:600">${name}</span>
   </div>
 `;
+};
 
 const ZOOM_THRESHOLD = 12; // 이 줌 이하면 dot, 이상이면 pill
 
@@ -330,11 +333,12 @@ export default function MapView({
   // 모드 전환 시 마커 숨김/표시
   useEffect(() => {
     if (!mapReady) return;
-    const show = mapMode === "personal";
-    markersRef.current.forEach((m) => m.setMap(show ? mapInstance.current : null));
-    personalMarkersRef.current.forEach((m) => m.setMap(show ? mapInstance.current : null));
-    followingMarkersRef.current.forEach((m) => m.setMap(show ? mapInstance.current : null));
-    sharedMarkersRef.current.forEach((m) => m.setMap(!show ? mapInstance.current : null));
+    const isPersonal = mapMode === "personal";
+    markersRef.current.forEach((m) => m.setMap(isPersonal ? mapInstance.current : null));
+    // 내 장소 마커는 shared 모드에서도 보여줌 (showPersonal로 App에서 빈 배열 전달하면 알아서 사라짐)
+    personalMarkersRef.current.forEach((m) => m.setMap(mapInstance.current));
+    followingMarkersRef.current.forEach((m) => m.setMap(isPersonal ? mapInstance.current : null));
+    sharedMarkersRef.current.forEach((m) => m.setMap(!isPersonal ? mapInstance.current : null));
   }, [mapMode, mapReady]);
 
   // 블로거 맛집 마커
@@ -474,11 +478,12 @@ export default function MapView({
 
     const isPill = zoomRef.current >= ZOOM_THRESHOLD;
     sharedPlaces.forEach((p) => {
+      const catColor = SHARED_CAT_COLOR[p.category] || MY_PRIMARY;
       const pillIcon = {
-        content: sharedMarker({ name: p.name, count: p.pick_count }),
+        content: sharedMarker({ name: p.name, count: p.pick_count, category: p.category }),
         anchor: new window.naver.maps.Point(6, 12),
       };
-      const dotIcon_ = { content: dotMarker(MY_PRIMARY), anchor: new window.naver.maps.Point(4, 4) };
+      const dotIcon_ = { content: dotMarker(catColor), anchor: new window.naver.maps.Point(4, 4) };
       const marker = new window.naver.maps.Marker({
         position: new window.naver.maps.LatLng(p.lat, p.lng),
         map: mapInstance.current,

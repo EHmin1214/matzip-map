@@ -152,7 +152,7 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
   // 풀 버전
   return (
     <div style={{ background: C.bg, minHeight: "100%" }}>
-      <div style={{ maxWidth: 760, margin: "0 auto", padding: mobile ? "24px 20px" : "32px 40px" }}>
+      <div style={{ maxWidth: 760, margin: "0 auto", padding: mobile ? "16px 12px" : "24px 24px" }}>
         {/* 상단 actions */}
         {notifications.length > 0 && (
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 24 }}>
@@ -272,8 +272,12 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
                         <div style={{ flex: 1 }}>
                           <p style={{ margin: 0, fontFamily: FH, fontSize: 13, color: isUnread ? C.onSurface : "#78716c", lineHeight: 1.6 }}>
                             <b style={{ color: C.onSurface }}>{n.actor_nickname}</b>{TYPE_LABEL[n.type] || "새 알림"}
-                            {n.target_place_name && <span style={{ fontStyle: "italic" }}> — {n.target_place_name}</span>}
                           </p>
+                          {n.target_place_name && (
+                            <p style={{ margin: "2px 0 0", fontFamily: FH, fontStyle: "italic", fontSize: 12, color: C.primary }}>
+                              {n.target_place_name}
+                            </p>
+                          )}
                           <span style={{ fontFamily: FL, fontSize: 9, color: "#a8a29e" }}>{formatTime(n.created_at)}</span>
                         </div>
                         {isFollowType && n.actor_id && n.actor_id !== user?.user_id && (

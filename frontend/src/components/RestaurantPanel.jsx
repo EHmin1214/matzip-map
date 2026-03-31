@@ -111,7 +111,7 @@ export default function RestaurantPanel({
   useEffect(() => {
     if (!r) return;
     setLiked(false); setLikeCount(r.like_count || 0);
-    setComments([]); setShowComments(false); setNeighbors([]);
+    setComments([]); setShowComments(true); setNeighbors([]);
     setGalleryIdx(0); setReplyTo(null);
   }, [r?.id]); // eslint-disable-line
 
@@ -629,7 +629,7 @@ export default function RestaurantPanel({
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
           </svg>
         </button>
-        <button onClick={() => setShowComments(!showComments)} style={{
+        <button onClick={() => commentInputRef.current?.focus()} style={{
           display: "flex", alignItems: "center", gap: 4,
           background: "none", border: "none", cursor: "pointer", padding: 0,
           color: C.onSurfaceVariant,

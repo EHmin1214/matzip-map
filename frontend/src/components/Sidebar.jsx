@@ -24,7 +24,7 @@ const NAV_ITEMS = [
   { id: "notifications", icon: "notifications", label: "알림" },
 ];
 
-import { FOLLOWING_COLORS, getFollowingColor, BEST_CATEGORIES } from "../constants";
+import { FOLLOWING_COLORS, getFollowingColor, BEST_CATEGORIES, SHARED_CAT_COLOR } from "../constants";
 
 const statusEmoji = (s) => ({ want_to_go: "🔖", visited: "✅", want_revisit: "❤️" }[s] || "📍");
 
@@ -217,20 +217,24 @@ export default function Sidebar({
                   cursor: "pointer", textAlign: "left", transition: "all 0.15s",
                 }}
               >전체</button>
-              {BEST_CATEGORIES.map((cat) => (
-                <button
-                  key={cat.key}
-                  onClick={() => onSharedCategoryChange(cat.key)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 8,
-                    padding: "6px 10px", border: "none", borderRadius: 7,
-                    background: sharedCategory === cat.key ? C.primaryContainer : "transparent",
-                    color: sharedCategory === cat.key ? C.primary : C.onSurfaceVariant,
-                    fontFamily: FL, fontSize: 11, fontWeight: sharedCategory === cat.key ? 700 : 500,
-                    cursor: "pointer", textAlign: "left", transition: "all 0.15s",
-                  }}
-                >{cat.emoji} {cat.label}</button>
-              ))}
+              {BEST_CATEGORIES.map((cat) => {
+                const catColor = SHARED_CAT_COLOR[cat.key] || C.primary;
+                const isActive = sharedCategory === cat.key;
+                return (
+                  <button
+                    key={cat.key}
+                    onClick={() => onSharedCategoryChange(cat.key)}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 8,
+                      padding: "6px 10px", border: "none", borderRadius: 7,
+                      background: isActive ? `${catColor}18` : "transparent",
+                      color: isActive ? catColor : C.onSurfaceVariant,
+                      fontFamily: FL, fontSize: 11, fontWeight: isActive ? 700 : 500,
+                      cursor: "pointer", textAlign: "left", transition: "all 0.15s",
+                    }}
+                  >{cat.emoji} {cat.label}</button>
+                );
+              })}
             </div>
           </div>
 
@@ -260,7 +264,7 @@ export default function Sidebar({
                 >
                   <span style={{
                     fontFamily: FL, fontSize: 11, fontWeight: 800,
-                    color: C.primary, flexShrink: 0, minWidth: 24,
+                    color: SHARED_CAT_COLOR[p.category] || C.primary, flexShrink: 0, minWidth: 24,
                   }}>({p.pick_count})</span>
                   <p style={{
                     margin: 0, fontFamily: FL, fontSize: 11, fontWeight: 600,

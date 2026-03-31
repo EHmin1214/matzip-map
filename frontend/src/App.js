@@ -25,7 +25,7 @@ import "./App.css";
 
 const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
-import { FOLLOWING_COLORS, BEST_CATEGORIES } from "./constants";
+import { FOLLOWING_COLORS, BEST_CATEGORIES, SHARED_CAT_COLOR } from "./constants";
 export { ACCOUNT_COLORS, getAccountColor, FOLLOWING_COLORS } from "./constants";
 
 // ── 레이아웃 상수 ─────────────────────────────────────────────
@@ -313,15 +313,16 @@ export default function App() {
     setSelectedRestaurant({ ...place, sources: [], isPersonal: false, isShared: true });
   }, []);
 
-  const [modeTransition, setModeTransition] = useState(false);
+  const [modeTransition, setModeTransition] = useState(null); // null | "in" | "out"
   const handleMapModeChange = useCallback((mode) => {
     if (mode === mapMode) return;
-    setModeTransition(true);
+    setModeTransition("in");
     setSelectedRestaurant(null);
     setTimeout(() => {
       setMapMode(mode);
-      setTimeout(() => setModeTransition(false), 350);
-    }, 300);
+      setModeTransition("out");
+      setTimeout(() => setModeTransition(null), 400);
+    }, 400);
   }, [mapMode]);
 
   const filteredPersonalPlaces = activeFilter ? personalPlaces.filter((p) => p.status === activeFilter) : personalPlaces;
@@ -428,11 +429,14 @@ export default function App() {
               <div style={{
                 position: "absolute", inset: 0, zIndex: 50,
                 background: "#faf9f6",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                animation: "modeTransitionIn 0.25s ease",
+                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6,
+                animation: `${modeTransition === "in" ? "modeOverlayIn" : "modeOverlayOut"} 0.35s ease forwards`,
               }}>
-                <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 15, color: "#8a8e8a", letterSpacing: "-0.01em" }}>
-                  전환 중...
+                <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 17, color: "#655d54", letterSpacing: "-0.02em", margin: 0, fontWeight: 600 }}>
+                  {mapMode === "shared" ? "우리의 공간" : "나의 공간"}
+                </p>
+                <p style={{ fontFamily: FL, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.2em", color: "#b5b0ab", margin: 0 }}>
+                  {mapMode === "shared" ? "Shared Curation" : "My Archive"}
                 </p>
               </div>
             )}
@@ -536,17 +540,21 @@ export default function App() {
                     backdropFilter: "blur(8px)",
                     boxShadow: "0 2px 8px rgba(47,52,48,0.1)",
                   }}>전체</button>
-                  {BEST_CATEGORIES.map((cat) => (
-                    <button key={cat.key} onClick={() => setSharedCategory(cat.key)} style={{
-                      padding: "6px 14px", borderRadius: 999, cursor: "pointer",
-                      flexShrink: 0, transition: "all 0.2s", border: "none",
-                      fontFamily: FL, fontSize: 11, fontWeight: 600,
-                      background: sharedCategory === cat.key ? "#655d54" : "rgba(250,249,246,0.92)",
-                      color: sharedCategory === cat.key ? "#fff6ef" : "#2f3430",
-                      backdropFilter: "blur(8px)",
-                      boxShadow: "0 2px 8px rgba(47,52,48,0.1)",
-                    }}>{cat.emoji} {cat.label}</button>
-                  ))}
+                  {BEST_CATEGORIES.map((cat) => {
+                    const catColor = SHARED_CAT_COLOR[cat.key] || "#655d54";
+                    const isActive = sharedCategory === cat.key;
+                    return (
+                      <button key={cat.key} onClick={() => setSharedCategory(cat.key)} style={{
+                        padding: "6px 14px", borderRadius: 999, cursor: "pointer",
+                        flexShrink: 0, transition: "all 0.2s", border: "none",
+                        fontFamily: FL, fontSize: 11, fontWeight: 600,
+                        background: isActive ? catColor : "rgba(250,249,246,0.92)",
+                        color: isActive ? "#fff6ef" : "#2f3430",
+                        backdropFilter: "blur(8px)",
+                        boxShadow: "0 2px 8px rgba(47,52,48,0.1)",
+                      }}>{cat.emoji} {cat.label}</button>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -570,6 +578,18 @@ export default function App() {
                   onToggleFollowing={handleToggleFollowing}
                   showPersonal={showPersonal} onTogglePersonal={() => setShowPersonal((v) => !v)}
                 />}
+                {mapMode === "shared" && (
+                  <button onClick={() => setShowPersonal((v) => !v)} title="내 장소" style={{
+                    width: 38, height: 38, borderRadius: "50%",
+                    background: showPersonal ? "#ede0d5" : "rgba(250,249,246,0.94)",
+                    backdropFilter: "blur(12px)", border: "none",
+                    boxShadow: showPersonal ? "0 2px 16px rgba(101,93,84,0.18)" : "0 2px 16px rgba(101,93,84,0.10)",
+                    cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                    color: showPersonal ? "#655d54" : "#8a8e8a",
+                  }}>
+                    <span className="material-symbols-outlined" style={{ fontSize: 17 }}>person_pin</span>
+                  </button>
+                )}
                 <LocationButton map={mapRef.current} />
               </div>
             </div>
@@ -680,11 +700,14 @@ export default function App() {
               <div style={{
                 position: "absolute", inset: 0, zIndex: 50,
                 background: "#faf9f6",
-                display: "flex", alignItems: "center", justifyContent: "center",
-                animation: "modeTransitionIn 0.25s ease",
+                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6,
+                animation: `${modeTransition === "in" ? "modeOverlayIn" : "modeOverlayOut"} 0.35s ease forwards`,
               }}>
-                <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 15, color: "#8a8e8a", letterSpacing: "-0.01em" }}>
-                  전환 중...
+                <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 17, color: "#655d54", letterSpacing: "-0.02em", margin: 0, fontWeight: 600 }}>
+                  {mapMode === "shared" ? "우리의 공간" : "나의 공간"}
+                </p>
+                <p style={{ fontFamily: FL, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.2em", color: "#b5b0ab", margin: 0 }}>
+                  {mapMode === "shared" ? "Shared Curation" : "My Archive"}
                 </p>
               </div>
             )}
@@ -704,6 +727,18 @@ export default function App() {
                 onToggleFollowing={handleToggleFollowing}
                 showPersonal={showPersonal} onTogglePersonal={() => setShowPersonal((v) => !v)}
               />}
+              {mapMode === "shared" && (
+                <button onClick={() => setShowPersonal((v) => !v)} title="내 장소" style={{
+                  width: 38, height: 38, borderRadius: "50%",
+                  background: showPersonal ? "#ede0d5" : "rgba(250,249,246,0.94)",
+                  backdropFilter: "blur(12px)", border: "none",
+                  boxShadow: showPersonal ? "0 2px 16px rgba(101,93,84,0.18)" : "0 2px 16px rgba(101,93,84,0.10)",
+                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+                  color: showPersonal ? "#655d54" : "#8a8e8a",
+                }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 17 }}>person_pin</span>
+                </button>
+              )}
               <LocationButton map={mapRef.current} />
             </div>
             {/* 피드백 버튼 — 좌측 하단 */}
