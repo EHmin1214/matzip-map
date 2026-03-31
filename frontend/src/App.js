@@ -198,20 +198,19 @@ export default function App() {
     const lat = activity.lat || activity.place_lat;
     const lng = activity.lng || activity.place_lng;
     if (mapRef.current && window.naver && lat && lng) {
-      const coord = new window.naver.maps.LatLng(lat, lng);
+      const mobile = window.innerWidth <= 768;
+      // 오프셋을 좌표에 미리 반영해 setCenter 한 번으로 처리 (flicker 방지)
+      // zoom 16, 서울(~37.5°N) 기준: 1px ≈ 0.0000170° lat, 0.0000215° lng
+      let cLat = Number(lat), cLng = Number(lng);
+      if (mobile) {
+        // 바텀시트(210)+탭바(64)=274px → 센터를 137px 남쪽으로 → 핀이 위로
+        cLat -= 0.0023;
+      } else {
+        // 디테일패널(360px) → 센터를 180px 서쪽으로 → 핀이 오른쪽
+        cLng -= 0.004;
+      }
       mapRef.current.setZoom(16);
-      mapRef.current.panTo(coord, { duration: 280 });
-      setTimeout(() => {
-        if (!mapRef.current) return;
-        const mobile = window.innerWidth <= 768;
-        if (mobile) {
-          // 바텀시트(peek ~210px) + 탭바(64px) 만큼 위로 보정
-          mapRef.current.panBy(new window.naver.maps.Point(0, -120));
-        } else {
-          // 사이드바(300px) + 디테일패널(360px) 보정
-          mapRef.current.panBy(new window.naver.maps.Point(-180, 0));
-        }
-      }, 300);
+      mapRef.current.setCenter(new window.naver.maps.LatLng(cLat, cLng));
     }
   }, []);
 
