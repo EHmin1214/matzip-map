@@ -194,7 +194,7 @@ function MiniMap({ places, onViewMap }) {
           <div
             ref={mapRef}
             style={{
-              width: "100%", aspectRatio: "5/4", borderRadius: 10,
+              width: "100%", aspectRatio: "4/5", borderRadius: 10,
               overflow: "hidden", background: C.surfaceLow, marginBottom: 12,
             }}
           />

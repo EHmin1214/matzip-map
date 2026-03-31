@@ -224,7 +224,7 @@ export default async function generateShareCard(place) {
    ══════════════════════════════════════════════════════════ */
 
 const STATUS_DOT = { want_to_go: "#BA7517", visited: "#1D9E75", want_revisit: "#D4537E" };
-const MAP_H = 544;  // 5:4 ratio (INNER 680 * 4/5)
+const MAP_H = 850;  // 4:5 ratio (INNER 680 * 5/4)
 
 function drawDotMap(ctx, places, x, y, w, h, r) {
   ctx.save();

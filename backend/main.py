@@ -138,15 +138,15 @@ def og_profile(nickname: str):
         ln_r = (mx_ln - mn_ln) or 0.01
         sp = []
         for i in range(1, 6):
-            gx, gy = round(300 / 6 * i, 1), round(240 / 6 * i, 1)
-            sp.append(f'<line x1="{gx}" y1="0" x2="{gx}" y2="240" stroke="#e4e2de" stroke-width="0.5"/>')
+            gx, gy = round(300 / 6 * i, 1), round(375 / 6 * i, 1)
+            sp.append(f'<line x1="{gx}" y1="0" x2="{gx}" y2="375" stroke="#e4e2de" stroke-width="0.5"/>')
             sp.append(f'<line x1="0" y1="{gy}" x2="300" y2="{gy}" stroke="#e4e2de" stroke-width="0.5"/>')
         for la, ln, st in coords:
             px = round(14 + ((ln - mn_ln) / ln_r) * 272, 1)
-            py = round(14 + ((mx_la - la) / la_r) * 212, 1)
+            py = round(14 + ((mx_la - la) / la_r) * 347, 1)
             c = _SC.get(st, "#655d54")
             sp.append(f'<circle cx="{px}" cy="{py}" r="4.5" fill="{c}" stroke="#fff" stroke-width="1"/>')
-        map_html = '<div class="map"><svg viewBox="0 0 300 240">' + "".join(sp) + "</svg></div>"
+        map_html = '<div class="map"><svg viewBox="0 0 300 375">' + "".join(sp) + "</svg></div>"
     else:
         map_html = '<div class="map empty">지도 미리보기</div>'
 
