@@ -133,14 +133,15 @@ export default function MapView({
   // z-index 스택 카운터 — hover/touch 할 때마다 증가 (FILO)
   const zCounterRef = useRef(100);
 
-  // 모바일 touchstart 리스너를 마커 DOM에 부착
+  // 모바일 touchstart 리스너를 마커 DOM에 부착 (중복 방지)
   const attachTouchZ = (marker) => {
     const el = marker.getElement?.();
-    if (!el) return;
+    if (!el || el._touchZAttached) return;
     el.addEventListener("touchstart", () => {
       zCounterRef.current += 1;
       setMarkerZ(marker, zCounterRef.current);
     }, { passive: true });
+    el._touchZAttached = true;
   };
 
   const bringToFront = (marker) => {

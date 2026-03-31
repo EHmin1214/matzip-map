@@ -23,7 +23,7 @@ import "./App.css";
 
 const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
-export { ACCOUNT_COLORS, getAccountColor } from "./constants";
+export { ACCOUNT_COLORS, getAccountColor, FOLLOWING_COLORS } from "./constants";
 
 // ── 레이아웃 상수 ─────────────────────────────────────────────
 const SIDEBAR_W = 300;   // 사이드바 너비
@@ -344,8 +344,7 @@ export default function App() {
               }}>
                 {followingList.map((f, idx) => {
                   const isSelected = selectedFollowingIds.includes(f.id);
-                  const COLORS = ["#3B8BD4","#1D9E75","#BA7517","#7F77DD","#D4537E","#0F6E56"];
-                  const color = COLORS[idx % COLORS.length];
+                  const color = FOLLOWING_COLORS[idx % FOLLOWING_COLORS.length];
                   return (
                     <button
                       key={f.id}
