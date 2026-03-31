@@ -146,20 +146,20 @@ export default function UserProfileView({ nickname, onClose, embedded = false })
     }}>
       <div style={{
         maxWidth: 520, margin: "0 auto",
-        padding: embedded ? "0 20px 40px" : (isMobile ? "0 0 100px" : "0 28px 60px"),
+        padding: embedded ? "0 16px 40px" : (isMobile ? "0 0 100px" : "0 28px 60px"),
       }}>
         {/* 상단 헤더 */}
         <div style={{
           position: "sticky", top: 0, zIndex: 10,
           background: "rgba(250,249,246,0.92)",
           backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
-          padding: isMobile ? "16px 18px" : "20px 0",
+          padding: embedded ? "14px 0" : (isMobile ? "16px 18px" : "20px 0"),
           display: "flex", alignItems: "center", justifyContent: "space-between",
         }}>
           <button onClick={onClose} style={{
             display: "flex", alignItems: "center", gap: 4,
             border: "none", background: "none", cursor: "pointer",
-            fontFamily: FL, fontSize: 13, fontWeight: 600, color: C.primary, padding: 0,
+            fontFamily: FL, fontSize: embedded ? 11 : 13, fontWeight: 600, color: C.primary, padding: 0,
           }}>
             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>arrow_back</span>
             돌아가기
@@ -182,10 +182,11 @@ export default function UserProfileView({ nickname, onClose, embedded = false })
           <>
             {/* 프로필 카드 */}
             <div style={{
-              background: C.surfaceLowest, borderRadius: 12, padding: "18px 20px",
-              marginBottom: 12, boxShadow: "0 1px 8px rgba(47,52,48,0.05)",
+              background: C.surfaceLowest, borderRadius: embedded ? 10 : 12,
+              padding: embedded ? "14px 14px" : "18px 20px",
+              marginBottom: embedded ? 10 : 12, boxShadow: "0 1px 8px rgba(47,52,48,0.05)",
             }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: embedded ? 12 : 16, marginBottom: embedded ? 12 : 16 }}>
                 <div style={{
                   width: embedded ? 40 : 52, height: embedded ? 40 : 52, borderRadius: "50%", flexShrink: 0,
                   background: profile.profile_photo_url
@@ -227,13 +228,13 @@ export default function UserProfileView({ nickname, onClose, embedded = false })
               {user && profile.id !== user.user_id && (
                 <button onClick={handleFollow} disabled={followLoading}
                   style={{
-                    width: "100%", padding: "11px", border: "none", borderRadius: 8,
+                    width: "100%", padding: embedded ? "9px" : "11px", border: "none", borderRadius: 8,
                     background: followStatus === "none" ? C.primary : "none",
                     color: followStatus === "none" ? "#fff6ef" : followStatus === "pending" ? "#BA7517" : C.outlineVariant,
                     borderWidth: followStatus === "none" ? 0 : 1,
                     borderStyle: "solid",
                     borderColor: followStatus === "pending" ? "rgba(186,117,23,0.3)" : "rgba(101,93,84,0.15)",
-                    fontFamily: FL, fontSize: 12, fontWeight: 700,
+                    fontFamily: FL, fontSize: embedded ? 11 : 12, fontWeight: 700,
                     cursor: followLoading ? "not-allowed" : "pointer",
                     opacity: followLoading ? 0.6 : 1,
                     transition: "all 0.15s",
@@ -257,7 +258,7 @@ export default function UserProfileView({ nickname, onClose, embedded = false })
                   {profile.nickname}의 공간 지도
                 </p>
                 <div ref={mapContainerRef} style={{
-                  width: "100%", height: 160, borderRadius: 10,
+                  width: "100%", height: embedded ? 130 : 160, borderRadius: 10,
                   overflow: "hidden", background: C.surfaceLow, marginBottom: 12,
                 }} />
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
@@ -297,7 +298,7 @@ export default function UserProfileView({ nickname, onClose, embedded = false })
                       transition: "background 0.15s",
                     }}
                   >
-                    <p style={{ margin: 0, fontFamily: FH, fontSize: 14, fontWeight: 600, color: C.onSurface }}>
+                    <p style={{ margin: 0, fontFamily: FH, fontSize: embedded ? 12 : 14, fontWeight: 600, color: C.onSurface }}>
                       {cl.title}
                     </p>
                     <p style={{ margin: "2px 0 0", fontFamily: FL, fontSize: 10, color: C.outlineVariant }}>
@@ -335,7 +336,7 @@ export default function UserProfileView({ nickname, onClose, embedded = false })
                               style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
                           </div>
                         )}
-                        <div style={{ padding: "10px 14px" }}>
+                        <div style={{ padding: embedded ? "8px 12px" : "10px 14px" }}>
                           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: p.memo ? 6 : 0 }}>
                             <span style={{
                               fontFamily: FL, fontSize: 10, fontWeight: 600,
@@ -353,7 +354,7 @@ export default function UserProfileView({ nickname, onClose, embedded = false })
                                 {"★".repeat(p.rating)}{"☆".repeat(5 - p.rating)}
                               </span>
                             )}
-                            <span style={{ fontFamily: FH, fontSize: 13, fontWeight: 600, color: C.onSurface }}>
+                            <span style={{ fontFamily: FH, fontSize: embedded ? 12 : 13, fontWeight: 600, color: C.onSurface }}>
                               {p.name}
                             </span>
                           </div>

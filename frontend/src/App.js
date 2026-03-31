@@ -26,7 +26,7 @@ const FL = "'Manrope', -apple-system, sans-serif";
 export { ACCOUNT_COLORS, getAccountColor, FOLLOWING_COLORS } from "./constants";
 
 // ── 레이아웃 상수 ─────────────────────────────────────────────
-const SIDEBAR_W = 325;   // 일차 사이드탭 너비
+const SIDEBAR_W = 300;   // 일차 사이드탭 너비
 const PANEL_W   = 325;   // 이차 사이드탭 너비 (데스크탑)
 
 export default function App() {
