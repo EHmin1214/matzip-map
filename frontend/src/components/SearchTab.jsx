@@ -21,7 +21,7 @@ const C = {
 
 const isMobile = () => window.innerWidth <= 768;
 
-const SUGGESTIONS = ["조용한 카페", "이자카야", "브런치", "빵집", "스시"];
+const SUGGESTIONS = ["에임즈커피로스터스", "신세계 양꼬치 첨단점", "하바티 홍대", "하나샤부정 강남"];
 
 export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUserProfile }) {
   const { user } = useUser();
@@ -161,7 +161,7 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUse
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              placeholder={searchMode === "place" ? "장소 이름과 지역으로 검색..." : "닉네임으로 검색..."}
+              placeholder={searchMode === "place" ? "가게 이름 + 지역명 (예: 스타벅스 강남)" : "닉네임으로 검색..."}
               autoFocus={!mobile}
               style={{
                 width: "100%", padding: "10px 12px 10px 32px",
