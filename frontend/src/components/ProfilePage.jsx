@@ -1125,6 +1125,29 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
           로그아웃
         </button>
 
+        <button
+          onClick={() => {
+            if (window.confirm("정말 탈퇴하시겠습니까? 모든 데이터가 삭제되며 복구할 수 없습니다.")) {
+              axios.delete(`${API_BASE}/users/${user.user_id}/account`)
+                .then(() => { alert("탈퇴가 완료되었습니다."); logout(); })
+                .catch(() => alert("탈퇴 처리 중 오류가 발생했습니다."));
+            }
+          }}
+          style={{
+            width: "100%", padding: "13px", marginTop: 8,
+            border: "none", borderRadius: 10,
+            background: "none",
+            color: C.outlineVariant,
+            fontFamily: FL, fontSize: 11, fontWeight: 500,
+            cursor: "pointer",
+            transition: "color 0.15s",
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.color = C.error}
+          onMouseLeave={(e) => e.currentTarget.style.color = C.outlineVariant}
+        >
+          계정 삭제
+        </button>
+
         <p style={{
           fontFamily: FL, fontSize: 9, color: C.outlineVariant,
           textAlign: "center", marginTop: 20, letterSpacing: "0.12em",

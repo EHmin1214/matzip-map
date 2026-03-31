@@ -65,6 +65,23 @@ export default function RestaurantPanel({
 
   useEffect(() => { setR(restaurant); setSheetMode("peek"); setShowShareMenu(false); setShowMapMenu(false); }, [restaurant]);
 
+  // 드롭다운 바깥 클릭 + ESC로 닫기
+  useEffect(() => {
+    if (!showShareMenu && !showMapMenu) return;
+    const handleClick = () => { setShowShareMenu(false); setShowMapMenu(false); };
+    const handleKey = (e) => { if (e.key === "Escape") handleClick(); };
+    // 다음 tick에 등록 (현재 클릭 이벤트 전파 방지)
+    const timer = setTimeout(() => {
+      document.addEventListener("click", handleClick);
+      document.addEventListener("keydown", handleKey);
+    }, 0);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("click", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [showShareMenu, showMapMenu]);
+
   const isPersonalMine = r.isPersonal && (!r.user_id || (user && r.user_id === user.user_id));
   const isOthersPlace  = r.isPersonal && r.user_id && user && r.user_id !== user.user_id;
 

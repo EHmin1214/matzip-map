@@ -133,6 +133,16 @@ def search_users(q: str, db: Session = Depends(get_db)):
     ]
 
 
+@router.delete("/{user_id}/account", status_code=204)
+def delete_account(user_id: int, db: Session = Depends(get_db)):
+    """계정 탈퇴 — 유저 및 관련 데이터 전부 삭제 (cascade)."""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="유저를 찾을 수 없습니다.")
+    db.delete(user)
+    db.commit()
+
+
 @router.get("/{nickname}", response_model=UserResponse)
 def get_profile(nickname: str, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.nickname == nickname).first()

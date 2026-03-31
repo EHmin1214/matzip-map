@@ -119,9 +119,21 @@ export default function UserProfileView({ nickname, onClose }) {
       if (followStatus === "accepted" || followStatus === "pending") {
         await axios.delete(`${API_BASE}/follows/${profile.id}?follower_id=${user.user_id}`);
         setFollowStatus("none");
+        // 비공개 계정이면 장소 접근 불가 → 비우기
+        if (!profile.is_public) {
+          setPlaces([]);
+          setCuratedLists([]);
+          setIsPrivateNoAccess(true);
+        }
       } else {
         const res = await axios.post(`${API_BASE}/follows/${profile.id}?follower_id=${user.user_id}`);
-        setFollowStatus(res.data.status === "accepted" ? "accepted" : "pending");
+        const newStatus = res.data.status === "accepted" ? "accepted" : "pending";
+        setFollowStatus(newStatus);
+        // accepted면 장소 다시 로드
+        if (newStatus === "accepted") {
+          axios.get(`${API_BASE}/users/${nickname}/public-places?viewer_id=${user.user_id}`)
+            .then((r) => { setPlaces(r.data); setIsPrivateNoAccess(false); }).catch(() => {});
+        }
       }
     } catch {} finally { setFollowLoading(false); }
   };

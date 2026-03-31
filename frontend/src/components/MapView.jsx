@@ -295,6 +295,7 @@ export default function MapView({
     if (!mapReady) return;
     markersRef.current.forEach((m) => m.setMap(null));
     markersRef.current = [];
+    zCounterRef.current = 100;
     if (restaurants.length === 0) hasFitBounds.current = false;
 
     const isPill = zoomRef.current >= ZOOM_THRESHOLD;
@@ -334,6 +335,7 @@ export default function MapView({
     if (!mapReady) return;
     personalMarkersRef.current.forEach((m) => m.setMap(null));
     personalMarkersRef.current = [];
+    zCounterRef.current = 100;
 
     const allFollowing = followingPlaces.flatMap(({ places, nickname, colorIdx }) =>
       places.map((p) => ({ ...p, _nickname: nickname, _colorIdx: colorIdx }))
@@ -377,6 +379,7 @@ export default function MapView({
     if (!mapReady) return;
     followingMarkersRef.current.forEach((m) => m.setMap(null));
     followingMarkersRef.current = [];
+    zCounterRef.current = 100;
 
     const isPill = zoomRef.current >= ZOOM_THRESHOLD;
     followingPlaces.forEach(({ userId, nickname, colorIdx, places }) => {
