@@ -49,6 +49,7 @@ export default function Sidebar({
   onFollowChange,
   sidebarWidth = 240,
   onPlaceSelect,
+  onViewUserProfile,
 }) {
   const { user } = useUser();
   const [folders, setFolders] = useState([]);
@@ -263,38 +264,51 @@ export default function Sidebar({
                   return (
                     <div
                       key={f.id}
-                      onClick={() => onToggleFollowing(f.id)}
                       style={{
                         display: "flex", alignItems: "center", gap: 8,
-                        padding: "5px 8px", cursor: "pointer",
+                        padding: "5px 8px",
                         borderRadius: 7,
                         background: isSelected ? `${color}14` : "transparent",
                         marginBottom: 2,
                         transition: "background 0.15s",
                       }}
                     >
-                      <div style={{
-                        width: 14, height: 14, borderRadius: 3, flexShrink: 0,
-                        background: isSelected ? color : C.container,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        transition: "background 0.15s",
-                      }}>
+                      {/* 체크박스 — 지도 레이어 토글 */}
+                      <div
+                        onClick={() => onToggleFollowing(f.id)}
+                        style={{
+                          width: 14, height: 14, borderRadius: 3, flexShrink: 0,
+                          background: isSelected ? color : C.container,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          cursor: "pointer", transition: "background 0.15s",
+                        }}
+                      >
                         {isSelected && <span style={{ color: "white", fontSize: 9, fontWeight: 700 }}>✓</span>}
                       </div>
-                      <div style={{
-                        width: 20, height: 20, borderRadius: "50%",
-                        background: color, flexShrink: 0,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontFamily: FL, fontSize: 9, color: "white", fontWeight: 700,
-                      }}>
-                        {f.nickname?.[0]?.toUpperCase()}
+                      {/* 아바타 + 닉네임 — 프로필 열기 */}
+                      <div
+                        onClick={() => onViewUserProfile && onViewUserProfile(f.nickname)}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 8,
+                          flex: 1, minWidth: 0, cursor: "pointer",
+                          borderRadius: 5, padding: "2px 0",
+                        }}
+                      >
+                        <div style={{
+                          width: 20, height: 20, borderRadius: "50%",
+                          background: color, flexShrink: 0,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontFamily: FL, fontSize: 9, color: "white", fontWeight: 700,
+                        }}>
+                          {f.nickname?.[0]?.toUpperCase()}
+                        </div>
+                        <span style={{
+                          fontFamily: FL, fontSize: 11, color: C.onSurface,
+                          flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        }}>
+                          {f.nickname}
+                        </span>
                       </div>
-                      <span style={{
-                        fontFamily: FL, fontSize: 11, color: C.onSurface,
-                        flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                      }}>
-                        {f.nickname}
-                      </span>
                     </div>
                   );
                 })}

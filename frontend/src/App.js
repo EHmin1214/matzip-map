@@ -26,8 +26,8 @@ const FL = "'Manrope', -apple-system, sans-serif";
 export { ACCOUNT_COLORS, getAccountColor, FOLLOWING_COLORS } from "./constants";
 
 // ── 레이아웃 상수 ─────────────────────────────────────────────
-const SIDEBAR_W = 300;   // 사이드바 너비
-const PANEL_W   = 480;   // 슬라이드 패널 너비 (데스크탑)
+const SIDEBAR_W = 325;   // 일차 사이드탭 너비
+const PANEL_W   = 325;   // 이차 사이드탭 너비 (데스크탑)
 
 export default function App() {
   const { user, loading } = useUser();
@@ -442,6 +442,7 @@ export default function App() {
             followingList={followingList}
             onFollowChange={loadFollowingList}
             sidebarWidth={SIDEBAR_W}
+            onViewUserProfile={handleViewUserProfile}
             onPlaceSelect={(place) => {
               setSelectedRestaurant({ ...place, sources: [], isPersonal: true });
               setActiveTab("map");
@@ -533,12 +534,32 @@ export default function App() {
         </>
       )}
 
-      {/* 다른 사용자 프로필 오버레이 */}
+      {/* 다른 사용자 프로필 — 데스크탑: 사이드 패널 / 모바일: 전체 화면 */}
       {viewingUserNickname && (
-        <UserProfileView
-          nickname={viewingUserNickname}
-          onClose={() => setViewingUserNickname(null)}
-        />
+        isMobile ? (
+          <UserProfileView
+            nickname={viewingUserNickname}
+            onClose={() => setViewingUserNickname(null)}
+          />
+        ) : (
+          <div style={{
+            position: "fixed",
+            left: SIDEBAR_W, top: 0,
+            width: PANEL_W, height: "100vh",
+            background: "#faf9f6",
+            zIndex: 35,
+            boxShadow: "4px 0 32px rgba(47,52,48,0.10)",
+            overflowY: "auto",
+            WebkitOverflowScrolling: "touch",
+            animation: "slideInPanel 0.22s cubic-bezier(0.16,1,0.3,1)",
+          }}>
+            <UserProfileView
+              nickname={viewingUserNickname}
+              onClose={() => setViewingUserNickname(null)}
+              embedded
+            />
+          </div>
+        )
       )}
 
       <style>{`

@@ -689,7 +689,7 @@ export default function RestaurantPanel({
         position: "fixed",
         top: 0,
         left: sidebarWidth,
-        width: 360,
+        width: 325,
         height: "100vh",
         background: C.bg,
         boxShadow: "4px 0 24px rgba(47,52,48,0.08)",

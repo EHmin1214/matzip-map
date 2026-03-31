@@ -18,7 +18,7 @@ const C = {
   outlineVariant: "#afb3ae", error: "#9e422c",
 };
 
-export default function UserProfileView({ nickname, onClose }) {
+export default function UserProfileView({ nickname, onClose, embedded = false }) {
   const { user } = useUser();
   const [profile, setProfile] = useState(null);
   const [places, setPlaces] = useState([]);
@@ -138,13 +138,15 @@ export default function UserProfileView({ nickname, onClose }) {
 
   return (
     <div style={{
-      position: "fixed", inset: 0, zIndex: 60,
-      background: C.bg, overflowY: "auto",
-      WebkitOverflowScrolling: "touch",
+      ...(embedded ? { background: C.bg } : {
+        position: "fixed", inset: 0, zIndex: 60,
+        background: C.bg, overflowY: "auto",
+        WebkitOverflowScrolling: "touch",
+      }),
     }}>
       <div style={{
         maxWidth: 520, margin: "0 auto",
-        padding: isMobile ? "0 0 100px" : "0 28px 60px",
+        padding: embedded ? "0 20px 40px" : (isMobile ? "0 0 100px" : "0 28px 60px"),
       }}>
         {/* 상단 헤더 */}
         <div style={{
@@ -185,18 +187,18 @@ export default function UserProfileView({ nickname, onClose }) {
             }}>
               <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
                 <div style={{
-                  width: 52, height: 52, borderRadius: "50%", flexShrink: 0,
+                  width: embedded ? 40 : 52, height: embedded ? 40 : 52, borderRadius: "50%", flexShrink: 0,
                   background: profile.profile_photo_url
                     ? `url(${profile.profile_photo_url}) center/cover`
                     : `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontFamily: FH, fontStyle: "italic",
-                  fontSize: 22, color: "#fff6ef", fontWeight: 700,
+                  fontSize: embedded ? 17 : 22, color: "#fff6ef", fontWeight: 700,
                 }}>
                   {!profile.profile_photo_url && profile.nickname?.[0]?.toUpperCase()}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <h2 style={{ margin: "0 0 4px", fontFamily: FH, fontSize: 19, fontWeight: 700, color: C.onSurface }}>
+                  <h2 style={{ margin: "0 0 4px", fontFamily: FH, fontSize: embedded ? 15 : 19, fontWeight: 700, color: C.onSurface }}>
                     {profile.nickname}
                   </h2>
                   <div style={{ display: "flex", gap: 12, fontFamily: FL, fontSize: 11, color: C.onSurfaceVariant }}>
