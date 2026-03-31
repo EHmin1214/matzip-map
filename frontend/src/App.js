@@ -23,12 +23,7 @@ import "./App.css";
 
 const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
-export const ACCOUNT_COLORS = ["#E8593C","#3B8BD4","#1D9E75","#BA7517","#7F77DD","#D4537E","#0F6E56","#993C1D"];
-
-export function getAccountColor(accountId, accounts) {
-  const index = accounts.findIndex((a) => a.id === accountId);
-  return ACCOUNT_COLORS[index % ACCOUNT_COLORS.length] || "#888";
-}
+export { ACCOUNT_COLORS, getAccountColor } from "./constants";
 
 // ── 레이아웃 상수 ─────────────────────────────────────────────
 const SIDEBAR_W = 300;   // 사이드바 너비
@@ -414,7 +409,7 @@ export default function App() {
 
           {/* 비지도 탭 콘텐츠 */}
           {!showMap && (
-            <div style={{ position: "fixed", inset: 0, zIndex: 20, paddingBottom: 64, overflowY: "auto", background: "#faf9f6" }}>
+            <div style={{ position: "fixed", inset: 0, zIndex: 20, paddingBottom: "calc(64px + env(safe-area-inset-bottom, 0px))", overflowY: "auto", background: "#faf9f6" }}>
               {renderPanel(activeTab)}
             </div>
           )}

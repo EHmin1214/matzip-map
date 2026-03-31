@@ -24,8 +24,7 @@ const NAV_ITEMS = [
   { id: "notifications", icon: "notifications", label: "알림" },
 ];
 
-const FOLLOWING_COLORS = ["#3B8BD4","#1D9E75","#BA7517","#7F77DD","#D4537E","#0F6E56"];
-const getFollowingColor = (idx) => FOLLOWING_COLORS[idx % FOLLOWING_COLORS.length];
+import { FOLLOWING_COLORS, getFollowingColor } from "../constants";
 
 const statusEmoji = (s) => ({ want_to_go: "🔖", visited: "✅", want_revisit: "❤️" }[s] || "📍");
 
@@ -78,7 +77,7 @@ export default function Sidebar({
       display: "flex",
       flexDirection: "column",
       padding: "18px 16px 14px",
-      overflowY: "hidden",
+      overflowY: "auto",
       overflowX: "hidden",
       boxSizing: "border-box",
       boxShadow: "1px 0 0 rgba(101,93,84,0.07)",

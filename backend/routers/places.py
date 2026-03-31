@@ -7,7 +7,7 @@ import json
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Literal
 
@@ -32,22 +32,22 @@ class PlaceCreate(BaseModel):
     naver_place_url: str | None = None
     folder_id: int | None = None
     status: str = "want_to_go"
-    rating: int | None = None
-    memo: str | None = None
+    rating: int | None = Field(None, ge=0, le=5)
+    memo: str | None = Field(None, max_length=500)
     photo_url: str | None = None
     photo_urls: list[str] | None = None
-    instagram_post_url: str | None = None
+    instagram_post_url: str | None = Field(None, max_length=300)
     is_public: bool = True
 
 
 class PlaceUpdate(BaseModel):
     folder_id: int | None = None
     status: str | None = None
-    rating: int | None = None
-    memo: str | None = None
+    rating: int | None = Field(None, ge=0, le=5)
+    memo: str | None = Field(None, max_length=500)
     photo_url: str | None = None
     photo_urls: list[str] | None = None
-    instagram_post_url: str | None = None
+    instagram_post_url: str | None = Field(None, max_length=300)
     is_public: bool | None = None
 
 

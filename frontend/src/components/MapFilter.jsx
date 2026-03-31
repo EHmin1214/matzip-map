@@ -1,6 +1,7 @@
 // src/components/MapFilter.jsx
 // 지도 우측 세로 컨트롤 — 이모지 상태 필터 + 팔로잉 선택
 import { useState, useRef } from "react";
+import { FOLLOWING_COLORS, getFollowingColor } from "../constants";
 
 const FL = "'Manrope', -apple-system, sans-serif";
 const C = {
@@ -16,8 +17,7 @@ const STATUS_FILTERS = [
   { value: "want_revisit",    emoji: "❤️" },
 ];
 
-const FOLLOWING_COLORS = ["#3B8BD4","#1D9E75","#BA7517","#7F77DD","#D4537E","#0F6E56"];
-const getColor = (idx) => FOLLOWING_COLORS[idx % FOLLOWING_COLORS.length];
+const getColor = getFollowingColor;
 
 const GLASS_BTN = {
   width: 38, height: 38,

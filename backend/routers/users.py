@@ -96,6 +96,8 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="PIN은 4자리 숫자여야 합니다.")
     if len(body.nickname.strip()) < 2:
         raise HTTPException(status_code=400, detail="닉네임은 2자 이상이어야 합니다.")
+    if len(body.nickname.strip()) > 30:
+        raise HTTPException(status_code=400, detail="닉네임은 30자 이하여야 합니다.")
     existing = db.query(User).filter(User.nickname == body.nickname).first()
     if existing:
         raise HTTPException(status_code=409, detail="이미 사용 중인 닉네임입니다.")
@@ -256,6 +258,8 @@ def update_user(user_id: int, body: UpdateUserRequest, db: Session = Depends(get
     if body.nickname is not None:
         if len(body.nickname.strip()) < 2:
             raise HTTPException(status_code=400, detail="닉네임은 2자 이상이어야 합니다.")
+        if len(body.nickname.strip()) > 30:
+            raise HTTPException(status_code=400, detail="닉네임은 30자 이하여야 합니다.")
         dup = db.query(User).filter(User.nickname == body.nickname, User.id != user_id).first()
         if dup:
             raise HTTPException(status_code=409, detail="이미 사용 중인 닉네임입니다.")

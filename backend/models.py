@@ -6,7 +6,7 @@ DB 테이블 정의 (SQLAlchemy ORM).
 from datetime import datetime
 from sqlalchemy import (
     String, Text, Float, Integer, Boolean,
-    DateTime, ForeignKey, UniqueConstraint
+    DateTime, ForeignKey, UniqueConstraint, Index
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base
@@ -122,7 +122,11 @@ class Follow(Base):
     follower: Mapped["User"] = relationship("User", foreign_keys=[follower_id], back_populates="following")
     following_user: Mapped["User"] = relationship("User", foreign_keys=[following_id], back_populates="followers")
 
-    __table_args__ = (UniqueConstraint("follower_id", "following_id", name="uq_follow"),)
+    __table_args__ = (
+        UniqueConstraint("follower_id", "following_id", name="uq_follow"),
+        Index("idx_follow_follower", "follower_id"),
+        Index("idx_follow_following", "following_id"),
+    )
 
 
 class Folder(Base):
@@ -140,6 +144,7 @@ class Folder(Base):
 class PersonalPlace(Base):
     """status: want_to_go | visited | want_revisit"""
     __tablename__ = "personal_places"
+    __table_args__ = (Index("idx_pp_user", "user_id"),)
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     user_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("users.id"), nullable=True)
     folder_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("folders.id"), nullable=True)
@@ -172,11 +177,15 @@ class PlaceLike(Base):
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     place: Mapped["PersonalPlace"] = relationship("PersonalPlace", back_populates="likes")
-    __table_args__ = (UniqueConstraint("place_id", "user_id", name="uq_place_like"),)
+    __table_args__ = (
+        UniqueConstraint("place_id", "user_id", name="uq_place_like"),
+        Index("idx_like_place", "place_id"),
+    )
 
 
 class PlaceComment(Base):
     __tablename__ = "place_comments"
+    __table_args__ = (Index("idx_comment_place", "place_id"),)
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     place_id: Mapped[int] = mapped_column(Integer, ForeignKey("personal_places.id"), nullable=False)
     user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
