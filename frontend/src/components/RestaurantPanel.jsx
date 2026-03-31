@@ -6,6 +6,7 @@ import SavePlaceModal from "./SavePlaceModal";
 
 const KAKAO_KEY = process.env.REACT_APP_KAKAO_JS_KEY || "";
 import { STATUS_LABEL, STATUS_COLOR, FRONTEND_URL, BEST_CATEGORIES } from "../constants";
+import { shareCard } from "../utils/generateShareCard";
 
 const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
@@ -409,6 +410,19 @@ export default function RestaurantPanel({
                 }}>
                   <svg width="12" height="12" viewBox="0 0 18 18"><path fill="#5c5340" d="M9 1C4.58 1 1 3.79 1 7.21c0 2.17 1.45 4.08 3.64 5.18l-.93 3.44c-.08.3.26.54.52.37l4.12-2.74c.21.02.43.03.65.03 4.42 0 8-2.79 8-6.28S13.42 1 9 1z"/></svg>
                   카카오톡
+                </button>
+                <button onClick={async () => {
+                  setShowShareMenu(false);
+                  await shareCard(r);
+                }} style={{
+                  display: "inline-flex", alignItems: "center", gap: 4, padding: "7px 12px",
+                  background: "linear-gradient(135deg, #ede0d5, #faf9f6)",
+                  color: C.primary, border: "none", borderRadius: 6,
+                  fontFamily: FL, fontSize: 10, fontWeight: 600,
+                  cursor: "pointer", whiteSpace: "nowrap",
+                }}>
+                  <span className="material-symbols-outlined" style={{ fontSize: 13 }}>image</span>
+                  스토리 카드
                 </button>
               </div>
             )}
