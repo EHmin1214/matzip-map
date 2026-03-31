@@ -325,11 +325,14 @@ export default function App() {
     setTimeout(() => {
       setMapMode(mode);
       setModeTransition("out");
-      setTimeout(() => setModeTransition(null), 800);
-    }, 600);
+      setTimeout(() => setModeTransition(null), 1200);
+    }, 900);
   }, [mapMode]);
 
   const filteredPersonalPlaces = activeFilter ? personalPlaces.filter((p) => p.status === activeFilter) : personalPlaces;
+  const filteredFollowingPlaces = activeFilter
+    ? followingPlaces.map((fp) => ({ ...fp, places: fp.places.filter((p) => p.status === activeFilter) }))
+    : followingPlaces;
   // 우리의 공간에서 내 장소 켰을 때 — 베스트 픽과 겹치는 장소 제외
   const personalForMap = mapMode === "shared"
     ? filteredPersonalPlaces.filter((p) => {
@@ -458,7 +461,7 @@ export default function App() {
                   centerMapOnPlace(p.lat, p.lng);
                 }
               }}
-              followingPlaces={followingPlaces}
+              followingPlaces={filteredFollowingPlaces}
               onFollowingMarkerClick={handleFollowingMarkerClick}
               folders={folders}
               focusPlace={selectedRestaurant}
@@ -473,7 +476,7 @@ export default function App() {
                 background: "linear-gradient(135deg, #faf9f6 0%, #ede0d5 50%, #faf9f6 100%)",
                 backgroundSize: "200% 200%",
                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6,
-                animation: `${modeTransition === "in" ? "modeOverlayIn 0.5s ease forwards" : "modeOverlayOut 0.75s ease forwards"}, modeGradient 1.2s ease infinite`,
+                animation: `${modeTransition === "in" ? "modeOverlayIn 0.8s ease forwards" : "modeOverlayOut 1.1s ease forwards"}, modeGradient 1.8s ease infinite`,
               }}>
                 <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 17, color: "#655d54", letterSpacing: "-0.02em", margin: 0, fontWeight: 600 }}>
                   {modeTarget.current === "shared" ? "우리의 공간" : "나의 공간"}
@@ -733,7 +736,7 @@ export default function App() {
                   centerMapOnPlace(p.lat, p.lng);
                 }
               }}
-              followingPlaces={followingPlaces}
+              followingPlaces={filteredFollowingPlaces}
               onFollowingMarkerClick={(place) => {
                 handleFollowingMarkerClick(place);
                 setActiveTab("map");
@@ -754,7 +757,7 @@ export default function App() {
                 background: "linear-gradient(135deg, #faf9f6 0%, #ede0d5 50%, #faf9f6 100%)",
                 backgroundSize: "200% 200%",
                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6,
-                animation: `${modeTransition === "in" ? "modeOverlayIn 0.5s ease forwards" : "modeOverlayOut 0.75s ease forwards"}, modeGradient 1.2s ease infinite`,
+                animation: `${modeTransition === "in" ? "modeOverlayIn 0.8s ease forwards" : "modeOverlayOut 1.1s ease forwards"}, modeGradient 1.8s ease infinite`,
               }}>
                 <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 17, color: "#655d54", letterSpacing: "-0.02em", margin: 0, fontWeight: 600 }}>
                   {modeTarget.current === "shared" ? "우리의 공간" : "나의 공간"}

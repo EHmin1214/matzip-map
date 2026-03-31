@@ -116,7 +116,7 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUse
           position: "sticky", top: 0, zIndex: 10,
           background: "rgba(250,249,246,0.85)", backdropFilter: "blur(12px)",
           borderBottom: `1px solid ${C.container}`,
-          padding: "18px 22px 14px",
+          padding: "18px 16px 14px",
         }}>
           <h1 style={{ fontFamily: FH, fontStyle: "italic", fontSize: 18, color: C.primary, margin: "0 0 2px", letterSpacing: "-0.02em" }}>Discovery</h1>
         </header>

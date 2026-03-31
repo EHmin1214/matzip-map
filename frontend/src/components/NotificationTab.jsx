@@ -152,7 +152,7 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
   // 풀 버전
   return (
     <div style={{ background: C.bg, minHeight: "100%" }}>
-      <div style={{ maxWidth: 760, margin: "0 auto", padding: mobile ? "16px 12px" : "24px 24px" }}>
+      <div style={{ maxWidth: 760, margin: "0 auto", padding: mobile ? "16px 16px" : "24px 24px" }}>
         {/* 상단 actions */}
         {notifications.length > 0 && (
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 24 }}>

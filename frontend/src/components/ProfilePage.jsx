@@ -1,5 +1,6 @@
 // src/components/ProfilePage.jsx
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import axios from "axios";
 import { useUser, API_BASE } from "../context/UserContext";
 import { subscribePush, unsubscribePush, isPushSubscribed } from "../utils/pushNotifications";
@@ -667,21 +668,8 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
       <div style={{
         maxWidth: 520,
         margin: "0 auto",
-        padding: mobile ? "28px 18px" : "36px 28px",
+        padding: mobile ? "28px 16px" : "36px 28px",
       }}>
-
-        {/* ── Archival Header ────────────────────────────── */}
-        <div style={{ marginBottom: 16 }}>
-          <h2 style={{
-            fontFamily: FH, fontStyle: "italic",
-            fontSize: mobile ? 28 : 36, fontWeight: 400,
-            color: C.onSurface, margin: "0 0 8px",
-            letterSpacing: "-0.02em",
-          }}>
-            Profile
-          </h2>
-          <div style={{ width: 28, height: 1.5, background: C.primaryContainer }} />
-        </div>
 
         {/* ── 프로필 카드 ─────────────────────────────────── */}
         <Card>
@@ -1169,8 +1157,8 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
           )}
         </Card>
 
-        {/* ── 나의 기록 상세 오버레이 (인스타 그리드) ────── */}
-        {showMyPlaces && (() => {
+        {/* ── 나의 기록 상세 오버레이 (인스타 그리드) — Portal로 body에 렌더 ── */}
+        {showMyPlaces && createPortal((() => {
           const grouped = {};
           personalPlaces.forEach((p) => {
             const fid = p.folder_id || 0;
@@ -1181,8 +1169,7 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
 
           return (
             <div style={{
-              position: "fixed", top: 0, left: mobile ? 0 : -300, zIndex: 60,
-              width: "100vw", height: "100vh",
+              position: "fixed", inset: 0, zIndex: 9999,
               background: C.bg,
               overflowY: "auto",
               WebkitOverflowScrolling: "touch",
@@ -1196,7 +1183,7 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
                   position: "sticky", top: 0, zIndex: 10,
                   background: "rgba(250,249,246,0.92)",
                   backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
-                  padding: mobile ? "16px 18px" : "20px 0",
+                  padding: mobile ? "16px 18px" : "20px 28px",
                   display: "flex", alignItems: "center", justifyContent: "space-between",
                 }}>
                   <button
@@ -1209,7 +1196,7 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
                     }}
                   >
                     <span className="material-symbols-outlined" style={{ fontSize: 18 }}>arrow_back</span>
-                    프로필
+                    돌아가기
                   </button>
                   <p style={{
                     margin: 0, fontFamily: FL, fontSize: 9, fontWeight: 700,
@@ -1241,7 +1228,6 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
                         display: "grid",
                         gridTemplateColumns: "repeat(3, 1fr)",
                         gap: 2,
-                        padding: mobile ? "0" : undefined,
                       }}>
                         {items.map((p) => {
                           const photo = p.photo_urls?.[0] || p.photo_url;
@@ -1310,7 +1296,7 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
               </div>
             </div>
           );
-        })()}
+        })(), document.body)}
 
         {/* ── 설정 (접기/펼치기) ─────────────────────────── */}
         <Card>

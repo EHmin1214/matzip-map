@@ -92,7 +92,7 @@ export default function FeedTab({ personalPlaces = [], onPlaceClick, onDataChang
   if (loading) {
     return (
       <div style={{ background: C.bg, minHeight: "100%" }}>
-        <div style={{ maxWidth: 560, margin: "0 auto", padding: mobile ? "12px 0" : "16px 0" }}>
+        <div style={{ maxWidth: 560, margin: "0 auto", padding: mobile ? "12px 16px" : "16px 0" }}>
           <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 13, color: "#a8a29e", padding: "48px 0", textAlign: "center" }}>
             불러오는 중...
           </p>
@@ -104,7 +104,7 @@ export default function FeedTab({ personalPlaces = [], onPlaceClick, onDataChang
   if (combinedFeed.length === 0) {
     return (
       <div style={{ background: C.bg, minHeight: "100%" }}>
-        <div style={{ maxWidth: 560, margin: "0 auto", padding: mobile ? "12px 0" : "16px 0" }}>
+        <div style={{ maxWidth: 560, margin: "0 auto", padding: mobile ? "12px 16px" : "16px 0" }}>
           <div style={{ textAlign: "center", padding: "60px 16px" }}>
             <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 17, color: "#a8a29e", margin: "0 0 8px" }}>
               아직 피드가 비어있어요
@@ -137,7 +137,7 @@ export default function FeedTab({ personalPlaces = [], onPlaceClick, onDataChang
           <p style={{ fontFamily: FL, fontSize: 11, color: C.outlineVariant, margin: 0 }}>새로고침 중...</p>
         </div>
       )}
-      <div style={{ maxWidth: 560, margin: "0 auto", padding: mobile ? "12px 12px" : "16px 0" }}>
+      <div style={{ maxWidth: 560, margin: "0 auto", padding: mobile ? "12px 16px" : "16px 0" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: mobile ? 12 : 8 }}>
           {combinedFeed.map((item, idx) => (
             <FeedCard key={`${item.isOwn ? "own" : "follow"}-${item.place_id}-${idx}`} item={item} mobile={mobile} onPlaceClick={onPlaceClick} onDataChange={onDataChange} />
