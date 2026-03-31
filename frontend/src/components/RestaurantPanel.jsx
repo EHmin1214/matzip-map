@@ -66,7 +66,7 @@ export default function RestaurantPanel({
     const measure = () => {
       const sheetTop = sheetRef.current.getBoundingClientRect().top;
       const endBottom = peekEndRef.current.getBoundingClientRect().bottom;
-      const h = Math.ceil(endBottom - sheetTop) + 16; // 16px 여유
+      const h = Math.ceil(endBottom - sheetTop) + 32; // 하단 여백
       setPeekHeight(Math.max(h, 220));
     };
     // 렌더 후 측정 (이미지 등 비동기 콘텐츠 대비)
