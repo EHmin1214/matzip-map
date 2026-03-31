@@ -1,6 +1,7 @@
 // src/utils/generateShareCard.js
 // Canvas API로 공유 카드 생성 (Apple Music 스타일 — 컴팩트 카드)
 
+import html2canvas from "html2canvas";
 import { SHARED_CAT_COLOR, BEST_CATEGORIES } from "../constants";
 
 const CARD_W = 760;
@@ -286,20 +287,19 @@ function drawDotMap(ctx, places, x, y, w, h, r) {
   ctx.restore();
 }
 
-export async function generateProfileCard(user, places) {
+export async function generateProfileCard(user, places, mapImage) {
   await document.fonts.ready;
 
   const FH = "'Noto Serif', Georgia, serif";
   const FL = "'Manrope', -apple-system, sans-serif";
 
-  /* stat line */
   const statLine = `총 ${places.length}개의 큐레이션 공간`;
 
-  /* card height */
-  let ch = PAD + MAP_H + 24;   // map + gap
-  ch += 48;                      // avatar row
-  ch += 8 + 20;                  // gap + stat line
-  ch += 24 + 1 + 16 + 32 + PAD; // divider area + brand + bottom
+  /* card height (2x fonts) */
+  let ch = PAD + MAP_H + 36;    // map + gap
+  ch += 96;                       // avatar row (88px avatar)
+  ch += 16 + 36;                  // gap + stat line
+  ch += 40 + 1 + 28 + 48 + PAD;  // divider area + brand + bottom
 
   const W = CARD_W + EDGE * 2;
   const H = ch + EDGE * 2;
@@ -325,12 +325,25 @@ export async function generateProfileCard(user, places) {
   const L = EDGE + PAD;
   let y = EDGE + PAD;
 
-  /* map */
-  drawDotMap(ctx, places, L, y, INNER, MAP_H, PR);
-  y += MAP_H + 24;
+  /* map — screenshot or fallback dots */
+  ctx.save();
+  roundRect(ctx, L, y, INNER, MAP_H, PR);
+  ctx.clip();
+  if (mapImage) {
+    const ir = mapImage.width / mapImage.height;
+    const br = INNER / MAP_H;
+    let sx = 0, sy = 0, sw = mapImage.width, sh = mapImage.height;
+    if (ir > br) { sw = sh * br; sx = (mapImage.width - sw) / 2; }
+    else { sh = sw / br; sy = (mapImage.height - sh) / 2; }
+    ctx.drawImage(mapImage, sx, sy, sw, sh, L, y, INNER, MAP_H);
+  } else {
+    drawDotMap(ctx, places, L, y, INNER, MAP_H, PR);
+  }
+  ctx.restore();
+  y += MAP_H + 36;
 
-  /* avatar + name row */
-  const avatarSize = 44;
+  /* avatar + name row (2x) */
+  const avatarSize = 88;
   if (user.profile_photo_url) {
     try {
       const img = await loadImage(user.profile_photo_url);
@@ -347,30 +360,30 @@ export async function generateProfileCard(user, places) {
     drawAvatarFallback(ctx, L, y, avatarSize, user.nickname, FH);
   }
 
-  const tx = L + avatarSize + 14;
-  ctx.font = `700 28px ${FH}`;
+  const tx = L + avatarSize + 20;
+  ctx.font = `700 56px ${FH}`;
   ctx.fillStyle = "#1c1c1e";
-  ctx.fillText(user.nickname, tx, y + 7);
-  y += 48;
+  ctx.fillText(user.nickname, tx, y + 16);
+  y += 96;
 
-  /* stat line */
-  y += 8;
-  ctx.font = `600 15px ${FL}`;
+  /* stat line (2x) */
+  y += 16;
+  ctx.font = `600 30px ${FL}`;
   ctx.fillStyle = "#5c605c";
   ctx.fillText(statLine, L, y);
-  y += 18;
+  y += 36;
 
   /* divider */
-  y += 24;
+  y += 40;
   ctx.fillStyle = "#e8e8ed";
   ctx.fillRect(L, y, INNER, 1);
-  y += 1 + 16;
+  y += 1 + 28;
 
-  /* branding */
-  drawLogo(ctx, L - 8, y - 8, 0.65);
-  ctx.font = `italic 700 17px ${FH}`;
+  /* branding (2x) */
+  drawLogo(ctx, L - 12, y - 12, 1.2);
+  ctx.font = `italic 700 34px ${FH}`;
   ctx.fillStyle = "#655d54";
-  ctx.fillText("나의 공간", L + 34, y + 1);
+  ctx.fillText("나의 공간", L + 56, y + 2);
 
   ctx.restore();
 
@@ -394,7 +407,24 @@ function drawAvatarFallback(ctx, x, y, size, nickname, fh) {
 }
 
 export async function shareProfileCard(user, places) {
-  const blob = await generateProfileCard(user, places);
+  /* capture the live Naver Map as an image */
+  let mapImage = null;
+  const mapEl = document.getElementById("profile-minimap");
+  if (mapEl) {
+    try {
+      const captured = await html2canvas(mapEl, {
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: "#f0efec",
+        scale: 2,
+      });
+      mapImage = captured;
+    } catch (e) {
+      console.warn("Map capture failed, using dot fallback", e);
+    }
+  }
+
+  const blob = await generateProfileCard(user, places, mapImage);
   const file = new File([blob], `${user.nickname}-myplace-profile.png`, { type: "image/png" });
 
   if (navigator.canShare?.({ files: [file] })) {

@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>나의 공간 — 수요 시나리오</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400;1,700&family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --primary: #655d54;
+    --primary-dim: #595149;
+    --bg: #faf9f6;
+    --surface: #ffffff;
+    --surface-low: #f4f4f0;
+    --on-surface: #2f3430;
+    --on-surface-variant: #5c605c;
+    --outline-variant: #8a8e8a;
+    --primary-container: #ede0d5;
+    --card-a: #a89a8e;
+    --card-overlap: #867a6e;
+  }
+
+  body {
+    font-family: 'Manrope', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--on-surface);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Hero ── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 40px 24px;
+    position: relative;
+  }
+
+  .hero-icon {
+    width: 64px; height: 64px; margin-bottom: 32px;
+  }
+
+  .hero h1 {
+    font-family: 'Noto Serif', Georgia, serif;
+    font-style: italic;
+    font-size: clamp(36px, 6vw, 56px);
+    font-weight: 700;
+    color: var(--primary);
+    letter-spacing: -0.03em;
+    margin-bottom: 16px;
+  }
+
+  .hero p {
+    font-size: clamp(14px, 2vw, 18px);
+    color: var(--on-surface-variant);
+    line-height: 1.7;
+    max-width: 480px;
+  }
+
+  .hero .scroll-hint {
+    position: absolute;
+    bottom: 32px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.25em;
+    color: var(--outline-variant);
+    animation: float 2s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(6px); }
+  }
+
+  /* ── Section ── */
+  section {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 80px 24px;
+  }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.25em;
+    color: var(--outline-variant);
+    margin-bottom: 40px;
+  }
+
+  /* ── Problem ── */
+  .problem {
+    padding: 100px 24px;
+    text-align: center;
+  }
+
+  .problem h2 {
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: clamp(24px, 4vw, 36px);
+    font-weight: 700;
+    color: var(--on-surface);
+    letter-spacing: -0.02em;
+    margin-bottom: 20px;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.4;
+  }
+
+  .problem p {
+    font-size: 15px;
+    color: var(--on-surface-variant);
+    line-height: 1.8;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  /* ── Scenario Cards ── */
+  .scenarios {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .scenario-card {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 2px 12px rgba(47,52,48,0.04);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .scenario-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(47,52,48,0.08);
+  }
+
+  .scenario-number {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--card-a);
+    letter-spacing: 0.1em;
+    margin-bottom: 12px;
+  }
+
+  .scenario-card h3 {
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--on-surface);
+    margin-bottom: 12px;
+    letter-spacing: -0.01em;
+  }
+
+  .scenario-card .desc {
+    font-size: 14px;
+    color: var(--on-surface-variant);
+    line-height: 1.8;
+    margin-bottom: 16px;
+  }
+
+  .scenario-card .value {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--primary);
+    padding: 6px 14px;
+    background: var(--primary-container);
+    border-radius: 999px;
+  }
+
+  /* ── Structure ── */
+  .structure {
+    padding: 100px 24px;
+    text-align: center;
+  }
+
+  .structure h2 {
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: clamp(24px, 4vw, 32px);
+    font-weight: 700;
+    color: var(--on-surface);
+    margin-bottom: 48px;
+    letter-spacing: -0.02em;
+  }
+
+  .pillars {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    max-width: 720px;
+    margin: 0 auto;
+  }
+
+  .pillar {
+    background: var(--surface);
+    border-radius: 16px;
+    padding: 32px 24px;
+    text-align: center;
+    box-shadow: 0 2px 12px rgba(47,52,48,0.04);
+  }
+
+  .pillar-icon {
+    font-size: 32px;
+    margin-bottom: 16px;
+    display: block;
+  }
+
+  .pillar h3 {
+    font-family: 'Noto Serif', Georgia, serif;
+    font-style: italic;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 10px;
+  }
+
+  .pillar p {
+    font-size: 13px;
+    color: var(--on-surface-variant);
+    line-height: 1.7;
+  }
+
+  .arrow-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 40px;
+    font-size: 14px;
+    color: var(--on-surface-variant);
+  }
+
+  .arrow-row .label {
+    font-family: 'Noto Serif', Georgia, serif;
+    font-style: italic;
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 16px;
+  }
+
+  .arrow-row .arrow {
+    font-size: 20px;
+    color: var(--card-a);
+  }
+
+  /* ── Mapping Table ── */
+  .mapping {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 80px 24px;
+  }
+
+  .mapping h2 {
+    font-family: 'Noto Serif', Georgia, serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--on-surface);
+    margin-bottom: 32px;
+    letter-spacing: -0.02em;
+  }
+
+  .mapping table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .mapping th {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--outline-variant);
+    padding: 12px 16px;
+    text-align: center;
+    border-bottom: 2px solid var(--surface-low);
+  }
+
+  .mapping th:first-child {
+    text-align: left;
+  }
+
+  .mapping td {
+    padding: 14px 16px;
+    font-size: 14px;
+    color: var(--on-surface);
+    border-bottom: 1px solid var(--surface-low);
+    text-align: center;
+  }
+
+  .mapping td:first-child {
+    text-align: left;
+    font-weight: 600;
+  }
+
+  .dot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--primary);
+  }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center;
+    padding: 80px 24px 60px;
+  }
+
+  .footer h2 {
+    font-family: 'Noto Serif', Georgia, serif;
+    font-style: italic;
+    font-size: clamp(20px, 3.5vw, 28px);
+    font-weight: 700;
+    color: var(--primary);
+    margin-bottom: 12px;
+  }
+
+  .footer p {
+    font-size: 13px;
+    color: var(--outline-variant);
+    letter-spacing: 0.08em;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 600px) {
+    .pillars { grid-template-columns: 1fr; }
+    .scenario-card { padding: 24px; }
+    .arrow-row { flex-direction: column; gap: 8px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<div class="hero">
+  <svg class="hero-icon" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+    <rect x="20" y="14" width="28" height="34" rx="2" ry="2" fill="#a89a8e"/>
+    <rect x="14" y="18" width="28" height="34" rx="2" ry="2" fill="#a89a8e"/>
+    <clipPath id="bc"><rect x="20" y="14" width="28" height="34" rx="2" ry="2"/></clipPath>
+    <rect x="14" y="18" width="28" height="34" rx="2" ry="2" fill="#867a6e" clip-path="url(#bc)"/>
+  </svg>
+  <h1>나의 공간</h1>
+  <p>광고 없이, 경험만으로.<br>개인의 취향이 모여 만드는 신뢰할 수 있는 지도.</p>
+  <span class="scroll-hint">↓ scroll</span>
+</div>
+
+<!-- Problem -->
+<div class="problem">
+  <h2>우리는 어디가 진짜 좋은지<br>더 이상 알 수 없게 되었습니다</h2>
+  <p>협찬 리뷰, 바이럴 마케팅, 별점 조작.<br>정보는 넘치지만 신뢰할 수 있는 추천은 부족합니다.<br>가장 믿을 수 있는 건 결국 직접 경험한 사람의 한마디입니다.</p>
+</div>
+
+<!-- Scenarios -->
+<section>
+  <p class="section-label">수요 시나리오</p>
+  <div class="scenarios">
+
+    <div class="scenario-card">
+      <p class="scenario-number">01</p>
+      <h3>"맨날 어디가지 고민"</h3>
+      <p class="desc">밥 약속마다 반복되는 "어디 가?" "아무데나". 내가 저장해둔 장소를 공유하면 구체적인 선택지가 바로 나옵니다. 상대방의 베스트 5를 보면 신뢰 기반으로 빠르게 결정할 수 있습니다.</p>
+      <span class="value">의사결정 비용 감소</span>
+    </div>
+
+    <div class="scenario-card">
+      <p class="scenario-number">02</p>
+      <h3>"이 동네 찐 맛집이 어디야"</h3>
+      <p class="desc">낯선 동네에서 네이버 리뷰를 믿기 어려울 때. 우리의 공간에서 해당 지역을 보면 여러 명이 독립적으로 베스트로 고른 장소가 자연스럽게 드러납니다.</p>
+      <span class="value">광고 없는 신뢰할 수 있는 추천</span>
+    </div>
+
+    <div class="scenario-card">
+      <p class="scenario-number">03</p>
+      <h3>"취향 맞는 사람 발견"</h3>
+      <p class="desc">내가 좋아하는 장소를 다른 사람도 베스트에 넣어뒀다면, 그 사람의 다른 추천도 나한테 맞을 확률이 높습니다. 알고리즘이 아닌 사람을 통한 발견.</p>
+      <span class="value">취향 기반 발견</span>
+    </div>
+
+    <div class="scenario-card">
+      <p class="scenario-number">04</p>
+      <h3>"내 기록을 남기고 싶어"</h3>
+      <p class="desc">블로그는 부담스럽고, 인스타는 너무 공개적. 가본 곳에 대한 나만의 메모와 별점을 조용히 남기는 개인 맛집 일기장.</p>
+      <span class="value">부담 없는 개인 기록</span>
+    </div>
+
+    <div class="scenario-card">
+      <p class="scenario-number">05</p>
+      <h3>"자주 가는 동네에 숨은 곳"</h3>
+      <p class="desc">매일 다니는 동네인데도 모르던 곳이 있습니다. 내 동선 반경 안에서 우리의 공간을 보면 놓치고 있던 로컬 장소를 발견할 수 있습니다.</p>
+      <span class="value">로컬 발견</span>
+    </div>
+
+    <div class="scenario-card">
+      <p class="scenario-number">06</p>
+      <h3>"블로그 리뷰 못 믿겠어"</h3>
+      <p class="desc">협찬, 체험단, 별점 조작 — 리뷰 피로감. 우리의 공간은 카테고리당 5개 제한으로 구조적으로 광고가 끼어들 수 없습니다. 데이터가 쌓일수록 진짜 좋은 곳만 남습니다.</p>
+      <span class="value">리뷰 피로감에 대한 대안</span>
+    </div>
+
+    <div class="scenario-card">
+      <p class="scenario-number">07</p>
+      <h3>"친구가 추천한 곳 까먹음"</h3>
+      <p class="desc">카톡으로 받은 맛집 추천이 대화에 묻혀 사라집니다. 친구의 장소가 내 지도에 함께 보이면 근처에 갔을 때 자연스럽게 떠오릅니다.</p>
+      <span class="value">추천의 맥락 보존</span>
+    </div>
+
+    <div class="scenario-card">
+      <p class="scenario-number">08</p>
+      <h3>"여행 전 코스 짜기"</h3>
+      <p class="desc">여행지에서 갈 곳을 미리 저장하고 지도에서 동선을 확인. 우리의 공간에서 현지 인기 장소도 함께 보면서 코스에 추가. 여행 후에는 아카이브로 남습니다.</p>
+      <span class="value">여행 계획 + 기록의 연결</span>
+    </div>
+
+  </div>
+</section>
+
+<!-- Structure -->
+<div class="structure">
+  <h2>세 개의 층위로 구성됩니다</h2>
+  <div class="pillars">
+    <div class="pillar">
+      <span class="pillar-icon">📓</span>
+      <h3>나의 공간</h3>
+      <p>개인 아카이브.<br>모든 기록을 조용히 쌓는 곳.</p>
+    </div>
+    <div class="pillar">
+      <span class="pillar-icon">👥</span>
+      <h3>팔로잉</h3>
+      <p>신뢰하는 사람들.<br>친구의 취향을 내 지도에 함께.</p>
+    </div>
+    <div class="pillar">
+      <span class="pillar-icon">🌍</span>
+      <h3>우리의 공간</h3>
+      <p>집단의 경험.<br>베스트만 모아 만드는 신뢰 지도.</p>
+    </div>
+  </div>
+  <div class="arrow-row">
+    <span class="label">개인 도구</span>
+    <span class="arrow">→</span>
+    <span class="label">소셜</span>
+    <span class="arrow">→</span>
+    <span class="label">플랫폼</span>
+  </div>
+</div>
+
+<!-- Mapping -->
+<div class="mapping">
+  <h2>시나리오별 기능 매핑</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>시나리오</th>
+        <th>나의 공간</th>
+        <th>우리의 공간</th>
+        <th>소셜</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>어디가지 고민</td><td><span class="dot"></span></td><td></td><td><span class="dot"></span></td></tr>
+      <tr><td>찐 맛집 찾기</td><td></td><td><span class="dot"></span></td><td></td></tr>
+      <tr><td>취향 맞는 사람</td><td></td><td><span class="dot"></span></td><td><span class="dot"></span></td></tr>
+      <tr><td>개인 기록</td><td><span class="dot"></span></td><td></td><td></td></tr>
+      <tr><td>숨은 로컬 발견</td><td></td><td><span class="dot"></span></td><td></td></tr>
+      <tr><td>리뷰 불신</td><td></td><td><span class="dot"></span></td><td></td></tr>
+      <tr><td>추천 까먹음</td><td><span class="dot"></span></td><td></td><td><span class="dot"></span></td></tr>
+      <tr><td>여행 코스</td><td><span class="dot"></span></td><td><span class="dot"></span></td><td></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  <h2>개인의 경험이 모여, 신뢰가 됩니다</h2>
+  <p>나의 공간 — The Curated Archive</p>
+</div>
+
+</body>
+</html>

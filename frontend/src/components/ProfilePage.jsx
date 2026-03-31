@@ -192,6 +192,7 @@ function MiniMap({ places, onViewMap }) {
       {places.length > 0 ? (
         <>
           <div
+            id="profile-minimap"
             ref={mapRef}
             style={{
               width: "100%", aspectRatio: "4/5", borderRadius: 10,

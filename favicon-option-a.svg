@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <!-- 뒤쪽 카드 -->
+  <rect x="20" y="14" width="28" height="34" rx="2" ry="2" fill="#a89a8e"/>
+
+  <!-- 앞쪽 카드 -->
+  <rect x="14" y="18" width="28" height="34" rx="2" ry="2" fill="#a89a8e"/>
+
+  <!-- 겹치는 영역 -->
+  <clipPath id="backCard">
+    <rect x="20" y="14" width="28" height="34" rx="2" ry="2"/>
+  </clipPath>
+  <rect x="14" y="18" width="28" height="34" rx="2" ry="2" fill="#867a6e" clip-path="url(#backCard)"/>
+</svg>

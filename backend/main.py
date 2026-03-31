@@ -192,8 +192,10 @@ body{{min-height:100vh;display:flex;align-items:center;justify-content:center;ba
 .logo .b{{position:absolute;top:1px;left:5px;width:11px;height:14px;border-radius:1.5px;background:#a89a8e}}
 .logo .f{{position:absolute;top:3px;left:2px;width:11px;height:14px;border-radius:1.5px;background:#867a6e}}
 .brand-name{{font-family:'Noto Serif',Georgia,serif;font-style:italic;font-weight:700;font-size:13px;color:#655d54}}
+.cta{{text-align:center;margin-top:18px;font-size:12px;color:#a89a8e;font-weight:500}}
+.cta span{{display:inline-block;animation:pulse 2s ease-in-out infinite}}
+@keyframes pulse{{0%,100%{{opacity:.6}}50%{{opacity:1}}}}
 </style>
-<meta http-equiv="refresh" content="1;url={redirect_url}" />
 </head>
 <body>
 <a class="card" href="{redirect_url}">
@@ -208,6 +210,7 @@ body{{min-height:100vh;display:flex;align-items:center;justify-content:center;ba
     <div class="logo"><div class="b"></div><div class="f"></div></div>
     <span class="brand-name">나의 공간</span>
   </div>
+  <p class="cta"><span>프로필을 눌러서 자세히 살펴보세요</span></p>
 </a>
 </body>
 </html>"""
