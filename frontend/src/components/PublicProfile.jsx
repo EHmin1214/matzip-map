@@ -23,6 +23,7 @@ export default function PublicProfile({ nickname }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("all");
+  const [copied, setCopied] = useState(false);
   const mapRef = useRef(null);
   const mapContainerRef = useRef(null);
   const markersRef = useRef([]);
@@ -55,7 +56,7 @@ export default function PublicProfile({ nickname }) {
   // 네이버 지도 초기화
   useEffect(() => {
     if (!places.length || !window.naver || !mapContainerRef.current) return;
-    if (mapRef.current) return; // 이미 초기화됨
+    if (mapRef.current) return;
 
     const bounds = new window.naver.maps.LatLngBounds();
     places.forEach((p) => bounds.extend(new window.naver.maps.LatLng(p.lat, p.lng)));
@@ -103,10 +104,18 @@ export default function PublicProfile({ nickname }) {
     });
   }, [places, filter]);
 
+  const shareProfile = () => {
+    const url = `${window.location.origin}/@${nickname}`;
+    navigator.clipboard?.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
   if (loading) {
     return (
       <div style={{ position: "fixed", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: C.bg, flexDirection: "column", gap: 10 }}>
-        <h1 style={{ fontFamily: FH, fontStyle: "italic", fontSize: 22, color: C.primary, margin: 0 }}>나의 공간</h1>
+        <img src="/logo.svg" alt="" style={{ width: 48, height: 48 }} />
         <p style={{ fontFamily: FL, fontSize: 11, color: C.outlineVariant }}>불러오는 중...</p>
       </div>
     );
@@ -115,7 +124,7 @@ export default function PublicProfile({ nickname }) {
   if (error) {
     return (
       <div style={{ position: "fixed", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", background: C.bg, flexDirection: "column", gap: 16 }}>
-        <h1 style={{ fontFamily: FH, fontStyle: "italic", fontSize: 22, color: C.primary, margin: 0 }}>나의 공간</h1>
+        <img src="/logo.svg" alt="" style={{ width: 48, height: 48 }} />
         <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 16, color: C.outlineVariant }}>{error}</p>
         <a href="/" style={{ fontFamily: FL, fontSize: 12, color: C.primary, textDecoration: "none", padding: "8px 20px", background: C.primaryContainer, borderRadius: 8, fontWeight: 600 }}>
           나도 시작하기
@@ -142,19 +151,32 @@ export default function PublicProfile({ nickname }) {
         display: "flex", alignItems: "center", justifyContent: "space-between",
         zIndex: 10,
       }}>
-        <div>
-          <h1 style={{ margin: 0, fontFamily: FH, fontStyle: "italic", fontSize: isMobile ? 18 : 22, color: C.primary }}>
-            {profile.nickname}
-          </h1>
-          <p style={{ margin: "2px 0 0", fontFamily: FL, fontSize: 10, color: C.outlineVariant, letterSpacing: "0.1em" }}>
-            {profile.place_count}곳 큐레이션 &middot; 팔로워 {profile.follower_count}
-          </p>
+        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 12 }}>
+          <img src="/logo.svg" alt="" style={{ width: isMobile ? 28 : 36, height: isMobile ? 28 : 36 }} />
+          <div>
+            <h1 style={{ margin: 0, fontFamily: FH, fontStyle: "italic", fontSize: isMobile ? 18 : 22, color: C.primary }}>
+              {profile.nickname}
+            </h1>
+            <p style={{ margin: "2px 0 0", fontFamily: FL, fontSize: 10, color: C.outlineVariant, letterSpacing: "0.1em" }}>
+              {profile.place_count}곳 큐레이션 &middot; 팔로워 {profile.follower_count}
+            </p>
+          </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {/* 공유 */}
+          <button onClick={shareProfile} style={{
+            fontFamily: FL, fontSize: 10, fontWeight: 600,
+            color: C.primary, background: C.container, border: "none",
+            padding: "6px 12px", borderRadius: 6, cursor: "pointer",
+            display: "flex", alignItems: "center", gap: 4,
+          }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>share</span>
+            {copied ? "복사됨!" : "공유"}
+          </button>
           {profile.instagram_url && (
             <a href={profile.instagram_url} target="_blank" rel="noreferrer" style={{
               fontFamily: FL, fontSize: 10, color: C.primary, textDecoration: "none",
-              padding: "5px 12px", background: C.primaryContainer, borderRadius: 6, fontWeight: 600,
+              padding: "6px 12px", background: C.primaryContainer, borderRadius: 6, fontWeight: 600,
             }}>Instagram</a>
           )}
           <a href="/" style={{
@@ -200,8 +222,8 @@ export default function PublicProfile({ nickname }) {
         {/* 사이드 리스트 (데스크톱만) */}
         {!isMobile && (
           <div style={{
-            width: 340, overflowY: "auto", background: C.bg,
-            borderLeft: `1px solid ${C.container}`, padding: "16px",
+            width: 360, overflowY: "auto", background: C.bg,
+            borderLeft: `1px solid ${C.container}`, padding: "16px 20px",
           }}>
             <p style={{ margin: "0 0 12px", fontFamily: FL, fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", color: C.outlineVariant }}>
               {profile.nickname}의 공간 &mdash; {filtered.length}곳
@@ -213,77 +235,97 @@ export default function PublicProfile({ nickname }) {
                   큐레이션 리스트
                 </p>
                 {curatedLists.map((cl) => (
-                  <div key={cl.id} style={{ padding: "8px 10px", borderBottom: `1px solid ${C.container}` }}>
+                  <a key={cl.id} href={`/list/${cl.id}`} style={{
+                    display: "block", padding: "10px 12px", borderBottom: `1px solid ${C.container}`,
+                    textDecoration: "none", transition: "background 0.1s",
+                  }}>
                     <p style={{ margin: 0, fontFamily: FH, fontSize: 13, fontWeight: 600, color: C.onSurface }}>{cl.title}</p>
                     <p style={{ margin: "2px 0 0", fontFamily: FL, fontSize: 10, color: C.outlineVariant }}>
                       {cl.item_count}곳 {cl.description ? `· ${cl.description}` : ""}
                     </p>
-                  </div>
+                  </a>
                 ))}
               </div>
             )}
 
-            {filtered.map((p) => {
-              const sc = STATUS_COLOR[p.status];
-              return (
-                <div key={p.id}
-                  onClick={() => {
-                    if (mapRef.current && window.naver) {
-                      mapRef.current.panTo(new window.naver.maps.LatLng(p.lat, p.lng), { duration: 280 });
-                    }
-                  }}
-                  style={{
-                    padding: "12px 10px", borderBottom: `1px solid ${C.container}`,
-                    cursor: "pointer", transition: "background 0.1s",
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = C.surfaceLow}
-                  onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
-                    <span style={{
-                      fontFamily: FL, fontSize: 9, fontWeight: 600,
-                      padding: "2px 6px", borderRadius: 4,
-                      background: sc?.bg || C.surfaceLow, color: sc?.color || C.onSurfaceVariant,
-                    }}>
-                      {STATUS_EMOJI[p.status]} {STATUS_LABEL[p.status]}
-                    </span>
-                    {p.rating > 0 && (
-                      <span style={{ fontFamily: FL, fontSize: 9, color: C.primary }}>
-                        {"★".repeat(p.rating)}
-                      </span>
-                    )}
-                  </div>
-                  <p style={{ margin: 0, fontFamily: FH, fontSize: 14, color: C.onSurface }}>{p.name}</p>
-                  {p.address && (
-                    <p style={{ margin: "2px 0 0", fontFamily: FL, fontSize: 10, color: C.outlineVariant }}>{p.address}</p>
-                  )}
-                  {p.memo && (
-                    <p style={{ margin: "4px 0 0", fontFamily: FH, fontStyle: "italic", fontSize: 11, color: C.onSurfaceVariant, lineHeight: 1.5 }}>
-                      "{p.memo}"
-                    </p>
-                  )}
-                </div>
-              );
-            })}
+            {filtered.map((p) => (
+              <PlaceCard key={p.id} place={p} mapRef={mapRef} />
+            ))}
           </div>
         )}
       </div>
 
       {/* 모바일 하단 리스트 시트 */}
       {isMobile && (
-        <MobileBottomSheet places={filtered} profile={profile} mapRef={mapRef} />
+        <MobileBottomSheet places={filtered} profile={profile} mapRef={mapRef} curatedLists={curatedLists} />
       )}
     </div>
   );
 }
 
-function MobileBottomSheet({ places, profile, mapRef }) {
+/* 장소 카드 — 사진 있으면 표시 */
+function PlaceCard({ place: p, mapRef }) {
+  const sc = STATUS_COLOR[p.status];
+  return (
+    <div
+      onClick={() => {
+        if (mapRef.current && window.naver) {
+          mapRef.current.panTo(new window.naver.maps.LatLng(p.lat, p.lng), { duration: 280 });
+          mapRef.current.setZoom(16);
+        }
+      }}
+      style={{
+        padding: "12px 0", borderBottom: `1px solid ${C.container}`,
+        cursor: "pointer", transition: "background 0.1s",
+      }}
+      onMouseEnter={(e) => e.currentTarget.style.background = C.surfaceLow}
+      onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+    >
+      <div style={{ display: "flex", gap: 10 }}>
+        {/* 사진 썸네일 */}
+        {p.photo_url && (
+          <img src={p.photo_url} alt="" style={{
+            width: 56, height: 56, borderRadius: 8,
+            objectFit: "cover", flexShrink: 0,
+          }} />
+        )}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+            <span style={{
+              fontFamily: FL, fontSize: 9, fontWeight: 600,
+              padding: "2px 6px", borderRadius: 4,
+              background: sc?.bg || C.surfaceLow, color: sc?.color || C.onSurfaceVariant,
+            }}>
+              {STATUS_EMOJI[p.status]} {STATUS_LABEL[p.status]}
+            </span>
+            {p.rating > 0 && (
+              <span style={{ fontFamily: FL, fontSize: 9, color: C.primary }}>
+                {"★".repeat(p.rating)}
+              </span>
+            )}
+          </div>
+          <p style={{ margin: 0, fontFamily: FH, fontSize: 14, color: C.onSurface }}>{p.name}</p>
+          {p.address && (
+            <p style={{ margin: "2px 0 0", fontFamily: FL, fontSize: 10, color: C.outlineVariant, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.address}</p>
+          )}
+          {p.memo && (
+            <p style={{ margin: "4px 0 0", fontFamily: FH, fontStyle: "italic", fontSize: 11, color: C.onSurfaceVariant, lineHeight: 1.5 }}>
+              "{p.memo}"
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MobileBottomSheet({ places, profile, mapRef, curatedLists }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
     <div style={{
       position: "absolute", bottom: 0, left: 0, right: 0,
-      maxHeight: expanded ? "60vh" : 140,
+      maxHeight: expanded ? "70vh" : 140,
       background: C.containerLowest,
       borderTopLeftRadius: 16, borderTopRightRadius: 16,
       boxShadow: "0 -4px 20px rgba(0,0,0,0.1)",
@@ -294,10 +336,26 @@ function MobileBottomSheet({ places, profile, mapRef }) {
       <div onClick={() => setExpanded(!expanded)}
         style={{ padding: "12px 16px", cursor: "pointer", textAlign: "center" }}>
         <div style={{ width: 36, height: 4, borderRadius: 2, background: C.container, margin: "0 auto 10px" }} />
-        <p style={{ margin: 0, fontFamily: FL, fontSize: 11, fontWeight: 700, color: C.onSurface }}>
+        <p style={{ margin: 0, fontFamily: FL, fontSize: 12, fontWeight: 700, color: C.onSurface }}>
           {profile.nickname}의 공간 &mdash; {places.length}곳
         </p>
       </div>
+
+      {/* 큐레이션 리스트 */}
+      {curatedLists.length > 0 && (
+        <div style={{ padding: "0 16px 8px" }}>
+          {curatedLists.map((cl) => (
+            <a key={cl.id} href={`/list/${cl.id}`} style={{
+              display: "block", padding: "8px 0", borderBottom: `1px solid ${C.container}`,
+              textDecoration: "none",
+            }}>
+              <span style={{ fontFamily: FH, fontSize: 13, color: C.onSurface }}>{cl.title}</span>
+              <span style={{ fontFamily: FL, fontSize: 10, color: C.outlineVariant, marginLeft: 6 }}>{cl.item_count}곳</span>
+            </a>
+          ))}
+        </div>
+      )}
+
       {places.map((p) => {
         const sc = STATUS_COLOR[p.status];
         return (
@@ -305,25 +363,36 @@ function MobileBottomSheet({ places, profile, mapRef }) {
             onClick={() => {
               if (mapRef.current && window.naver) {
                 mapRef.current.panTo(new window.naver.maps.LatLng(p.lat, p.lng), { duration: 280 });
+                mapRef.current.setZoom(16);
               }
             }}
             style={{ padding: "10px 16px", borderTop: `1px solid ${C.container}`, cursor: "pointer" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
-              <span style={{
-                fontFamily: FL, fontSize: 9, fontWeight: 600,
-                padding: "2px 6px", borderRadius: 4,
-                background: sc?.bg, color: sc?.color,
-              }}>
-                {STATUS_EMOJI[p.status]}
-              </span>
-              <span style={{ fontFamily: FH, fontSize: 13, color: C.onSurface }}>{p.name}</span>
-              {p.rating > 0 && (
-                <span style={{ fontFamily: FL, fontSize: 9, color: C.primary }}>{"★".repeat(p.rating)}</span>
+            <div style={{ display: "flex", gap: 10 }}>
+              {p.photo_url && (
+                <img src={p.photo_url} alt="" style={{
+                  width: 44, height: 44, borderRadius: 6,
+                  objectFit: "cover", flexShrink: 0,
+                }} />
               )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                  <span style={{
+                    fontFamily: FL, fontSize: 9, fontWeight: 600,
+                    padding: "2px 6px", borderRadius: 4,
+                    background: sc?.bg, color: sc?.color,
+                  }}>
+                    {STATUS_EMOJI[p.status]}
+                  </span>
+                  <span style={{ fontFamily: FH, fontSize: 13, color: C.onSurface }}>{p.name}</span>
+                  {p.rating > 0 && (
+                    <span style={{ fontFamily: FL, fontSize: 9, color: C.primary }}>{"★".repeat(p.rating)}</span>
+                  )}
+                </div>
+                {p.memo && (
+                  <p style={{ margin: "2px 0 0", fontFamily: FH, fontStyle: "italic", fontSize: 11, color: C.onSurfaceVariant }}>"{p.memo}"</p>
+                )}
+              </div>
             </div>
-            {p.memo && (
-              <p style={{ margin: "2px 0 0", fontFamily: FH, fontStyle: "italic", fontSize: 11, color: C.onSurfaceVariant }}>"{p.memo}"</p>
-            )}
           </div>
         );
       })}

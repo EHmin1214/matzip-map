@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#faf9f6"/>
+  
+  <!-- Logo cards (scaled up from favicon) -->
+  <g transform="translate(500, 200) scale(3)">
+    <rect x="20" y="14" width="28" height="34" rx="2" ry="2" fill="#a89a8e"/>
+    <rect x="14" y="18" width="28" height="34" rx="2" ry="2" fill="#a89a8e"/>
+    <clipPath id="backCard">
+      <rect x="20" y="14" width="28" height="34" rx="2" ry="2"/>
+    </clipPath>
+    <rect x="14" y="18" width="28" height="34" rx="2" ry="2" fill="#867a6e" clip-path="url(#backCard)"/>
+  </g>
+  
+  <!-- Title -->
+  <text x="600" y="440" text-anchor="middle" 
+    font-family="Georgia, serif" font-style="italic"
+    font-size="48" fill="#655d54">나의 공간</text>
+  
+  <!-- Subtitle -->
+  <text x="600" y="480" text-anchor="middle"
+    font-family="sans-serif" font-size="16" fill="#8a8e8a"
+    letter-spacing="4">THE CURATED ARCHIVE</text>
+    
+  <!-- Bottom line -->
+  <text x="600" y="560" text-anchor="middle"
+    font-family="sans-serif" font-size="18" fill="#a89a8e">나만의 맛집 지도를 만들고 공유하세요</text>
+</svg>
