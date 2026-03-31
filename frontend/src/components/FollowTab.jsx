@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import axios from "axios";
 import { useUser, API_BASE } from "../context/UserContext";
+import { STATUS_EMOJI } from "../constants";
 
 const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
@@ -19,7 +20,6 @@ const C = {
   outlineVariant:   "#afb3ae",
   error:            "#9e422c",
 };
-const STATUS_EMOJI = { want_to_go: "🔖", visited: "✅", want_revisit: "❤️" };
 const isMobile = () => window.innerWidth <= 768;
 
 // ── 아바타 ────────────────────────────────────────────────────

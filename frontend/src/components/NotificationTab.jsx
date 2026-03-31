@@ -2,21 +2,13 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useUser, API_BASE } from "../context/UserContext";
+import { formatTime } from "../constants";
 
 const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
 const C = { primary: "#655d54", primaryDim: "#595149", primaryContainer: "#ede0d5", bg: "#faf9f6", container: "#edeeea", containerLowest: "#ffffff", containerLow: "#f4f4f0", onSurface: "#2f3430", tertiary: "#685f39", error: "#9e422c" };
 
 const isMobile = () => window.innerWidth <= 768;
-
-function formatTime(dateStr) {
-  if (!dateStr) return "";
-  const diff = Math.floor((new Date() - new Date(dateStr)) / 1000);
-  if (diff < 60) return "방금 전";
-  if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
-  return `${Math.floor(diff / 86400)}일 전`;
-}
 
 const TYPE_ICON = {
   follow: { icon: "person", bg: C.container, color: C.primary },
@@ -70,7 +62,7 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
       await axios.post(`${API_BASE}/follows/${targetId}?follower_id=${user.user_id}`);
       const res = await axios.get(`${API_BASE}/follows/${user.user_id}/following`);
       setFollowing(res.data);
-    } catch (e) {}
+    } catch { alert("팔로우 요청에 실패했습니다."); }
     finally { setFollowLoading(null); }
   };
 
@@ -81,7 +73,7 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
       await axios.delete(`${API_BASE}/notifications/?user_id=${user.user_id}`);
       setNotifications([]);
       if (onUnreadChange) onUnreadChange(0);
-    } catch (e) {}
+    } catch { alert("알림 삭제에 실패했습니다."); }
   };
 
   const deleteNotification = async (id) => {
@@ -93,7 +85,7 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
         if (onUnreadChange) onUnreadChange(unread);
         return next;
       });
-    } catch (e) {}
+    } catch { alert("알림 삭제에 실패했습니다."); }
   };
 
   const handleAccept = async (fromId) => {
@@ -102,7 +94,7 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
       await axios.post(`${API_BASE}/follows/requests/${fromId}/accept?user_id=${user.user_id}`);
       setRequests((prev) => prev.filter((r) => r.from_user_id !== fromId));
       fetchAll();
-    } catch (e) {} finally { setProcessingId(null); }
+    } catch { alert("요청 수락에 실패했습니다."); } finally { setProcessingId(null); }
   };
 
   const handleReject = async (fromId) => {
@@ -110,7 +102,7 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
     try {
       await axios.post(`${API_BASE}/follows/requests/${fromId}/reject?user_id=${user.user_id}`);
       setRequests((prev) => prev.filter((r) => r.from_user_id !== fromId));
-    } catch (e) {} finally { setProcessingId(null); }
+    } catch { alert("요청 거절에 실패했습니다."); } finally { setProcessingId(null); }
   };
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;

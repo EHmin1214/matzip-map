@@ -89,15 +89,29 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
     try {
       await axios.patch(`${API_BASE}/folders/${folderId}?user_id=${user.user_id}`, { color: newColor });
       setFolders((prev) => prev.map((f) => f.id === folderId ? { ...f, color: newColor } : f));
-    } catch {}
+    } catch { alert("색상 변경에 실패했습니다."); }
   };
+
+  const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+  const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
 
   const handlePhotoSelect = (e) => {
     const files = Array.from(e.target.files || []);
     if (!files.length) return;
     setUploadError("");
     const remaining = 5 - photos.length;
-    const toAdd = files.slice(0, remaining);
+    const valid = files.filter((f) => {
+      if (!ALLOWED_TYPES.includes(f.type)) {
+        setUploadError("JPG, PNG, WebP 파일만 업로드 가능합니다.");
+        return false;
+      }
+      if (f.size > MAX_FILE_SIZE) {
+        setUploadError("10MB 이하 파일만 업로드 가능합니다.");
+        return false;
+      }
+      return true;
+    });
+    const toAdd = valid.slice(0, remaining);
     const newPhotos = toAdd.map((file) => ({
       type: "new", file, blobUrl: URL.createObjectURL(file),
     }));

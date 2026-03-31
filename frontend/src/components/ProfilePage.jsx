@@ -4,6 +4,7 @@ import axios from "axios";
 import { useUser, API_BASE } from "../context/UserContext";
 import { subscribePush, unsubscribePush, isPushSubscribed } from "../utils/pushNotifications";
 import CuratedLists from "./CuratedLists";
+import { STATUS_LABEL, STATUS_COLOR, STATUS_EMOJI, FRONTEND_URL } from "../constants";
 
 const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
@@ -23,7 +24,6 @@ const C = {
 
 const isMobile = () => window.innerWidth <= 768;
 const KAKAO_KEY = process.env.REACT_APP_KAKAO_JS_KEY || "";
-const FRONTEND_URL = "https://myplace-map.vercel.app";
 
 function initKakao() {
   if (!window.Kakao) return false;
@@ -236,13 +236,6 @@ function MiniMap({ places, onViewMap }) {
   );
 }
 
-const STATUS_LABEL = { want_to_go: "가고 싶어요", visited: "가봤어요", want_revisit: "또 가고 싶어요" };
-const STATUS_COLOR = {
-  want_to_go:   { bg: "#FEF3CD", color: "#BA7517" },
-  visited:      { bg: "#E0F4EC", color: "#1D9E75" },
-  want_revisit: { bg: "#FCE4EE", color: "#D4537E" },
-};
-const STATUS_EMOJI = { want_to_go: "🔖", visited: "✅", want_revisit: "❤️" };
 
 // ── 프로필 피드 카드 ─────────────────────────────────────────
 function PlaceFeedCard({ place: p, mobile }) {

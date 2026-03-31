@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useUser, API_BASE } from "../context/UserContext";
+import { STATUS_EMOJI } from "../constants";
 
 const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
@@ -13,8 +14,6 @@ const C = {
   onSurface: "#2f3430", onSurfaceVariant: "#5c605c",
   outlineVariant: "#afb3ae", primaryContainer: "#ede0d5",
 };
-
-const STATUS_EMOJI = { want_to_go: "🔖", visited: "✅", want_revisit: "❤️" };
 
 export default function CuratedLists({ personalPlaces = [] }) {
   const { user } = useUser();

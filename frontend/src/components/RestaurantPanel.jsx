@@ -5,7 +5,7 @@ import { useUser, API_BASE } from "../context/UserContext";
 import SavePlaceModal from "./SavePlaceModal";
 
 const KAKAO_KEY = process.env.REACT_APP_KAKAO_JS_KEY || "";
-const FRONTEND_URL = "https://myplace-map.vercel.app";
+import { STATUS_LABEL, STATUS_COLOR, FRONTEND_URL } from "../constants";
 
 const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
@@ -25,14 +25,7 @@ const C = {
 
 const isMobile = () => window.innerWidth <= 768;
 
-const STATUS_LABEL = {
-  want_to_go: "가고 싶어요", visited: "가봤어요", want_revisit: "또 가고 싶어요",
-};
-const STATUS_COLOR = {
-  want_to_go: { bg: "#FEF3CD", color: "#BA7517" },
-  visited:    { bg: "#E0F4EC", color: "#1D9E75" },
-  want_revisit: { bg: "#FCE4EE", color: "#D4537E" },
-};
+
 
 export default function RestaurantPanel({
   restaurant, onClose, onHide, sidebarWidth = 240,

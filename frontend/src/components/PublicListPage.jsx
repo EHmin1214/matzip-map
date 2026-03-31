@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { API_BASE } from "../context/UserContext";
+import { STATUS_EMOJI, STATUS_COLOR } from "../constants";
 
 const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
@@ -12,12 +13,6 @@ const C = {
   container: "#edeeea", containerLowest: "#ffffff",
   onSurface: "#2f3430", outlineVariant: "#afb3ae",
   primaryContainer: "#ede0d5",
-};
-const STATUS_EMOJI = { want_to_go: "🔖", visited: "✅", want_revisit: "❤️" };
-const STATUS_COLOR = {
-  want_to_go:   { bg: "#FEF3CD", color: "#BA7517" },
-  visited:      { bg: "#E0F4EC", color: "#1D9E75" },
-  want_revisit: { bg: "#FCE4EE", color: "#D4537E" },
 };
 
 export default function PublicListPage({ listId }) {
@@ -64,6 +59,8 @@ export default function PublicListPage({ listId }) {
         },
       });
     });
+
+    return () => { try { map.destroy(); } catch {} mapRef.current = null; };
   }, [list]);
 
   if (loading) {

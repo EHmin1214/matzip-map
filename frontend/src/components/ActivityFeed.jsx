@@ -3,14 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useUser, API_BASE } from "../context/UserContext";
-
-const STATUS_LABEL = { want_to_go: "가고 싶어요", visited: "가봤어요", want_revisit: "또 가고 싶어요" };
-const STATUS_EMOJI = { want_to_go: "🔖", visited: "✅", want_revisit: "❤️" };
-const STATUS_COLOR = {
-  want_to_go: { bg: "#FEF3CD", color: "#BA7517" },
-  visited:    { bg: "#E0F4EC", color: "#1D9E75" },
-  want_revisit: { bg: "#FCE4EE", color: "#D4537E" },
-};
+import { STATUS_LABEL, STATUS_EMOJI, STATUS_COLOR, formatTime } from "../constants";
 const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
 const C = {
@@ -401,11 +394,3 @@ function AdaptiveImage({ src, alt, onClick, clickable }) {
   );
 }
 
-function formatTime(dateStr) {
-  if (!dateStr) return "";
-  const d = new Date(dateStr), diff = Math.floor((new Date() - d) / 1000);
-  if (diff < 60) return "방금 전";
-  if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
-  return `${Math.floor(diff / 86400)}일 전`;
-}

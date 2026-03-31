@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { API_BASE } from "../context/UserContext";
+import { STATUS_LABEL, STATUS_EMOJI, STATUS_COLOR } from "../constants";
 
 const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
@@ -12,14 +13,6 @@ const C = {
   container: "#edeeea", containerLowest: "#ffffff",
   onSurface: "#2f3430", onSurfaceVariant: "#5c605c",
   outlineVariant: "#afb3ae", primaryContainer: "#ede0d5",
-};
-
-const STATUS_LABEL = { want_to_go: "가고 싶어요", visited: "가봤어요", want_revisit: "또 가고 싶어요" };
-const STATUS_EMOJI = { want_to_go: "🔖", visited: "✅", want_revisit: "❤️" };
-const STATUS_COLOR = {
-  want_to_go:   { bg: "#FEF3CD", color: "#BA7517" },
-  visited:      { bg: "#E0F4EC", color: "#1D9E75" },
-  want_revisit: { bg: "#FCE4EE", color: "#D4537E" },
 };
 
 const mobile = () => window.innerWidth <= 768;
@@ -79,6 +72,8 @@ export default function PublicProfile({ nickname }) {
     });
     map.fitBounds(bounds, { top: 60, bottom: 60, left: 40, right: 40 });
     mapRef.current = map;
+
+    return () => { try { map.destroy(); } catch {} mapRef.current = null; };
   }, [places]);
 
   // 마커 업데이트

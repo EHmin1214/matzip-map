@@ -137,16 +137,17 @@ export default function App() {
     ]);
   }, [loadPersonalPlaces, loadFollowingList, loadUnread, selectedFollowingIds]);
 
-  const handleToggleFollowing = useCallback(async (targetUserId) => {
+  const handleToggleFollowing = useCallback((targetUserId) => {
     setSelectedFollowingIds((prev) => {
       if (prev.includes(targetUserId)) return prev.filter((id) => id !== targetUserId);
-      if (!followingPlacesMap[targetUserId]) {
-        axios.get(`${API_BASE}/personal-places/?user_id=${targetUserId}`)
-          .then((res) => setFollowingPlacesMap((m) => ({ ...m, [targetUserId]: res.data.filter((p) => p.is_public !== false) })))
-          .catch(() => setFollowingPlacesMap((m) => ({ ...m, [targetUserId]: [] })));
-      }
       return [...prev, targetUserId];
     });
+    // 장소 데이터 없으면 비동기로 로드
+    if (!followingPlacesMap[targetUserId]) {
+      axios.get(`${API_BASE}/personal-places/?user_id=${targetUserId}`)
+        .then((res) => setFollowingPlacesMap((m) => ({ ...m, [targetUserId]: res.data.filter((p) => p.is_public !== false) })))
+        .catch(() => setFollowingPlacesMap((m) => ({ ...m, [targetUserId]: [] })));
+    }
   }, [followingPlacesMap]);
 
   const followingPlaces = selectedFollowingIds.map((uid) => {

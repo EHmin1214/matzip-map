@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useUser, API_BASE } from "../context/UserContext";
 import CuratedLists from "./CuratedLists";
+import { STATUS_LABEL, STATUS_EMOJI, STATUS_COLOR } from "../constants";
 
 const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
@@ -15,14 +16,6 @@ const C = {
   container: "#edeeea",
   onSurface: "#2f3430", onSurfaceVariant: "#5c605c",
   outlineVariant: "#afb3ae", error: "#9e422c",
-};
-
-const STATUS_LABEL = { want_to_go: "가고 싶어요", visited: "가봤어요", want_revisit: "또 가고 싶어요" };
-const STATUS_EMOJI = { want_to_go: "🔖", visited: "✅", want_revisit: "❤️" };
-const STATUS_COLOR = {
-  want_to_go:   { bg: "#FEF3CD", color: "#BA7517" },
-  visited:      { bg: "#E0F4EC", color: "#1D9E75" },
-  want_revisit: { bg: "#FCE4EE", color: "#D4537E" },
 };
 
 export default function UserProfileView({ nickname, onClose }) {
@@ -110,6 +103,8 @@ export default function UserProfileView({ nickname, onClose }) {
       });
     });
     mapRef.current = map;
+
+    return () => { try { map.destroy(); } catch {} mapRef.current = null; };
   }, [places]);
 
   const handleFollow = async () => {
@@ -135,7 +130,7 @@ export default function UserProfileView({ nickname, onClose }) {
             .then((r) => { setPlaces(r.data); setIsPrivateNoAccess(false); }).catch(() => {});
         }
       }
-    } catch {} finally { setFollowLoading(false); }
+    } catch { alert("요청에 실패했습니다."); } finally { setFollowLoading(false); }
   };
 
   const counts = {};
