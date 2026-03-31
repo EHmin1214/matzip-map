@@ -381,7 +381,7 @@ export default function App() {
     if (tab === "search")        return <SearchTab onPlaceAdded={addPlace} personalPlaces={personalPlaces} onViewUserProfile={handleViewUserProfile} />;
     if (tab === "feed")          return <FeedTab personalPlaces={personalPlaces} onPlaceClick={handleActivityPlaceClick} onDataChange={loadPersonalPlaces} onNavigate={setActiveTab} />;
     if (tab === "notifications") return <NotificationTab onUnreadChange={setUnreadCount} onPlaceClick={handleNotificationPlaceClick} />;
-    if (tab === "profile")       return <ProfilePage personalPlaces={personalPlaces} onViewMap={() => setActiveTab("map")} onViewUserProfile={handleViewUserProfile} myBestPicks={myBestPicks} onBestPickAdd={handleBestPickAdd} onBestPickReplace={handleBestPickReplace} onBestPickRemove={handleBestPickRemove} onPlaceClick={(p) => {
+    if (tab === "profile")       return <ProfilePage personalPlaces={personalPlaces} onViewMap={() => setActiveTab("map")} onViewUserProfile={handleViewUserProfile} myBestPicks={myBestPicks} onBestPickAdd={handleBestPickAdd} onBestPickReplace={handleBestPickReplace} onBestPickRemove={handleBestPickRemove} onRefresh={() => { loadPersonalPlaces(); loadFollowingList(); loadMyBestPicks(); loadFolders(); loadUnread(); }} onPlaceClick={(p) => {
       setSelectedRestaurant({ id: p.id, name: p.name, lat: p.lat, lng: p.lng, status: p.status, user_id: p.user_id, isPersonal: true, sources: [] });
       setActiveTab("map");
       centerMapOnPlace(p.lat, p.lng);

@@ -1,21 +1,17 @@
 // src/utils/generateShareCard.js
-// Canvas API로 인스타 스토리/피드 공유 카드 생성
+// Canvas API로 공유 카드 생성 (Apple Music 스타일 — 컴팩트 카드)
 
-import { STATUS_LABEL, STATUS_COLOR, SHARED_CAT_COLOR, BEST_CATEGORIES } from "../constants";
+import { SHARED_CAT_COLOR, BEST_CATEGORIES } from "../constants";
 
-const COLORS = {
-  bg: "#faf9f6",
-  primary: "#655d54",
-  primaryContainer: "#ede0d5",
-  onSurface: "#2f3430",
-  onSurfaceVariant: "#5c605c",
-  outline: "#8a8e8a",
-  surfaceLow: "#f4f4f0",
-};
+const CARD_W = 760;
+const EDGE   = 32;
+const PAD    = 40;
+const INNER  = CARD_W - PAD * 2;
+const R      = 28;
+const PR     = 16;
+const PH     = 480;
 
-const STATUS_PILL = Object.fromEntries(
-  Object.entries(STATUS_COLOR).map(([k, v]) => [k, { ...v, label: STATUS_LABEL[k] }])
-);
+/* ── helpers ── */
 
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath();
@@ -31,87 +27,25 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight, maxLines = 99) {
-  const words = text.split("");
-  let line = "";
-  let lineCount = 0;
-  let currentY = y;
-
-  for (let i = 0; i < words.length; i++) {
-    const testLine = line + words[i];
-    const metrics = ctx.measureText(testLine);
-    if (metrics.width > maxWidth && line.length > 0) {
-      lineCount++;
-      if (lineCount >= maxLines) {
-        ctx.fillText(line.slice(0, -1) + "…", x, currentY);
-        return currentY + lineHeight;
+function wrapLines(ctx, text, maxW, maxLines = 99) {
+  const chars = text.split("");
+  const lines = [];
+  let cur = "";
+  for (const ch of chars) {
+    const test = cur + ch;
+    if (ctx.measureText(test).width > maxW && cur) {
+      if (lines.length + 1 >= maxLines) {
+        lines.push(cur.trimEnd() + "…");
+        return lines;
       }
-      ctx.fillText(line, x, currentY);
-      line = words[i];
-      currentY += lineHeight;
+      lines.push(cur);
+      cur = ch;
     } else {
-      line = testLine;
+      cur = test;
     }
   }
-  if (line) {
-    ctx.fillText(line, x, currentY);
-    currentY += lineHeight;
-  }
-  return currentY;
-}
-
-function drawPill(ctx, text, x, y, bg, fg, fontSize = 28) {
-  ctx.font = `700 ${fontSize}px 'Manrope', sans-serif`;
-  const metrics = ctx.measureText(text);
-  const pw = metrics.width + fontSize * 1.2;
-  const ph = fontSize * 1.6;
-  const pr = ph / 2;
-
-  roundRect(ctx, x, y, pw, ph, pr);
-  ctx.fillStyle = bg;
-  ctx.fill();
-
-  ctx.fillStyle = fg;
-  ctx.textBaseline = "middle";
-  ctx.fillText(text, x + fontSize * 0.6, y + ph / 2);
-  ctx.textBaseline = "alphabetic";
-  return { w: pw, h: ph };
-}
-
-function drawStars(ctx, rating, x, y, size = 32) {
-  const full = Math.floor(rating);
-  const half = rating - full >= 0.5;
-  ctx.font = `${size}px 'Manrope', sans-serif`;
-  ctx.fillStyle = "#D4A053";
-  let cx = x;
-  for (let i = 0; i < 5; i++) {
-    ctx.fillStyle = i < full || (i === full && half) ? "#D4A053" : "#ddd8d2";
-    ctx.fillText("★", cx, y);
-    cx += size * 1.1;
-  }
-}
-
-function drawLogo(ctx, x, y, scale = 1) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.scale(scale, scale);
-  // 뒤쪽 카드
-  roundRect(ctx, 20, 14, 28, 34, 2);
-  ctx.fillStyle = "#a89a8e";
-  ctx.fill();
-  // 앞쪽 카드
-  roundRect(ctx, 14, 18, 28, 34, 2);
-  ctx.fillStyle = "#a89a8e";
-  ctx.fill();
-  // 겹치는 영역
-  ctx.save();
-  roundRect(ctx, 20, 14, 28, 34, 2);
-  ctx.clip();
-  roundRect(ctx, 14, 18, 28, 34, 2);
-  ctx.fillStyle = "#867a6e";
-  ctx.fill();
-  ctx.restore();
-  ctx.restore();
+  if (cur) lines.push(cur);
+  return lines;
 }
 
 async function loadImage(url) {
@@ -124,159 +58,180 @@ async function loadImage(url) {
   });
 }
 
-export default async function generateShareCard(place, { format = "story" } = {}) {
+function drawLogo(ctx, x, y, s = 1) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(s, s);
+  roundRect(ctx, 20, 14, 28, 34, 2);
+  ctx.fillStyle = "#a89a8e";
+  ctx.fill();
+  roundRect(ctx, 14, 18, 28, 34, 2);
+  ctx.fillStyle = "#a89a8e";
+  ctx.fill();
+  ctx.save();
+  roundRect(ctx, 20, 14, 28, 34, 2);
+  ctx.clip();
+  roundRect(ctx, 14, 18, 28, 34, 2);
+  ctx.fillStyle = "#867a6e";
+  ctx.fill();
+  ctx.restore();
+  ctx.restore();
+}
+
+/* ── main ── */
+
+export default async function generateShareCard(place) {
   await document.fonts.ready;
 
-  const W = 1080;
-  const H = format === "story" ? 1920 : 1080;
+  const FH = "'Noto Serif', Georgia, serif";
+  const FL = "'Manrope', -apple-system, sans-serif";
+
+  /* measure name */
+  const mc = document.createElement("canvas").getContext("2d");
+  mc.font = `700 34px ${FH}`;
+  const nameLines = wrapLines(mc, place.name, INNER, 2);
+  const nameLH = 44;
+
+  /* subtitle */
+  const cat = BEST_CATEGORIES.find((c) => c.key === place.category);
+  const parts = [];
+  if (cat) parts.push(cat.label);
+  if (place.address) {
+    parts.push(place.address.length > 24 ? place.address.slice(0, 24) + "…" : place.address);
+  }
+  const subtitle = parts.join(" · ");
+
+  /* card height */
+  let ch = PAD;
+  ch += PH + 24;
+  ch += nameLines.length * nameLH;
+  if (subtitle) ch += 6 + 20;
+  ch += 24 + 1 + 16;
+  ch += 32;
+  ch += PAD;
+
+  /* canvas (card + shadow breathing room) */
+  const W = CARD_W + EDGE * 2;
+  const H = ch + EDGE * 2;
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext("2d");
+  ctx.clearRect(0, 0, W, H);
 
-  // 배경
-  ctx.fillStyle = COLORS.bg;
-  ctx.fillRect(0, 0, W, H);
-
-  // 장식 — 우상단 큰 원
-  ctx.beginPath();
-  ctx.arc(W + 80, -80, 400, 0, Math.PI * 2);
-  ctx.fillStyle = COLORS.primaryContainer + "40";
+  /* card shadow + white bg */
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.08)";
+  ctx.shadowBlur = 24;
+  ctx.shadowOffsetY = 4;
+  roundRect(ctx, EDGE, EDGE, CARD_W, ch, R);
+  ctx.fillStyle = "#ffffff";
   ctx.fill();
+  ctx.restore();
 
-  const pad = 80;
-  let curY = format === "story" ? 160 : 80;
+  /* clip to card */
+  ctx.save();
+  roundRect(ctx, EDGE, EDGE, CARD_W, ch, R);
+  ctx.clip();
+  ctx.textBaseline = "top";
 
-  // 사진 영역
-  const photoH = format === "story" ? 640 : 400;
+  const L = EDGE + PAD;
+  let y = EDGE + PAD;
+
+  /* ── photo ── */
   let hasPhoto = false;
-  if (place.photo_url || (place.photo_urls && place.photo_urls.length > 0)) {
-    const photoUrl = place.photo_urls?.[0] || place.photo_url;
+  if (place.photo_url || place.photo_urls?.length) {
     try {
-      const img = await loadImage(photoUrl);
+      const img = await loadImage(place.photo_urls?.[0] || place.photo_url);
       ctx.save();
-      roundRect(ctx, pad, curY, W - pad * 2, photoH, 24);
+      roundRect(ctx, L, y, INNER, PH, PR);
       ctx.clip();
-      // cover crop
-      const imgRatio = img.width / img.height;
-      const boxRatio = (W - pad * 2) / photoH;
+      const ir = img.width / img.height, br = INNER / PH;
       let sx = 0, sy = 0, sw = img.width, sh = img.height;
-      if (imgRatio > boxRatio) {
-        sw = img.height * boxRatio;
-        sx = (img.width - sw) / 2;
-      } else {
-        sh = img.width / boxRatio;
-        sy = (img.height - sh) / 2;
-      }
-      ctx.drawImage(img, sx, sy, sw, sh, pad, curY, W - pad * 2, photoH);
+      if (ir > br) { sw = sh * br; sx = (img.width - sw) / 2; }
+      else { sh = sw / br; sy = (img.height - sh) / 2; }
+      ctx.drawImage(img, sx, sy, sw, sh, L, y, INNER, PH);
       ctx.restore();
-      curY += photoH + 48;
       hasPhoto = true;
-    } catch {
-      // 사진 로드 실패 시 무시
-    }
+    } catch { /* ignore */ }
   }
-
   if (!hasPhoto) {
-    // 사진 없으면 — 카테고리 이모지 + 배경
-    const cat = BEST_CATEGORIES.find((c) => c.key === place.category);
-    const catColor = SHARED_CAT_COLOR[place.category] || COLORS.primary;
-    roundRect(ctx, pad, curY, W - pad * 2, photoH, 24);
-    ctx.fillStyle = catColor + "18";
-    ctx.fill();
-    ctx.font = `${format === "story" ? 180 : 120}px serif`;
+    const cc = SHARED_CAT_COLOR[place.category] || "#655d54";
+    ctx.save();
+    roundRect(ctx, L, y, INNER, PH, PR);
+    ctx.clip();
+    ctx.fillStyle = cc + "12";
+    ctx.fillRect(L, y, INNER, PH);
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = catColor + "60";
-    ctx.fillText(cat?.emoji || "📍", W / 2, curY + photoH / 2);
+    ctx.font = "120px serif";
+    ctx.fillStyle = cc + "40";
+    ctx.fillText(cat?.emoji || "📍", EDGE + CARD_W / 2, y + PH / 2);
     ctx.textAlign = "left";
-    ctx.textBaseline = "alphabetic";
-    curY += photoH + 48;
+    ctx.textBaseline = "top";
+    ctx.restore();
+  }
+  y += PH + 24;
+
+  /* ── name ── */
+  ctx.font = `700 34px ${FH}`;
+  ctx.fillStyle = "#1c1c1e";
+  for (const line of nameLines) {
+    ctx.fillText(line, L, y);
+    y += nameLH;
   }
 
-  // 카테고리 pill
-  const cat = BEST_CATEGORIES.find((c) => c.key === place.category);
-  const catColor = SHARED_CAT_COLOR[place.category] || COLORS.primary;
-  if (cat) {
-    const { h } = drawPill(ctx, cat.label.toUpperCase(), pad, curY, catColor + "20", catColor, 26);
-    curY += h + 24;
+  /* ── subtitle (● category · address) ── */
+  if (subtitle) {
+    y += 6;
+    ctx.font = `400 16px ${FL}`;
+    if (cat) {
+      const cc = SHARED_CAT_COLOR[place.category] || "#655d54";
+      ctx.fillStyle = cc;
+      ctx.beginPath();
+      ctx.arc(L + 5, y + 8, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#8e8e93";
+      ctx.fillText(subtitle, L + 16, y);
+    } else {
+      ctx.fillStyle = "#8e8e93";
+      ctx.fillText(subtitle, L, y);
+    }
+    y += 20;
   }
 
-  // 장소 이름
-  ctx.font = `700 ${format === "story" ? 64 : 52}px 'Noto Serif', Georgia, serif`;
-  ctx.fillStyle = COLORS.onSurface;
-  curY = drawWrappedText(ctx, place.name, pad, curY + 48, W - pad * 2, format === "story" ? 80 : 64, 2);
-  curY += 12;
+  /* ── divider ── */
+  y += 24;
+  ctx.fillStyle = "#e8e8ed";
+  ctx.fillRect(L, y, INNER, 1);
+  y += 1 + 16;
 
-  // 주소
-  if (place.address) {
-    ctx.font = `400 ${format === "story" ? 30 : 26}px 'Manrope', sans-serif`;
-    ctx.fillStyle = COLORS.outline;
-    const addrText = place.address.length > 40 ? place.address.slice(0, 40) + "…" : place.address;
-    ctx.fillText(addrText, pad, curY + 30);
-    curY += 56;
-  }
+  /* ── branding ── */
+  drawLogo(ctx, L - 8, y - 8, 0.65);
+  ctx.font = `italic 700 17px ${FH}`;
+  ctx.fillStyle = "#655d54";
+  ctx.fillText("나의 공간", L + 34, y + 1);
 
-  // 상태 pill + 별점
-  curY += 16;
-  let pillEndX = pad;
-  if (place.status && STATUS_PILL[place.status]) {
-    const sp = STATUS_PILL[place.status];
-    const { w } = drawPill(ctx, sp.label, pad, curY, sp.bg, sp.color, 26);
-    pillEndX = pad + w + 20;
-  }
-  if (place.rating) {
-    drawStars(ctx, place.rating, pillEndX, curY + 34, 30);
-  }
-  curY += 64;
-
-  // 메모
-  if (place.memo) {
-    curY += 16;
-    ctx.font = `italic 400 ${format === "story" ? 30 : 26}px 'Noto Serif', Georgia, serif`;
-    ctx.fillStyle = COLORS.onSurfaceVariant;
-    curY = drawWrappedText(ctx, `"${place.memo}"`, pad, curY + 30, W - pad * 2, format === "story" ? 42 : 36, 3);
-    curY += 8;
-  }
-
-  // 하단 브랜딩
-  const brandY = H - 120;
-  // 구분선
-  ctx.fillStyle = COLORS.primaryContainer;
-  ctx.fillRect(pad, brandY - 40, W - pad * 2, 1);
-
-  // 로고
-  drawLogo(ctx, pad - 10, brandY - 28, 1.2);
-
-  // 앱 이름
-  ctx.font = `italic 700 32px 'Noto Serif', Georgia, serif`;
-  ctx.fillStyle = COLORS.primary;
-  ctx.fillText("나의 공간", pad + 70, brandY + 8);
-  ctx.font = `500 16px 'Manrope', sans-serif`;
-  ctx.fillStyle = COLORS.outline;
-  ctx.fillText("The Curated Archive", pad + 70, brandY + 36);
+  ctx.restore();
 
   return new Promise((resolve) => {
     canvas.toBlob((blob) => resolve(blob), "image/png");
   });
 }
 
-export async function shareCard(place, format = "story") {
-  const blob = await generateShareCard(place, { format });
+export async function shareCard(place) {
+  const blob = await generateShareCard(place);
   const file = new File([blob], `${place.name}-myplace.png`, { type: "image/png" });
 
-  // 모바일: Web Share API
   if (navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({ files: [file], title: place.name });
       return "shared";
     } catch {
-      // 유저가 취소한 경우
       return "cancelled";
     }
   }
 
-  // 데스크톱: 다운로드
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;

@@ -351,17 +351,10 @@ function PlaceFeedCard({ place: p, mobile }) {
 
 // ── 나의 베스트 섹션 ────────────────────────────────────────
 function MyBestSection({ myBestPicks, personalPlaces, onBestPickAdd, onBestPickRemove }) {
-  const [pickerCat, setPickerCat] = useState(null); // { key, label } or null
+  const [pickerCat, setPickerCat] = useState(null);
 
   return (
-    <Card>
-      <p style={{
-        margin: "0 0 14px", fontFamily: FL, fontSize: 9, fontWeight: 700,
-        textTransform: "uppercase", letterSpacing: "0.15em", color: C.outlineVariant,
-      }}>
-        나의 베스트
-      </p>
-
+    <>
       {BEST_CATEGORIES.map(({ key, emoji, label }) => {
         const picks = myBestPicks[key] || [];
         return (
@@ -445,14 +438,51 @@ function MyBestSection({ myBestPicks, personalPlaces, onBestPickAdd, onBestPickR
           onClose={() => setPickerCat(null)}
         />
       )}
-    </Card>
+    </>
   );
 }
 
-export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceClick, onViewUserProfile, myBestPicks = {}, onBestPickAdd, onBestPickReplace, onBestPickRemove }) {
+// ── 접기/펼치기 섹션 헤더 ────────────────────────────────────
+function SectionHeader({ title, open, onToggle }) {
+  return (
+    <div
+      onClick={onToggle}
+      style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        cursor: "pointer", marginBottom: open ? 14 : 0,
+      }}
+    >
+      <p style={{
+        margin: 0, fontFamily: FL, fontSize: 9, fontWeight: 700,
+        textTransform: "uppercase", letterSpacing: "0.15em", color: C.outlineVariant,
+      }}>
+        {title}
+      </p>
+      <span className="material-symbols-outlined" style={{
+        fontSize: 16, color: C.outlineVariant,
+        transition: "transform 0.2s",
+        transform: open ? "rotate(180deg)" : "rotate(0deg)",
+      }}>
+        expand_more
+      </span>
+    </div>
+  );
+}
+
+export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceClick, onViewUserProfile, myBestPicks = {}, onBestPickAdd, onBestPickReplace, onBestPickRemove, onRefresh }) {
   const { user, updateUser, logout } = useUser();
   const mobile = isMobile();
   const [showMyPlaces, setShowMyPlaces] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [openSections, setOpenSections] = useState({ curation: false, best: false, follow: false, pin: false });
+  const toggleSection = (key) => setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await onRefresh?.();
+    fetchFollowLists();
+    setTimeout(() => setRefreshing(false), 600);
+  };
   const photoInputRef = useRef(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [editing, setEditing]       = useState(false);
@@ -642,6 +672,23 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
             </h2>
             <div style={{ width: 28, height: 1.5, background: C.primaryContainer }} />
           </div>
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            style={{
+              padding: "6px 12px", border: "1px solid rgba(101,93,84,0.12)",
+              borderRadius: 8, background: "none", cursor: "pointer",
+              display: "flex", alignItems: "center", gap: 5,
+              fontFamily: FL, fontSize: 11, fontWeight: 600, color: C.primary,
+              opacity: refreshing ? 0.5 : 1, transition: "opacity 0.2s",
+            }}
+          >
+            <span className="material-symbols-outlined" style={{
+              fontSize: 15,
+              animation: refreshing ? "spin 0.8s linear infinite" : "none",
+            }}>refresh</span>
+            {refreshing ? "새로고침 중" : "새로고침"}
+          </button>
         </div>
 
         {/* ── 프로필 카드 ─────────────────────────────────── */}
@@ -870,149 +917,7 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
         {/* ── 미니 맵 ──────────────────────────────────────── */}
         <MiniMap places={personalPlaces} onViewMap={onViewMap} />
 
-        {/* ── 큐레이션 리스트 ─────────────────────────────── */}
-        <Card>
-          <CuratedLists personalPlaces={personalPlaces} />
-        </Card>
-
-        {/* ── 나의 베스트 ──────────────────────────────── */}
-        {user && <MyBestSection
-          myBestPicks={myBestPicks}
-          personalPlaces={personalPlaces}
-          onBestPickAdd={onBestPickAdd}
-          onBestPickRemove={onBestPickRemove}
-        />}
-
-        {/* ── 팔로우 관리 ──────────────────────────────── */}
-        <Card>
-          <p style={{
-            margin: "0 0 14px", fontFamily: FL, fontSize: 9, fontWeight: 700,
-            textTransform: "uppercase", letterSpacing: "0.15em", color: C.outlineVariant,
-          }}>
-            팔로우 — {followingList.length} 팔로잉 · {followerList.length} 팔로워
-          </p>
-
-          {/* 카카오톡으로 초대 */}
-          <button
-            onClick={() => shareKakao({
-              title: `${user.nickname}님이 초대합니다`,
-              description: `${user.nickname}님이 아끼는 공간을 구경해보세요!`,
-              linkUrl: `${API_BASE}/og/@${user.nickname}`,
-            })}
-            style={{
-              width: "100%", padding: "11px 14px",
-              background: "#FEE500", border: "none", borderRadius: 8,
-              cursor: "pointer", marginBottom: 14,
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              fontFamily: FL, fontSize: 12, fontWeight: 700, color: "#191919",
-            }}
-          >
-            <svg width="16" height="16" viewBox="0 0 18 18"><path fill="#191919" d="M9 1C4.58 1 1 3.79 1 7.21c0 2.17 1.45 4.08 3.64 5.18l-.93 3.44c-.08.3.26.54.52.37l4.12-2.74c.21.02.43.03.65.03 4.42 0 8-2.79 8-6.28S13.42 1 9 1z"/></svg>
-            카카오톡으로 친구 초대
-          </button>
-
-          {/* 팔로잉 목록 */}
-          {followingList.length > 0 && (
-            <div style={{ marginBottom: 14 }}>
-              <p style={{
-                margin: "0 0 8px", fontFamily: FL, fontSize: 10, fontWeight: 600,
-                color: C.onSurfaceVariant,
-              }}>
-                팔로잉
-              </p>
-              {followingList.map((u) => (
-                <div key={u.id || u.user_id} style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "8px 10px", borderRadius: 8,
-                  background: C.surfaceLow, marginBottom: 4,
-                }}>
-                  <div
-                    onClick={() => onViewUserProfile?.(u.nickname)}
-                    style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer" }}
-                  >
-                    <div style={{
-                      width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
-                      background: u.profile_photo_url
-                        ? `url(${u.profile_photo_url}) center/cover`
-                        : `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      fontFamily: FH, fontStyle: "italic",
-                      fontSize: 13, color: "#fff6ef", fontWeight: 700,
-                    }}>
-                      {!u.profile_photo_url && u.nickname?.[0]?.toUpperCase()}
-                    </div>
-                    <span style={{ fontFamily: FL, fontSize: 13, fontWeight: 600, color: C.onSurface }}>
-                      {u.nickname}
-                    </span>
-                  </div>
-                  <button
-                    onClick={() => handleUnfollow(u.id || u.user_id)}
-                    disabled={followActionLoading === (u.id || u.user_id)}
-                    style={{
-                      padding: "5px 12px",
-                      border: "1px solid rgba(158,66,44,0.2)",
-                      borderRadius: 6, background: "none",
-                      color: C.error, fontFamily: FL, fontSize: 11, fontWeight: 600,
-                      cursor: followActionLoading === (u.id || u.user_id) ? "not-allowed" : "pointer",
-                      opacity: followActionLoading === (u.id || u.user_id) ? 0.6 : 1,
-                    }}
-                  >
-                    언팔로우
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* 팔로워 목록 */}
-          {followerList.length > 0 && (
-            <div>
-              <p style={{
-                margin: "0 0 8px", fontFamily: FL, fontSize: 10, fontWeight: 600,
-                color: C.onSurfaceVariant,
-              }}>
-                팔로워
-              </p>
-              {followerList.map((u) => (
-                <div key={u.id || u.user_id}
-                  onClick={() => onViewUserProfile?.(u.nickname)}
-                  style={{
-                    display: "flex", alignItems: "center",
-                    padding: "8px 10px", borderRadius: 8,
-                    background: C.surfaceLow, marginBottom: 4, gap: 10,
-                    cursor: "pointer",
-                  }}
-                >
-                  <div style={{
-                    width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
-                    background: u.profile_photo_url
-                      ? `url(${u.profile_photo_url}) center/cover`
-                      : `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontFamily: FH, fontStyle: "italic",
-                    fontSize: 13, color: "#fff6ef", fontWeight: 700,
-                  }}>
-                    {!u.profile_photo_url && u.nickname?.[0]?.toUpperCase()}
-                  </div>
-                  <span style={{ fontFamily: FL, fontSize: 13, fontWeight: 600, color: C.onSurface }}>
-                    {u.nickname}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {followingList.length === 0 && followerList.length === 0 && (
-            <p style={{
-              fontFamily: FH, fontStyle: "italic", fontSize: 13,
-              color: C.outlineVariant, margin: 0, textAlign: "center",
-            }}>
-              검색 탭에서 사람을 찾아 팔로우해보세요
-            </p>
-          )}
-        </Card>
-
-        {/* ── 나의 기록 (요약 카드) ─────────────────────────── */}
+        {/* ── 나의 기록 (요약 카드) — 공간지도 바로 밑 ────── */}
         <Card style={{ cursor: "pointer" }} onClick={() => setShowMyPlaces(true)}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div>
@@ -1030,7 +935,6 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
               chevron_right
             </span>
           </div>
-          {/* 썸네일 미리보기 */}
           {personalPlaces.length > 0 && (
             <div style={{ display: "flex", gap: 6, marginTop: 12, overflowX: "auto" }}>
               {personalPlaces.slice(0, 5).map((p) => {
@@ -1070,6 +974,167 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
             }}>
               첫 장소를 추가해보세요
             </p>
+          )}
+        </Card>
+
+        {/* ── 큐레이션 리스트 (접기/펼치기) ────────────────── */}
+        <Card>
+          <SectionHeader title="큐레이션 리스트" open={openSections.curation} onToggle={() => toggleSection("curation")} />
+          {openSections.curation && <CuratedLists personalPlaces={personalPlaces} />}
+        </Card>
+
+        {/* ── 나의 베스트 (접기/펼치기) ───────────────────── */}
+        {user && (
+          <Card>
+            <SectionHeader title="나의 베스트" open={openSections.best} onToggle={() => toggleSection("best")} />
+            {openSections.best && (
+              <MyBestSection
+                myBestPicks={myBestPicks}
+                personalPlaces={personalPlaces}
+                onBestPickAdd={onBestPickAdd}
+                onBestPickRemove={onBestPickRemove}
+              />
+            )}
+          </Card>
+        )}
+
+        {/* ── 팔로우 관리 (접기/펼치기) ───────────────────── */}
+        <Card>
+          <SectionHeader
+            title={`팔로우 — ${followingList.length} 팔로잉 · ${followerList.length} 팔로워`}
+            open={openSections.follow}
+            onToggle={() => toggleSection("follow")}
+          />
+          {openSections.follow && (
+            <>
+              {/* 팔로잉 · 팔로워 좌우 한 줄씩 */}
+              {(followingList.length > 0 || followerList.length > 0) && (
+                <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
+                  {/* 팔로잉 */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ margin: "0 0 8px", fontFamily: FL, fontSize: 10, fontWeight: 600, color: C.onSurfaceVariant }}>
+                      팔로잉 {followingList.length}
+                    </p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      {followingList.map((u) => (
+                        <div key={u.id || u.user_id} style={{
+                          display: "flex", alignItems: "center", gap: 8,
+                          padding: "6px 8px", borderRadius: 8, background: C.surfaceLow,
+                        }}>
+                          <div
+                            onClick={() => onViewUserProfile?.(u.nickname)}
+                            style={{
+                              display: "flex", alignItems: "center", gap: 8,
+                              flex: 1, minWidth: 0, cursor: "pointer",
+                            }}
+                          >
+                            <div style={{
+                              width: 26, height: 26, borderRadius: "50%", flexShrink: 0,
+                              background: u.profile_photo_url
+                                ? `url(${u.profile_photo_url}) center/cover`
+                                : `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              fontFamily: FH, fontStyle: "italic", fontSize: 11, color: "#fff6ef", fontWeight: 700,
+                            }}>
+                              {!u.profile_photo_url && u.nickname?.[0]?.toUpperCase()}
+                            </div>
+                            <span style={{
+                              fontFamily: FL, fontSize: 12, fontWeight: 600, color: C.onSurface,
+                              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                            }}>
+                              {u.nickname}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => handleUnfollow(u.id || u.user_id)}
+                            disabled={followActionLoading === (u.id || u.user_id)}
+                            style={{
+                              padding: "3px 8px", border: "1px solid rgba(158,66,44,0.15)",
+                              borderRadius: 5, background: "none",
+                              color: C.error, fontFamily: FL, fontSize: 10, fontWeight: 600,
+                              cursor: "pointer", flexShrink: 0,
+                              opacity: followActionLoading === (u.id || u.user_id) ? 0.5 : 1,
+                            }}
+                          >
+                            해제
+                          </button>
+                        </div>
+                      ))}
+                      {followingList.length === 0 && (
+                        <p style={{ fontFamily: FL, fontSize: 11, color: C.outlineVariant, fontStyle: "italic", margin: 0 }}>없음</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 팔로워 */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ margin: "0 0 8px", fontFamily: FL, fontSize: 10, fontWeight: 600, color: C.onSurfaceVariant }}>
+                      팔로워 {followerList.length}
+                    </p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      {followerList.map((u) => (
+                        <div key={u.id || u.user_id}
+                          onClick={() => onViewUserProfile?.(u.nickname)}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 8,
+                            padding: "6px 8px", borderRadius: 8, background: C.surfaceLow,
+                            cursor: "pointer",
+                          }}
+                        >
+                          <div style={{
+                            width: 26, height: 26, borderRadius: "50%", flexShrink: 0,
+                            background: u.profile_photo_url
+                              ? `url(${u.profile_photo_url}) center/cover`
+                              : `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            fontFamily: FH, fontStyle: "italic", fontSize: 11, color: "#fff6ef", fontWeight: 700,
+                          }}>
+                            {!u.profile_photo_url && u.nickname?.[0]?.toUpperCase()}
+                          </div>
+                          <span style={{
+                            fontFamily: FL, fontSize: 12, fontWeight: 600, color: C.onSurface,
+                            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                          }}>
+                            {u.nickname}
+                          </span>
+                        </div>
+                      ))}
+                      {followerList.length === 0 && (
+                        <p style={{ fontFamily: FL, fontSize: 11, color: C.outlineVariant, fontStyle: "italic", margin: 0 }}>없음</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {followingList.length === 0 && followerList.length === 0 && (
+                <p style={{
+                  fontFamily: FH, fontStyle: "italic", fontSize: 13,
+                  color: C.outlineVariant, margin: "0 0 14px", textAlign: "center",
+                }}>
+                  검색 탭에서 사람을 찾아 팔로우해보세요
+                </p>
+              )}
+
+              {/* 카카오톡으로 초대 */}
+              <button
+                onClick={() => shareKakao({
+                  title: `${user.nickname}님이 초대합니다`,
+                  description: `${user.nickname}님이 아끼는 공간을 구경해보세요!`,
+                  linkUrl: `${API_BASE}/og/@${user.nickname}`,
+                })}
+                style={{
+                  width: "100%", padding: "10px 14px",
+                  background: "#FEE500", border: "none", borderRadius: 8,
+                  cursor: "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  fontFamily: FL, fontSize: 11, fontWeight: 700, color: "#191919",
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 18 18"><path fill="#191919" d="M9 1C4.58 1 1 3.79 1 7.21c0 2.17 1.45 4.08 3.64 5.18l-.93 3.44c-.08.3.26.54.52.37l4.12-2.74c.21.02.43.03.65.03 4.42 0 8-2.79 8-6.28S13.42 1 9 1z"/></svg>
+                카카오톡으로 친구 초대
+              </button>
+            </>
           )}
         </Card>
 
@@ -1143,66 +1208,68 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
           </div>
         )}
 
-        {/* ── PIN 변경 ─────────────────────────────────────── */}
+        {/* ── 설정 (접기/펼치기) ─────────────────────────── */}
         <Card>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div>
-              <p style={{ margin: 0, fontFamily: FL, fontSize: 13, fontWeight: 600, color: C.onSurface }}>
-                PIN 번호 변경
-              </p>
-              <p style={{ margin: "2px 0 0", fontFamily: FL, fontSize: 11, color: C.outlineVariant }}>
-                4자리 숫자 PIN
-              </p>
-            </div>
-            <button
-              onClick={() => { setShowPinChange(!showPinChange); setPinError(""); }}
-              style={{
-                padding: "6px 12px",
-                border: "1px solid rgba(101,93,84,0.12)",
-                borderRadius: 7, background: "none",
-                fontFamily: FL, fontSize: 11, color: C.onSurfaceVariant, cursor: "pointer",
-                transition: "background 0.15s",
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.background = C.surfaceLow}
-              onMouseLeave={(e) => e.currentTarget.style.background = "none"}
-            >
-              {showPinChange ? "취소" : "변경"}
-            </button>
-          </div>
+          <SectionHeader title="설정" open={openSections.pin} onToggle={() => toggleSection("pin")} />
+          {openSections.pin && (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <p style={{ margin: 0, fontFamily: FL, fontSize: 13, fontWeight: 600, color: C.onSurface }}>
+                    PIN 번호 변경
+                  </p>
+                  <p style={{ margin: "2px 0 0", fontFamily: FL, fontSize: 11, color: C.outlineVariant }}>
+                    4자리 숫자 PIN
+                  </p>
+                </div>
+                <button
+                  onClick={() => { setShowPinChange(!showPinChange); setPinError(""); }}
+                  style={{
+                    padding: "6px 12px",
+                    border: "1px solid rgba(101,93,84,0.12)",
+                    borderRadius: 7, background: "none",
+                    fontFamily: FL, fontSize: 11, color: C.onSurfaceVariant, cursor: "pointer",
+                  }}
+                >
+                  {showPinChange ? "취소" : "변경"}
+                </button>
+              </div>
 
-          {showPinChange && (
-            <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-              <ProfileInput
-                label="현재 PIN" type="password" inputMode="numeric" maxLength={4}
-                value={currentPin}
-                onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                placeholder="4자리" style={{ textAlign: "center", letterSpacing: 10, fontSize: 20 }}
-              />
-              <ProfileInput
-                label="새 PIN" type="password" inputMode="numeric" maxLength={4}
-                value={newPin}
-                onChange={(e) => setNewPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                placeholder="4자리" style={{ textAlign: "center", letterSpacing: 10, fontSize: 20 }}
-              />
-              {pinError && (
-                <p style={{ fontFamily: FL, fontSize: 12, color: C.error, margin: 0 }}>{pinError}</p>
+              {showPinChange && (
+                <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+                  <ProfileInput
+                    label="현재 PIN" type="password" inputMode="numeric" maxLength={4}
+                    value={currentPin}
+                    onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    placeholder="4자리" style={{ textAlign: "center", letterSpacing: 10, fontSize: 20 }}
+                  />
+                  <ProfileInput
+                    label="새 PIN" type="password" inputMode="numeric" maxLength={4}
+                    value={newPin}
+                    onChange={(e) => setNewPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    placeholder="4자리" style={{ textAlign: "center", letterSpacing: 10, fontSize: 20 }}
+                  />
+                  {pinError && (
+                    <p style={{ fontFamily: FL, fontSize: 12, color: C.error, margin: 0 }}>{pinError}</p>
+                  )}
+                  <button
+                    onClick={handlePinChange}
+                    disabled={pinSaving}
+                    style={{
+                      width: "100%", padding: "11px", border: "none", borderRadius: 8,
+                      background: pinSaving
+                        ? C.container
+                        : `linear-gradient(to bottom, ${C.primary}, ${C.primaryDim})`,
+                      color: pinSaving ? C.outlineVariant : "#fff6ef",
+                      fontFamily: FL, fontSize: 12, fontWeight: 700,
+                      cursor: pinSaving ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    {pinSaving ? "변경 중…" : "PIN 변경"}
+                  </button>
+                </div>
               )}
-              <button
-                onClick={handlePinChange}
-                disabled={pinSaving}
-                style={{
-                  width: "100%", padding: "11px", border: "none", borderRadius: 8,
-                  background: pinSaving
-                    ? C.container
-                    : `linear-gradient(to bottom, ${C.primary}, ${C.primaryDim})`,
-                  color: pinSaving ? C.outlineVariant : "#fff6ef",
-                  fontFamily: FL, fontSize: 12, fontWeight: 700,
-                  cursor: pinSaving ? "not-allowed" : "pointer",
-                }}
-              >
-                {pinSaving ? "변경 중…" : "PIN 변경"}
-              </button>
-            </div>
+            </>
           )}
         </Card>
 
