@@ -51,12 +51,27 @@ export default function RestaurantPanel({
 
   // 모바일 시트 상태: "peek" | "full"
   const [sheetMode, setSheetMode] = useState("peek");
+  const [peekHeight, setPeekHeight] = useState(220);
   const [addToMyPlaceOpen, setAddToMyPlaceOpen] = useState(false);
   const sheetRef = useRef(null);
+  const peekEndRef = useRef(null);
   const dragStartY = useRef(null);
   const dragStartScroll = useRef(0);
 
-  useEffect(() => { setR(restaurant); setSheetMode("peek"); setShowShareMenu(false); setShowMapMenu(false); }, [restaurant]);
+  useEffect(() => { setR(restaurant); setSheetMode("peek"); setShowShareMenu(false); setShowMapMenu(false); setPeekHeight(220); }, [restaurant]);
+
+  // peek 높이를 "내 장소에 추가" 블록까지의 실제 높이로 동적 계산
+  useEffect(() => {
+    if (!mobile || !peekEndRef.current || !sheetRef.current) return;
+    const measure = () => {
+      const sheetTop = sheetRef.current.getBoundingClientRect().top;
+      const endBottom = peekEndRef.current.getBoundingClientRect().bottom;
+      const h = Math.ceil(endBottom - sheetTop) + 16; // 16px 여유
+      setPeekHeight(Math.max(h, 220));
+    };
+    // 렌더 후 측정 (이미지 등 비동기 콘텐츠 대비)
+    requestAnimationFrame(measure);
+  });
 
   // 드롭다운 바깥 클릭 + ESC로 닫기
   useEffect(() => {
@@ -587,7 +602,6 @@ export default function RestaurantPanel({
   // 모바일 레이아웃: 바텀 시트 (peek ↔ full)
   // ═══════════════════════════════════════════════════════════
   if (mobile) {
-    const peekHeight = galleryUrls.length > 0 ? 260 : 210;
     return (
       <>
         <div
@@ -630,6 +644,7 @@ export default function RestaurantPanel({
 
             {/* 내 장소에 추가 */}
             {AddToMyPlaceBlock}
+            <div ref={peekEndRef} />
 
             {/* 사진 갤러리 (상태 아래) */}
             {GalleryBlock}
