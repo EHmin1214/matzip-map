@@ -24,6 +24,7 @@ import "./App.css";
 
 const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
+import { FOLLOWING_COLORS } from "./constants";
 export { ACCOUNT_COLORS, getAccountColor, FOLLOWING_COLORS } from "./constants";
 
 // ── 레이아웃 상수 ─────────────────────────────────────────────
