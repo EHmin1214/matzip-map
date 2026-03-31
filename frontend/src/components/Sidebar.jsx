@@ -186,9 +186,9 @@ export default function Sidebar({
                   onChange={(e) => setPlaceFilter(e.target.value)}
                   placeholder="내 공간 검색..."
                   style={{
-                    width: "100%", padding: "4px 6px 4px 24px",
+                    width: "100%", padding: "4px 6px 4px 22px",
                     background: C.surfaceLow, border: "none", borderRadius: 5,
-                    fontFamily: FL, fontSize: 10, color: C.onSurface,
+                    fontFamily: FL, fontSize: 8, color: C.onSurface,
                     outline: "none", boxSizing: "border-box",
                   }}
                 />
