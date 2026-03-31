@@ -311,7 +311,7 @@ def delete_place(place_id: int, user_id: int, db: Session = Depends(get_db)):
 def get_neighbors(place_id: int, viewer_id: int | None = Query(default=None), db: Session = Depends(get_db)):
     """
     같은 naver_place_id를 저장한 다른 유저 목록.
-    팔로잉 관계인 사람만 표시.
+    팔로잉 관계이거나 공개 계정인 사람 표시.
     """
     place = db.query(PersonalPlace).filter(PersonalPlace.id == place_id).first()
     if not place or not place.naver_place_id:
@@ -337,21 +337,24 @@ def get_neighbors(place_id: int, viewer_id: int | None = Query(default=None), db
         following_ids = {f.following_id for f in follows}
 
     result = []
+    seen_user_ids = set()
     for p in same_places:
-        if not p.user_id:
+        if not p.user_id or p.user_id in seen_user_ids:
             continue
-        # 본인이거나 팔로잉 중인 사람만
-        if p.user_id == viewer_id or p.user_id in following_ids:
-            owner = db.query(User).filter(User.id == p.user_id).first()
-            if owner:
-                result.append(NeighborResponse(
-                    user_id=owner.id,
-                    nickname=owner.nickname,
-                    instagram_url=owner.instagram_url,
-                    status=p.status,
-                    rating=p.rating,
-                    memo=p.memo,
-                ))
+        # 본인, 팔로잉 중인 사람, 또는 공개 계정
+        owner = db.query(User).filter(User.id == p.user_id).first()
+        if not owner:
+            continue
+        if p.user_id == viewer_id or p.user_id in following_ids or owner.is_public:
+            seen_user_ids.add(p.user_id)
+            result.append(NeighborResponse(
+                user_id=owner.id,
+                nickname=owner.nickname,
+                instagram_url=owner.instagram_url,
+                status=p.status,
+                rating=p.rating,
+                memo=p.memo,
+            ))
     return result
 
 

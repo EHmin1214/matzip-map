@@ -30,6 +30,13 @@ export const STATUS_LABEL = {
   want_revisit: "또 가고 싶어요",
 };
 
+export const BEST_CATEGORIES = [
+  { key: "restaurant", emoji: "🍽", label: "음식점" },
+  { key: "cafe",       emoji: "☕", label: "카페" },
+  { key: "bar",        emoji: "🍸", label: "바" },
+  { key: "general_store", emoji: "🛍", label: "잡화점" },
+];
+
 export function formatTime(dateStr) {
   if (!dateStr) return "";
   const diff = Math.floor((new Date() - new Date(dateStr)) / 1000);

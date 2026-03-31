@@ -4,7 +4,8 @@ import axios from "axios";
 import { useUser, API_BASE } from "../context/UserContext";
 import { subscribePush, unsubscribePush, isPushSubscribed } from "../utils/pushNotifications";
 import CuratedLists from "./CuratedLists";
-import { STATUS_LABEL, STATUS_COLOR, STATUS_EMOJI, FRONTEND_URL } from "../constants";
+import BestPickerModal from "./BestPickerModal";
+import { STATUS_LABEL, STATUS_COLOR, STATUS_EMOJI, FRONTEND_URL, BEST_CATEGORIES } from "../constants";
 
 const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
@@ -348,7 +349,107 @@ function PlaceFeedCard({ place: p, mobile }) {
   );
 }
 
-export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceClick, onViewUserProfile }) {
+// ── 나의 베스트 섹션 ────────────────────────────────────────
+function MyBestSection({ myBestPicks, personalPlaces, onBestPickAdd, onBestPickRemove }) {
+  const [pickerCat, setPickerCat] = useState(null); // { key, label } or null
+
+  return (
+    <Card>
+      <p style={{
+        margin: "0 0 14px", fontFamily: FL, fontSize: 9, fontWeight: 700,
+        textTransform: "uppercase", letterSpacing: "0.15em", color: C.outlineVariant,
+      }}>
+        나의 베스트
+      </p>
+
+      {BEST_CATEGORIES.map(({ key, emoji, label }) => {
+        const picks = myBestPicks[key] || [];
+        return (
+          <div key={key} style={{ marginBottom: 16 }}>
+            <p style={{
+              margin: "0 0 8px", fontFamily: FL, fontSize: 11, fontWeight: 600,
+              color: C.onSurfaceVariant,
+            }}>
+              {emoji} {label}
+              <span style={{ fontWeight: 400, color: C.outlineVariant, marginLeft: 6, fontSize: 10 }}>
+                {picks.length}/5
+              </span>
+            </p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              {/* 채워진 슬롯 */}
+              {picks.map((p) => (
+                <div key={p.id} style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "8px 10px", borderRadius: 8, background: C.surfaceLow,
+                }}>
+                  <span style={{
+                    flex: 1, fontFamily: FL, fontSize: 12, fontWeight: 600, color: C.onSurface,
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                  }}>
+                    {p.name}
+                  </span>
+                  {p.address && (
+                    <span style={{
+                      fontFamily: FL, fontSize: 10, color: C.outlineVariant,
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                      maxWidth: 120, flexShrink: 1,
+                    }}>
+                      {p.address}
+                    </span>
+                  )}
+                  <button
+                    onClick={() => onBestPickRemove(p.id)}
+                    style={{
+                      width: 22, height: 22, padding: 0, border: "none",
+                      background: "none", cursor: "pointer", flexShrink: 0,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 14, color: C.outlineVariant }}>close</span>
+                  </button>
+                </div>
+              ))}
+
+              {/* 빈 슬롯 */}
+              {picks.length < 5 && (
+                <button
+                  onClick={() => setPickerCat({ key, label: `${emoji} ${label}` })}
+                  style={{
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    padding: "9px 10px", borderRadius: 8,
+                    border: `1.5px dashed ${C.container}`, background: "none",
+                    cursor: "pointer",
+                    fontFamily: FL, fontSize: 11, fontStyle: "italic",
+                    color: C.outlineVariant,
+                    transition: "border-color 0.15s, background 0.15s",
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = C.primary; e.currentTarget.style.background = C.surfaceLow; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = C.container; e.currentTarget.style.background = "none"; }}
+                >
+                  + 채워보세요
+                </button>
+              )}
+            </div>
+          </div>
+        );
+      })}
+
+      {pickerCat && (
+        <BestPickerModal
+          category={pickerCat.key}
+          categoryLabel={pickerCat.label}
+          personalPlaces={personalPlaces}
+          myBestPicks={myBestPicks}
+          onSelect={(data) => { onBestPickAdd(data); setPickerCat(null); }}
+          onClose={() => setPickerCat(null)}
+        />
+      )}
+    </Card>
+  );
+}
+
+export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceClick, onViewUserProfile, myBestPicks = {}, onBestPickAdd, onBestPickReplace, onBestPickRemove }) {
   const { user, updateUser, logout } = useUser();
   const mobile = isMobile();
   const [showMyPlaces, setShowMyPlaces] = useState(false);
@@ -643,7 +744,7 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
                 onClick={() => shareKakao({
                   title: `${user.nickname}의 공간`,
                   description: `${user.nickname}님이 아끼는 공간을 구경해보세요!`,
-                  linkUrl: `${FRONTEND_URL}/@${user.nickname}`,
+                  linkUrl: `${API_BASE}/og/@${user.nickname}`,
                 })}
                 style={{
                   flex: 1, padding: "12px 14px",
@@ -776,6 +877,14 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
           <CuratedLists personalPlaces={personalPlaces} />
         </Card>
 
+        {/* ── 나의 베스트 ──────────────────────────────── */}
+        {user && <MyBestSection
+          myBestPicks={myBestPicks}
+          personalPlaces={personalPlaces}
+          onBestPickAdd={onBestPickAdd}
+          onBestPickRemove={onBestPickRemove}
+        />}
+
         {/* ── 팔로우 관리 ──────────────────────────────── */}
         <Card>
           <p style={{
@@ -790,7 +899,7 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
             onClick={() => shareKakao({
               title: `${user.nickname}님이 초대합니다`,
               description: `${user.nickname}님이 아끼는 공간을 구경해보세요!`,
-              linkUrl: `${FRONTEND_URL}/@${user.nickname}`,
+              linkUrl: `${API_BASE}/og/@${user.nickname}`,
             })}
             style={{
               width: "100%", padding: "11px 14px",

@@ -85,6 +85,27 @@ const blogMarker = ({ name, color }) => `
   ">${name}</div>
 `;
 
+// 우리의 공간 마커 — (N) 장소명
+const sharedMarker = ({ name, count }) => `
+  <div class="map-pill" style="
+    display:inline-flex;align-items:center;gap:4px;
+    background:rgba(255,255,255,0.92);
+    color:#655d54;
+    padding:4px 9px;
+    border-radius:6px;
+    border:1.5px solid #655d54;
+    font-family:'Manrope',-apple-system,sans-serif;
+    font-size:11px;
+    white-space:nowrap;
+    box-shadow:0 2px 8px rgba(0,0,0,0.08);
+    cursor:pointer;
+    letter-spacing:0.01em;
+  ">
+    <span style="font-weight:800">(${count})</span>
+    <span style="font-weight:600">${name}</span>
+  </div>
+`;
+
 const ZOOM_THRESHOLD = 12; // 이 줌 이하면 dot, 이상이면 pill
 
 // 축소 시 보이는 dot 마커
@@ -101,12 +122,14 @@ export default function MapView({
   restaurants, personalPlaces = [], accounts, onMarkerClick, onMapReady,
   followingPlaces = [], onFollowingMarkerClick, folders = [],
   focusPlace = null,
+  mapMode = "personal", sharedPlaces = [], onSharedMarkerClick,
 }) {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const markersRef = useRef([]);
   const personalMarkersRef = useRef([]);
   const followingMarkersRef = useRef([]);
+  const sharedMarkersRef = useRef([]);
   const [mapReady, setMapReady] = useState(false);
   const hasFitBounds = useRef(false);
   const activeMarkerRef = useRef(null);
@@ -187,6 +210,7 @@ export default function MapView({
       ...markersRef.current,
       ...personalMarkersRef.current,
       ...followingMarkersRef.current,
+      ...sharedMarkersRef.current,
     ];
     allMarkers.forEach((m) => {
       // 활성(클릭된) 마커는 항상 pill 유지
@@ -302,6 +326,16 @@ export default function MapView({
     const newCenter = proj.fromOffsetToCoord(newCenterPx);
     map.panTo(newCenter, { duration: 280 });
   };
+
+  // 모드 전환 시 마커 숨김/표시
+  useEffect(() => {
+    if (!mapReady) return;
+    const show = mapMode === "personal";
+    markersRef.current.forEach((m) => m.setMap(show ? mapInstance.current : null));
+    personalMarkersRef.current.forEach((m) => m.setMap(show ? mapInstance.current : null));
+    followingMarkersRef.current.forEach((m) => m.setMap(show ? mapInstance.current : null));
+    sharedMarkersRef.current.forEach((m) => m.setMap(!show ? mapInstance.current : null));
+  }, [mapMode, mapReady]);
 
   // 블로거 맛집 마커
   useEffect(() => {
@@ -430,6 +464,40 @@ export default function MapView({
     });
   }, [followingPlaces, personalPlaces, mapReady]); // eslint-disable-line
 
+  // 우리의 공간 마커
+  useEffect(() => {
+    if (!mapReady) return;
+    sharedMarkersRef.current.forEach((m) => m.setMap(null));
+    sharedMarkersRef.current = [];
+
+    if (mapMode !== "shared") return;
+
+    const isPill = zoomRef.current >= ZOOM_THRESHOLD;
+    sharedPlaces.forEach((p) => {
+      const pillIcon = {
+        content: sharedMarker({ name: p.name, count: p.pick_count }),
+        anchor: new window.naver.maps.Point(6, 12),
+      };
+      const dotIcon_ = { content: dotMarker(MY_PRIMARY), anchor: new window.naver.maps.Point(4, 4) };
+      const marker = new window.naver.maps.Marker({
+        position: new window.naver.maps.LatLng(p.lat, p.lng),
+        map: mapInstance.current,
+        title: `(${p.pick_count}) ${p.name}`,
+        zIndex: p.pick_count,
+        icon: isPill ? pillIcon : dotIcon_,
+      });
+      marker._pillIcon = pillIcon;
+      marker._dotIcon = dotIcon_;
+      window.naver.maps.Event.addListener(marker, "click", () => {
+        bringToFront(marker);
+        panToPlace(p.lat, p.lng, marker);
+        if (onSharedMarkerClick) onSharedMarkerClick(p);
+      });
+      addHoverZ(marker);
+      sharedMarkersRef.current.push(marker);
+    });
+  }, [sharedPlaces, mapMode, mapReady]); // eslint-disable-line
+
   // 피드에서 다이렉트로 진입한 장소 — 임시 마커 표시
   const focusMarkerRef = useRef(null);
   useEffect(() => {
@@ -437,7 +505,7 @@ export default function MapView({
     if (!mapReady || !focusPlace || !window.naver) return;
 
     // 이미 지도에 마커가 있는 장소면 임시 마커 불필요
-    const allMarkers = [...personalMarkersRef.current, ...followingMarkersRef.current];
+    const allMarkers = [...personalMarkersRef.current, ...followingMarkersRef.current, ...sharedMarkersRef.current];
     const exists = allMarkers.some((m) => {
       const pos = m.getPosition();
       return Math.abs(pos.lat() - focusPlace.lat) < 0.0001 && Math.abs(pos.lng() - focusPlace.lng) < 0.0001;

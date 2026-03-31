@@ -25,7 +25,7 @@ import "./App.css";
 
 const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
-import { FOLLOWING_COLORS } from "./constants";
+import { FOLLOWING_COLORS, BEST_CATEGORIES } from "./constants";
 export { ACCOUNT_COLORS, getAccountColor, FOLLOWING_COLORS } from "./constants";
 
 // ── 레이아웃 상수 ─────────────────────────────────────────────
@@ -54,6 +54,12 @@ export default function App() {
   const [folders, setFolders] = useState([]);
   const [viewingUserNickname, setViewingUserNickname] = useState(null);
   const [toast, setToast] = useState(null);
+
+  // ── 우리의 공간 ────────────────────────────────────────────
+  const [mapMode, setMapMode] = useState("personal"); // "personal" | "shared"
+  const [sharedCategory, setSharedCategory] = useState(null); // null = 전체
+  const [sharedPlaces, setSharedPlaces] = useState([]);
+  const [myBestPicks, setMyBestPicks] = useState({});
 
   const isMobile = window.innerWidth <= 768;
   const showMap = activeTab === "map";
@@ -101,13 +107,30 @@ export default function App() {
       .then((res) => setFolders(res.data)).catch(() => {});
   }, [user]);
 
+  const loadSharedPlaces = useCallback((cat = null) => {
+    const url = cat ? `${API_BASE}/shared-map/?category=${cat}` : `${API_BASE}/shared-map/`;
+    return axios.get(url).then((res) => setSharedPlaces(res.data)).catch(() => {});
+  }, []);
+
+  const loadMyBestPicks = useCallback(() => {
+    if (!user) return Promise.resolve();
+    return axios.get(`${API_BASE}/shared-map/my-picks?user_id=${user.user_id}`)
+      .then((res) => setMyBestPicks(res.data)).catch(() => {});
+  }, [user]);
+
   useEffect(() => {
     if (user) {
       loadPersonalPlaces(); loadFollowingList(); loadUnread(); loadFolders();
+      loadMyBestPicks();
       // 로그인 성공 시 모달 닫기
       setShowLoginPrompt(false);
     }
-  }, [user, loadPersonalPlaces, loadFollowingList, loadUnread, loadFolders]);
+  }, [user, loadPersonalPlaces, loadFollowingList, loadUnread, loadFolders, loadMyBestPicks]);
+
+  // 우리의 공간 모드 진입 시 데이터 로드
+  useEffect(() => {
+    if (mapMode === "shared") loadSharedPlaces(sharedCategory);
+  }, [mapMode, sharedCategory, loadSharedPlaces]);
 
   // ── 딥링크 처리 (?place=ID) ───────────────────────────────
   useEffect(() => {
@@ -243,6 +266,47 @@ export default function App() {
 
   const addPlace = (p) => { setPersonalPlaces((prev) => { const e = prev.find((x) => x.id === p.id); return e ? prev : [...prev, p]; }); setToast("저장됐어요"); };
 
+  const handleBestPickAdd = useCallback(async (data) => {
+    if (!user) return;
+    try {
+      await axios.post(`${API_BASE}/shared-map/my-picks?user_id=${user.user_id}`, data);
+      await Promise.all([loadMyBestPicks(), loadSharedPlaces(sharedCategory)]);
+      setToast("베스트에 추가됐어요");
+      return { ok: true };
+    } catch (e) {
+      if (e.response?.status === 409) return { ok: false, detail: e.response.data.detail };
+      setToast(typeof e.response?.data?.detail === "string" ? e.response.data.detail : "추가 실패");
+      return { ok: false };
+    }
+  }, [user, loadMyBestPicks, loadSharedPlaces, sharedCategory]);
+
+  const handleBestPickReplace = useCallback(async (pickId, data) => {
+    if (!user) return;
+    try {
+      await axios.put(`${API_BASE}/shared-map/my-picks/${pickId}?user_id=${user.user_id}`, data);
+      await Promise.all([loadMyBestPicks(), loadSharedPlaces(sharedCategory)]);
+      setToast("베스트가 교체됐어요");
+    } catch (e) { setToast("교체 실패"); }
+  }, [user, loadMyBestPicks, loadSharedPlaces, sharedCategory]);
+
+  const handleBestPickRemove = useCallback(async (pickId) => {
+    if (!user) return;
+    try {
+      await axios.delete(`${API_BASE}/shared-map/my-picks/${pickId}?user_id=${user.user_id}`);
+      await Promise.all([loadMyBestPicks(), loadSharedPlaces(sharedCategory)]);
+      setToast("베스트에서 제거됐어요");
+    } catch (e) { setToast("제거 실패"); }
+  }, [user, loadMyBestPicks, loadSharedPlaces, sharedCategory]);
+
+  const handleSharedMarkerClick = useCallback((place) => {
+    setSelectedRestaurant({ ...place, sources: [], isPersonal: false, isShared: true });
+  }, []);
+
+  const handleMapModeChange = useCallback((mode) => {
+    setMapMode(mode);
+    setSelectedRestaurant(null);
+  }, []);
+
   const filteredPersonalPlaces = activeFilter ? personalPlaces.filter((p) => p.status === activeFilter) : personalPlaces;
   const visibleRestaurants = restaurants.filter((r) => !hiddenIds.has(r.id));
 
@@ -290,7 +354,7 @@ export default function App() {
     if (tab === "search")        return <SearchTab onPlaceAdded={addPlace} personalPlaces={personalPlaces} onViewUserProfile={handleViewUserProfile} />;
     if (tab === "feed")          return <FeedTab personalPlaces={personalPlaces} onPlaceClick={handleActivityPlaceClick} onDataChange={loadPersonalPlaces} onNavigate={setActiveTab} />;
     if (tab === "notifications") return <NotificationTab onUnreadChange={setUnreadCount} />;
-    if (tab === "profile")       return <ProfilePage personalPlaces={personalPlaces} onViewMap={() => setActiveTab("map")} onViewUserProfile={handleViewUserProfile} onPlaceClick={(p) => {
+    if (tab === "profile")       return <ProfilePage personalPlaces={personalPlaces} onViewMap={() => setActiveTab("map")} onViewUserProfile={handleViewUserProfile} myBestPicks={myBestPicks} onBestPickAdd={handleBestPickAdd} onBestPickReplace={handleBestPickReplace} onBestPickRemove={handleBestPickRemove} onPlaceClick={(p) => {
       setSelectedRestaurant({ id: p.id, name: p.name, lat: p.lat, lng: p.lng, status: p.status, user_id: p.user_id, isPersonal: true, sources: [] });
       setActiveTab("map");
       centerMapOnPlace(p.lat, p.lng);
@@ -338,60 +402,123 @@ export default function App() {
               onFollowingMarkerClick={handleFollowingMarkerClick}
               folders={folders}
               focusPlace={selectedRestaurant}
+              mapMode={mapMode}
+              sharedPlaces={sharedPlaces}
+              onSharedMarkerClick={handleSharedMarkerClick}
             />
           </div>
 
-          {/* 모바일 팔로잉 가로 스크롤 — 지도 상단 */}
-          {showMap && followingList.length > 0 && (
+          {/* 모바일 지도 상단 — 모드 토글 + 필터 */}
+          {showMap && (
             <div style={{
               position: "fixed", top: 10, left: 0, right: 0, zIndex: 26,
               pointerEvents: "none",
+              display: "flex", flexDirection: "column", gap: 6,
             }}>
-              <div style={{
-                display: "flex", gap: 8, padding: "0 14px",
-                overflowX: "auto", overflowY: "hidden",
-                WebkitOverflowScrolling: "touch",
-                pointerEvents: "auto",
-                msOverflowStyle: "none", scrollbarWidth: "none",
-              }}>
-                {followingList.map((f, idx) => {
-                  const isSelected = selectedFollowingIds.includes(f.id);
-                  const color = FOLLOWING_COLORS[idx % FOLLOWING_COLORS.length];
-                  return (
-                    <button
-                      key={f.id}
-                      onClick={() => handleToggleFollowing(f.id)}
-                      style={{
-                        display: "flex", alignItems: "center", gap: 6,
-                        padding: "6px 12px 6px 6px",
-                        background: isSelected ? color : "rgba(250,249,246,0.92)",
-                        backdropFilter: "blur(8px)",
-                        border: isSelected ? "none" : "1px solid rgba(101,93,84,0.12)",
-                        borderRadius: 999, cursor: "pointer",
-                        flexShrink: 0, transition: "all 0.2s",
-                        boxShadow: "0 2px 8px rgba(47,52,48,0.1)",
-                      }}
-                    >
-                      <div style={{
-                        width: 24, height: 24, borderRadius: "50%",
-                        background: isSelected ? "rgba(255,255,255,0.3)" : color,
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        fontFamily: FH, fontStyle: "italic",
-                        fontSize: 11, color: isSelected ? "white" : "#fff", fontWeight: 700,
-                      }}>
-                        {f.nickname?.[0]?.toUpperCase()}
-                      </div>
-                      <span style={{
-                        fontFamily: FL, fontSize: 11, fontWeight: 600,
-                        color: isSelected ? "white" : "#2f3430",
-                        whiteSpace: "nowrap",
-                      }}>
-                        {f.nickname}
-                      </span>
-                    </button>
-                  );
-                })}
+              {/* 모드 토글 */}
+              <div style={{ padding: "0 14px", pointerEvents: "auto" }}>
+                <div style={{
+                  display: "inline-flex", gap: 0, alignItems: "center",
+                  background: "rgba(250,249,246,0.92)", backdropFilter: "blur(8px)",
+                  borderRadius: 999, padding: "5px 14px",
+                  boxShadow: "0 2px 8px rgba(47,52,48,0.1)",
+                }}>
+                  <button onClick={() => handleMapModeChange("personal")} style={{
+                    background: "none", border: "none", cursor: "pointer", padding: 0,
+                    fontFamily: FH, fontStyle: "italic", fontSize: 13,
+                    fontWeight: mapMode === "personal" ? 700 : 400,
+                    color: mapMode === "personal" ? "#655d54" : "#8a8e8a",
+                    transition: "all 0.15s",
+                  }}>나의 공간</button>
+                  <span style={{ margin: "0 8px", color: "#c7c4bf", fontSize: 11 }}>·</span>
+                  <button onClick={() => handleMapModeChange("shared")} style={{
+                    background: "none", border: "none", cursor: "pointer", padding: 0,
+                    fontFamily: FH, fontStyle: "italic", fontSize: 13,
+                    fontWeight: mapMode === "shared" ? 700 : 400,
+                    color: mapMode === "shared" ? "#655d54" : "#8a8e8a",
+                    transition: "all 0.15s",
+                  }}>우리의 공간</button>
+                </div>
               </div>
+
+              {/* 필터 pills — 모드에 따라 다름 */}
+              {mapMode === "personal" && followingList.length > 0 && (
+                <div style={{
+                  display: "flex", gap: 8, padding: "0 14px",
+                  overflowX: "auto", overflowY: "hidden",
+                  WebkitOverflowScrolling: "touch",
+                  pointerEvents: "auto",
+                  msOverflowStyle: "none", scrollbarWidth: "none",
+                }}>
+                  {followingList.map((f, idx) => {
+                    const isSelected = selectedFollowingIds.includes(f.id);
+                    const color = FOLLOWING_COLORS[idx % FOLLOWING_COLORS.length];
+                    return (
+                      <button
+                        key={f.id}
+                        onClick={() => handleToggleFollowing(f.id)}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 6,
+                          padding: "6px 12px 6px 6px",
+                          background: isSelected ? color : "rgba(250,249,246,0.92)",
+                          backdropFilter: "blur(8px)",
+                          border: isSelected ? "none" : "1px solid rgba(101,93,84,0.12)",
+                          borderRadius: 999, cursor: "pointer",
+                          flexShrink: 0, transition: "all 0.2s",
+                          boxShadow: "0 2px 8px rgba(47,52,48,0.1)",
+                        }}
+                      >
+                        <div style={{
+                          width: 24, height: 24, borderRadius: "50%",
+                          background: isSelected ? "rgba(255,255,255,0.3)" : color,
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontFamily: FH, fontStyle: "italic",
+                          fontSize: 11, color: isSelected ? "white" : "#fff", fontWeight: 700,
+                        }}>
+                          {f.nickname?.[0]?.toUpperCase()}
+                        </div>
+                        <span style={{
+                          fontFamily: FL, fontSize: 11, fontWeight: 600,
+                          color: isSelected ? "white" : "#2f3430",
+                          whiteSpace: "nowrap",
+                        }}>
+                          {f.nickname}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              {mapMode === "shared" && (
+                <div style={{
+                  display: "flex", gap: 8, padding: "0 14px",
+                  overflowX: "auto", overflowY: "hidden",
+                  WebkitOverflowScrolling: "touch",
+                  pointerEvents: "auto",
+                  msOverflowStyle: "none", scrollbarWidth: "none",
+                }}>
+                  <button onClick={() => setSharedCategory(null)} style={{
+                    padding: "6px 14px", borderRadius: 999, cursor: "pointer",
+                    flexShrink: 0, transition: "all 0.2s", border: "none",
+                    fontFamily: FL, fontSize: 11, fontWeight: 600,
+                    background: sharedCategory === null ? "#655d54" : "rgba(250,249,246,0.92)",
+                    color: sharedCategory === null ? "#fff6ef" : "#2f3430",
+                    backdropFilter: "blur(8px)",
+                    boxShadow: "0 2px 8px rgba(47,52,48,0.1)",
+                  }}>전체</button>
+                  {BEST_CATEGORIES.map((cat) => (
+                    <button key={cat.key} onClick={() => setSharedCategory(cat.key)} style={{
+                      padding: "6px 14px", borderRadius: 999, cursor: "pointer",
+                      flexShrink: 0, transition: "all 0.2s", border: "none",
+                      fontFamily: FL, fontSize: 11, fontWeight: 600,
+                      background: sharedCategory === cat.key ? "#655d54" : "rgba(250,249,246,0.92)",
+                      color: sharedCategory === cat.key ? "#fff6ef" : "#2f3430",
+                      backdropFilter: "blur(8px)",
+                      boxShadow: "0 2px 8px rgba(47,52,48,0.1)",
+                    }}>{cat.emoji} {cat.label}</button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -440,6 +567,10 @@ export default function App() {
               sidebarWidth={0}
               onPlaceUpdated={handlePlaceUpdated} mapInstance={mapRef.current}
               onDataChange={loadPersonalPlaces}
+              myBestPicks={myBestPicks}
+              onBestPickAdd={handleBestPickAdd}
+              onBestPickReplace={handleBestPickReplace}
+              onBestPickRemove={handleBestPickRemove}
             />
           )}
 
@@ -467,6 +598,16 @@ export default function App() {
               setActiveTab("map");
               centerMapOnPlace(place.lat, place.lng);
             }}
+            mapMode={mapMode}
+            onMapModeChange={handleMapModeChange}
+            sharedCategory={sharedCategory}
+            onSharedCategoryChange={setSharedCategory}
+            sharedPlaces={sharedPlaces}
+            onSharedPlaceSelect={(place) => {
+              handleSharedMarkerClick(place);
+              setActiveTab("map");
+              centerMapOnPlace(place.lat, place.lng);
+            }}
           />
 
           {/* 지도 — 항상 전체 화면 뒤에서 렌더 */}
@@ -481,7 +622,6 @@ export default function App() {
               accounts={accounts}
               onMarkerClick={(id, isPersonal) => {
                 handleMarkerClick(id, isPersonal);
-                // 마커 클릭 시 지도 탭으로 이동
                 setActiveTab("map");
               }}
               onMapReady={(map) => {
@@ -498,6 +638,12 @@ export default function App() {
                 setActiveTab("map");
               }}
               focusPlace={selectedRestaurant}
+              mapMode={mapMode}
+              sharedPlaces={sharedPlaces}
+              onSharedMarkerClick={(place) => {
+                handleSharedMarkerClick(place);
+                setActiveTab("map");
+              }}
             />
 
             {/* 지도 위 컨트롤 — 우측 하단 세로 스택 */}
@@ -548,6 +694,10 @@ export default function App() {
               sidebarWidth={SIDEBAR_W}
               onPlaceUpdated={handlePlaceUpdated} mapInstance={mapRef.current}
               onDataChange={loadPersonalPlaces}
+              myBestPicks={myBestPicks}
+              onBestPickAdd={handleBestPickAdd}
+              onBestPickReplace={handleBestPickReplace}
+              onBestPickRemove={handleBestPickRemove}
             />
           )}
         </>

@@ -5,7 +5,7 @@ import { useUser, API_BASE } from "../context/UserContext";
 import SavePlaceModal from "./SavePlaceModal";
 
 const KAKAO_KEY = process.env.REACT_APP_KAKAO_JS_KEY || "";
-import { STATUS_LABEL, STATUS_COLOR, FRONTEND_URL } from "../constants";
+import { STATUS_LABEL, STATUS_COLOR, FRONTEND_URL, BEST_CATEGORIES } from "../constants";
 
 const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
@@ -30,6 +30,7 @@ const isMobile = () => window.innerWidth <= 768;
 export default function RestaurantPanel({
   restaurant, onClose, onHide, sidebarWidth = 240,
   onPlaceUpdated, mapInstance, onDataChange,
+  myBestPicks = {}, onBestPickAdd, onBestPickReplace, onBestPickRemove,
 }) {
   const { user } = useUser();
   const mobile = isMobile();
@@ -45,6 +46,8 @@ export default function RestaurantPanel({
   const [copied, setCopied] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [showMapMenu, setShowMapMenu] = useState(false);
+  const [showBestMenu, setShowBestMenu] = useState(false);
+  const [bestSlotFull, setBestSlotFull] = useState(null); // { picks: [...] } when 409
   const [galleryIdx, setGalleryIdx] = useState(0);
   const [replyTo, setReplyTo] = useState(null); // { id, author_nickname }
   const commentInputRef = useRef(null);
@@ -75,8 +78,8 @@ export default function RestaurantPanel({
 
   // 드롭다운 바깥 클릭 + ESC로 닫기
   useEffect(() => {
-    if (!showShareMenu && !showMapMenu) return;
-    const handleClick = () => { setShowShareMenu(false); setShowMapMenu(false); };
+    if (!showShareMenu && !showMapMenu && !showBestMenu) return;
+    const handleClick = () => { setShowShareMenu(false); setShowMapMenu(false); setShowBestMenu(false); setBestSlotFull(null); };
     const handleKey = (e) => { if (e.key === "Escape") handleClick(); };
     // 다음 tick에 등록 (현재 클릭 이벤트 전파 방지)
     const timer = setTimeout(() => {
@@ -88,7 +91,7 @@ export default function RestaurantPanel({
       document.removeEventListener("click", handleClick);
       document.removeEventListener("keydown", handleKey);
     };
-  }, [showShareMenu, showMapMenu]);
+  }, [showShareMenu, showMapMenu, showBestMenu]);
 
   const isPersonalMine = r.isPersonal && (!r.user_id || (user && r.user_id === user.user_id));
   const isOthersPlace  = r.isPersonal && r.user_id && user && r.user_id !== user.user_id;
@@ -212,7 +215,7 @@ export default function RestaurantPanel({
   };
 
   const handleShare = () => {
-    const url = `${FRONTEND_URL}/?place=${r.id}`;
+    const url = `${API_BASE}/og/place/${r.id}`;
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true); setTimeout(() => setCopied(false), 2000);
     }).catch(() => {});
@@ -222,16 +225,54 @@ export default function RestaurantPanel({
     if (!window.Kakao) return;
     if (!window.Kakao.isInitialized() && KAKAO_KEY) window.Kakao.init(KAKAO_KEY);
     if (!window.Kakao.isInitialized()) return;
+    const ogUrl = `${API_BASE}/og/place/${r.id}`;
     window.Kakao.Share.sendDefault({
       objectType: "feed",
       content: {
         title: r.name,
         description: r.memo ? `"${r.memo}"` : (r.owner_nickname ? `${r.owner_nickname}님의 큐레이션` : "나의 공간에서 발견한 장소"),
         imageUrl: r.photo_url || `${FRONTEND_URL}/og-image.png`,
-        link: { mobileWebUrl: `${FRONTEND_URL}/?place=${r.id}`, webUrl: `${FRONTEND_URL}/?place=${r.id}` },
+        link: { mobileWebUrl: ogUrl, webUrl: ogUrl },
       },
-      buttons: [{ title: "장소 보기", link: { mobileWebUrl: `${FRONTEND_URL}/?place=${r.id}`, webUrl: `${FRONTEND_URL}/?place=${r.id}` } }],
+      buttons: [{ title: "장소 보기", link: { mobileWebUrl: ogUrl, webUrl: ogUrl } }],
     });
+  };
+
+  // 베스트 등록 여부 확인
+  const isInBest = Object.values(myBestPicks).flat().some((pick) => {
+    if (r.naver_place_id && pick.naver_place_id) return r.naver_place_id === pick.naver_place_id;
+    return Math.abs(pick.lat - r.lat) < 0.001 && Math.abs(pick.lng - r.lng) < 0.001;
+  });
+
+  const handleBestCategorySelect = async (catKey) => {
+    if (!onBestPickAdd) return;
+    const res = await onBestPickAdd({
+      category: catKey,
+      name: r.name, address: r.address,
+      lat: r.lat, lng: r.lng,
+      naver_place_id: r.naver_place_id, naver_place_url: r.naver_place_url,
+      personal_place_id: r.id,
+    });
+    if (res?.ok) {
+      setShowBestMenu(false);
+      setBestSlotFull(null);
+    } else if (res?.detail?.picks) {
+      setBestSlotFull({ category: catKey, picks: res.detail.picks });
+    } else {
+      setShowBestMenu(false);
+    }
+  };
+
+  const handleBestReplace = async (pickId, catKey) => {
+    if (!onBestPickReplace) return;
+    await onBestPickReplace(pickId, {
+      name: r.name, address: r.address,
+      lat: r.lat, lng: r.lng,
+      naver_place_id: r.naver_place_id, naver_place_url: r.naver_place_url,
+      personal_place_id: r.id,
+    });
+    setShowBestMenu(false);
+    setBestSlotFull(null);
   };
 
   const galleryUrls = r.photo_urls?.length ? r.photo_urls : (r.photo_url ? [r.photo_url] : []);
@@ -372,6 +413,82 @@ export default function RestaurantPanel({
             )}
           </div>
         )}
+        {/* 베스트에 추가 */}
+        {isPersonalMine && user && (
+          <div style={{ position: "relative" }}>
+            {isInBest ? (
+              <button style={{
+                display: "inline-flex", alignItems: "center", gap: 3, padding: "4px 8px",
+                background: C.primaryContainer, color: C.primary,
+                border: "none", borderRadius: 5, fontFamily: FL, fontSize: 10, fontWeight: 600,
+                cursor: "default",
+              }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 12 }}>check</span>
+                베스트 등록됨
+              </button>
+            ) : (
+              <button onClick={() => { setShowBestMenu((v) => !v); setShowShareMenu(false); setShowMapMenu(false); }} style={{
+                display: "inline-flex", alignItems: "center", gap: 3, padding: "4px 8px",
+                background: showBestMenu ? C.primaryContainer : C.surfaceLow,
+                color: showBestMenu ? C.primary : C.onSurfaceVariant,
+                border: "none", borderRadius: 5, fontFamily: FL, fontSize: 10, fontWeight: 600,
+                cursor: "pointer", transition: "all 0.15s",
+              }}>
+                <span className="material-symbols-outlined" style={{ fontSize: 12 }}>star</span>
+                베스트
+              </button>
+            )}
+            {showBestMenu && !bestSlotFull && (
+              <div style={{
+                position: "absolute", top: "100%", left: 0, marginTop: 4,
+                display: "flex", flexDirection: "column", gap: 2, zIndex: 10,
+                background: C.surfaceLowest, borderRadius: 8, padding: 6,
+                boxShadow: "0 4px 16px rgba(47,52,48,0.15)",
+                animation: "fadeIn 0.12s ease-out", minWidth: 120,
+              }}>
+                {BEST_CATEGORIES.map((cat) => (
+                  <button key={cat.key} onClick={() => handleBestCategorySelect(cat.key)} style={{
+                    display: "flex", alignItems: "center", gap: 6, padding: "7px 10px",
+                    background: "transparent", border: "none", borderRadius: 6,
+                    fontFamily: FL, fontSize: 11, fontWeight: 600, color: C.onSurfaceVariant,
+                    cursor: "pointer", whiteSpace: "nowrap", textAlign: "left",
+                    transition: "background 0.12s",
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = C.surfaceLow}
+                  onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                  >{cat.emoji} {cat.label}</button>
+                ))}
+              </div>
+            )}
+            {showBestMenu && bestSlotFull && (
+              <div style={{
+                position: "absolute", top: "100%", left: 0, marginTop: 4,
+                zIndex: 10, background: C.surfaceLowest, borderRadius: 8, padding: 8,
+                boxShadow: "0 4px 16px rgba(47,52,48,0.15)",
+                animation: "fadeIn 0.12s ease-out", minWidth: 180,
+              }}>
+                <p style={{ margin: "0 0 6px", fontFamily: FL, fontSize: 10, fontWeight: 700, color: C.outlineVariant }}>
+                  슬롯이 가득 찼어요. 교체할 장소 선택:
+                </p>
+                {bestSlotFull.picks.map((pick) => (
+                  <button key={pick.id} onClick={() => handleBestReplace(pick.id, bestSlotFull.category)} style={{
+                    display: "flex", alignItems: "center", gap: 6, padding: "6px 8px",
+                    background: "transparent", border: "none", borderRadius: 5,
+                    fontFamily: FL, fontSize: 11, color: C.onSurface, width: "100%",
+                    cursor: "pointer", textAlign: "left", transition: "background 0.12s",
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = C.surfaceLow}
+                  onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                  >
+                    <span style={{ fontWeight: 700, color: C.outlineVariant, minWidth: 16 }}>{pick.slot_number}.</span>
+                    <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pick.name}</span>
+                    <span className="material-symbols-outlined" style={{ fontSize: 12, color: C.outlineVariant }}>swap_horiz</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -478,7 +595,7 @@ export default function RestaurantPanel({
         fontFamily: FL, fontSize: 9, fontWeight: 700,
         textTransform: "uppercase", letterSpacing: "0.15em",
         color: C.outlineVariant, margin: "0 0 6px",
-      }}>함께 저장한 이웃 {neighbors.length}명</p>
+      }}>함께 추가한 사람들 {neighbors.length}명</p>
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         {neighbors.map((n) => (
           <div key={n.user_id} style={{
@@ -652,11 +769,11 @@ export default function RestaurantPanel({
             {/* 인스타 */}
             {InstaBlock}
 
-            {/* 이웃 */}
-            {NeighborsBlock}
-
             {/* 좋아요/댓글 */}
             {SocialBlock}
+
+            {/* 함께 추가한 사람들 */}
+            {NeighborsBlock}
           </div>
 
           {/* peek 상태에서 스크롤 유도 화살표 */}
@@ -749,11 +866,11 @@ export default function RestaurantPanel({
           {/* 인스타 */}
           {InstaBlock}
 
-          {/* 이웃 */}
-          {NeighborsBlock}
-
           {/* 좋아요/댓글 */}
           {SocialBlock}
+
+          {/* 함께 추가한 사람들 */}
+          {NeighborsBlock}
         </div>
       </div>
 

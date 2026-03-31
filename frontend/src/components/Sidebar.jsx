@@ -24,7 +24,7 @@ const NAV_ITEMS = [
   { id: "notifications", icon: "notifications", label: "알림" },
 ];
 
-import { FOLLOWING_COLORS, getFollowingColor } from "../constants";
+import { FOLLOWING_COLORS, getFollowingColor, BEST_CATEGORIES } from "../constants";
 
 const statusEmoji = (s) => ({ want_to_go: "🔖", visited: "✅", want_revisit: "❤️" }[s] || "📍");
 
@@ -50,6 +50,9 @@ export default function Sidebar({
   sidebarWidth = 240,
   onPlaceSelect,
   onViewUserProfile,
+  mapMode = "personal", onMapModeChange,
+  sharedCategory, onSharedCategoryChange,
+  sharedPlaces = [], onSharedPlaceSelect,
 }) {
   const { user } = useUser();
   const [folders, setFolders] = useState([]);
@@ -96,23 +99,33 @@ export default function Sidebar({
       boxShadow: "1px 0 0 rgba(101,93,84,0.07)",
     }}>
 
-      {/* ── 브랜드 ─────────────────────────────────────────── */}
+      {/* ── 브랜드 + 모드 토글 ────────────────────────────── */}
       <div style={{ padding: "0 6px", marginBottom: 14, flexShrink: 0, display: "flex", alignItems: "center", gap: 2 }}>
         <img src="/logo.svg" alt="" style={{ width: 50, height: 50, flexShrink: 0, position: "relative", top: -1 }} />
         <div>
-          <h1 style={{
-            fontFamily: FH, fontStyle: "italic",
-            fontSize: 18, color: C.primary,
-            margin: "0 0 1px", letterSpacing: "-0.02em",
-          }}>
+          <h1
+            onClick={() => onMapModeChange && onMapModeChange("personal")}
+            style={{
+              fontFamily: FH, fontStyle: "italic",
+              fontSize: 18, margin: "0 0 1px", letterSpacing: "-0.02em",
+              cursor: "pointer", transition: "color 0.15s",
+              color: mapMode === "personal" ? C.primary : C.outlineVariant,
+              fontWeight: mapMode === "personal" ? 700 : 400,
+            }}
+          >
             나의 공간
           </h1>
-          <p style={{
-            fontFamily: FL, fontSize: 8, fontWeight: 700,
-            textTransform: "uppercase", letterSpacing: "0.22em",
-            color: C.outlineVariant, margin: 0,
-          }}>
-            The Curated Archive
+          <p
+            onClick={() => onMapModeChange && onMapModeChange("shared")}
+            style={{
+              fontFamily: FH, fontStyle: "italic",
+              fontSize: 14, margin: 0, letterSpacing: "-0.02em",
+              cursor: "pointer", transition: "color 0.15s",
+              color: mapMode === "shared" ? C.primary : C.outlineVariant,
+              fontWeight: mapMode === "shared" ? 700 : 400,
+            }}
+          >
+            우리의 공간
           </p>
         </div>
       </div>
@@ -180,10 +193,89 @@ export default function Sidebar({
       </nav>
 
       {/* ── 지도 탭 전용 콘텐츠 ───────────────────────────── */}
-      {activeTab === "map" && (
+      {activeTab === "map" && mapMode === "shared" && (
         <div style={{
           flex: 1, display: "flex", flexDirection: "column",
           paddingTop: 4, minHeight: 0, gap: 12,
+          animation: "sidebarFade 0.15s ease",
+        }}>
+          {/* 카테고리 필터 */}
+          <div>
+            <SectionLabel>카테고리</SectionLabel>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <button
+                onClick={() => onSharedCategoryChange(null)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "6px 10px", border: "none", borderRadius: 7,
+                  background: sharedCategory === null ? C.primaryContainer : "transparent",
+                  color: sharedCategory === null ? C.primary : C.onSurfaceVariant,
+                  fontFamily: FL, fontSize: 11, fontWeight: sharedCategory === null ? 700 : 500,
+                  cursor: "pointer", textAlign: "left", transition: "all 0.15s",
+                }}
+              >전체</button>
+              {BEST_CATEGORIES.map((cat) => (
+                <button
+                  key={cat.key}
+                  onClick={() => onSharedCategoryChange(cat.key)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    padding: "6px 10px", border: "none", borderRadius: 7,
+                    background: sharedCategory === cat.key ? C.primaryContainer : "transparent",
+                    color: sharedCategory === cat.key ? C.primary : C.onSurfaceVariant,
+                    fontFamily: FL, fontSize: 11, fontWeight: sharedCategory === cat.key ? 700 : 500,
+                    cursor: "pointer", textAlign: "left", transition: "all 0.15s",
+                  }}
+                >{cat.emoji} {cat.label}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* 구분선 */}
+          <div style={{ height: 1, background: C.container }} />
+
+          {/* 인기 장소 리스트 */}
+          <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+            <SectionLabel>인기 장소</SectionLabel>
+            <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+              {sharedPlaces.length === 0 && (
+                <p style={{ fontFamily: FL, fontSize: 11, color: C.outlineVariant, margin: "8px 4px", fontStyle: "italic" }}>
+                  아직 베스트로 선정된 장소가 없어요
+                </p>
+              )}
+              {sharedPlaces.map((p, i) => (
+                <div
+                  key={`${p.naver_place_id || i}_${p.category}`}
+                  onClick={() => onSharedPlaceSelect && onSharedPlaceSelect(p)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    padding: "5px 6px", borderRadius: 6,
+                    cursor: "pointer", transition: "background 0.12s",
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = C.surfaceLow}
+                  onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                >
+                  <span style={{
+                    fontFamily: FL, fontSize: 11, fontWeight: 800,
+                    color: C.primary, flexShrink: 0, minWidth: 24,
+                  }}>({p.pick_count})</span>
+                  <p style={{
+                    margin: 0, fontFamily: FL, fontSize: 11, fontWeight: 600,
+                    color: C.onSurface, flex: 1,
+                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                  }}>{p.name}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === "map" && mapMode === "personal" && (
+        <div style={{
+          flex: 1, display: "flex", flexDirection: "column",
+          paddingTop: 4, minHeight: 0, gap: 12,
+          animation: "sidebarFade 0.15s ease",
         }}>
           {/* 내 공간 섹션 */}
           <div style={{
@@ -459,6 +551,12 @@ export default function Sidebar({
           </div>
         )}
       </div>
+      <style>{`
+        @keyframes sidebarFade {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+      `}</style>
     </aside>
   );
 }

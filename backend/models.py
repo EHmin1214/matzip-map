@@ -252,6 +252,28 @@ class CuratedListItem(Base):
     __table_args__ = (UniqueConstraint("list_id", "place_id", name="uq_list_place"),)
 
 
+class BestPick(Base):
+    """우리의 공간 — 카테고리당 5개 베스트 슬롯."""
+    __tablename__ = "best_picks"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), nullable=False)
+    category: Mapped[str] = mapped_column(String(30), nullable=False)  # restaurant, cafe, bar, general_store
+    slot_number: Mapped[int] = mapped_column(Integer, nullable=False)  # 1-5
+    name: Mapped[str] = mapped_column(String(200), nullable=False)
+    address: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    lat: Mapped[float] = mapped_column(Float, nullable=False)
+    lng: Mapped[float] = mapped_column(Float, nullable=False)
+    naver_place_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    naver_place_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    personal_place_id: Mapped[int | None] = mapped_column(Integer, nullable=True)  # soft ref, no FK
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    __table_args__ = (
+        UniqueConstraint("user_id", "category", "slot_number", name="uq_best_pick_slot"),
+        Index("idx_best_pick_user", "user_id"),
+        Index("idx_best_pick_category", "category"),
+    )
+
+
 class PushSubscription(Base):
     __tablename__ = "push_subscriptions"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
