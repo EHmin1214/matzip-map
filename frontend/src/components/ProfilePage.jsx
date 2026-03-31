@@ -6,6 +6,7 @@ import { subscribePush, unsubscribePush, isPushSubscribed } from "../utils/pushN
 import CuratedLists from "./CuratedLists";
 import BestPickerModal from "./BestPickerModal";
 import { STATUS_LABEL, STATUS_COLOR, STATUS_EMOJI, FRONTEND_URL, BEST_CATEGORIES } from "../constants";
+import { shareProfileCard } from "../utils/generateShareCard";
 
 const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
@@ -473,6 +474,7 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
   const { user, updateUser, logout } = useUser();
   const mobile = isMobile();
   const [showMyPlaces, setShowMyPlaces] = useState(false);
+  const [showShareMenu, setShowShareMenu] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [openSections, setOpenSections] = useState({ curation: false, best: false, follow: false, pin: false });
   const toggleSection = (key) => setOpenSections((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -725,9 +727,6 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
               <h2 style={{ margin: "0 0 4px", fontFamily: FH, fontSize: 19, fontWeight: 700, color: C.onSurface }}>
                 {user.nickname}
               </h2>
-              <p style={{ margin: 0, fontFamily: FL, fontSize: 10, color: C.outlineVariant }}>
-                Personal Curator
-              </p>
               <div style={{ display: "flex", gap: 10, marginTop: 5 }}>
                 {user.instagram_url && (
                   <a href={user.instagram_url} target="_blank" rel="noreferrer"
@@ -765,17 +764,11 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
 
           {/* 내 프로필 공유 */}
           {isPublic && (
-            <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+            <div style={{ position: "relative", marginBottom: 16 }}>
               <button
-                onClick={() => {
-                  const url = `${API_BASE}/og/@${user.nickname}`;
-                  navigator.clipboard.writeText(url).then(() => {
-                    setSuccessMsg("프로필 링크가 복사됐어요!");
-                    setTimeout(() => setSuccessMsg(""), 2500);
-                  });
-                }}
+                onClick={() => setShowShareMenu(!showShareMenu)}
                 style={{
-                  flex: 1, padding: "12px 14px",
+                  width: "100%", padding: "12px 14px",
                   background: C.primaryContainer, border: "none", borderRadius: 8,
                   cursor: "pointer",
                   display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
@@ -783,25 +776,82 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
                 }}
               >
                 <span className="material-symbols-outlined" style={{ fontSize: 16 }}>share</span>
-                링크 복사
+                내 프로필 공유
               </button>
-              <button
-                onClick={() => shareKakao({
-                  title: `${user.nickname}의 공간`,
-                  description: `${user.nickname}님이 아끼는 공간을 구경해보세요!`,
-                  linkUrl: `${API_BASE}/og/@${user.nickname}`,
-                })}
-                style={{
-                  flex: 1, padding: "12px 14px",
-                  background: "#FEE500", border: "none", borderRadius: 8,
-                  cursor: "pointer",
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                  fontFamily: FL, fontSize: 12, fontWeight: 700, color: "#191919",
-                }}
-              >
-                <svg width="16" height="16" viewBox="0 0 18 18"><path fill="#191919" d="M9 1C4.58 1 1 3.79 1 7.21c0 2.17 1.45 4.08 3.64 5.18l-.93 3.44c-.08.3.26.54.52.37l4.12-2.74c.21.02.43.03.65.03 4.42 0 8-2.79 8-6.28S13.42 1 9 1z"/></svg>
-                카톡 공유
-              </button>
+              {showShareMenu && (
+                <>
+                  <div onClick={() => setShowShareMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 49 }} />
+                  <div style={{
+                    position: "absolute", top: "calc(100% + 6px)", left: 0, right: 0, zIndex: 50,
+                    background: C.surfaceLowest, borderRadius: 12, overflow: "hidden",
+                    boxShadow: "0 4px 20px rgba(47,52,48,0.12)",
+                  }}>
+                    {/* 링크 복사 */}
+                    <button
+                      onClick={() => {
+                        const url = `${API_BASE}/og/@${user.nickname}`;
+                        navigator.clipboard.writeText(url).then(() => {
+                          setSuccessMsg("프로필 링크가 복사됐어요!");
+                          setTimeout(() => setSuccessMsg(""), 2500);
+                        });
+                        setShowShareMenu(false);
+                      }}
+                      style={{
+                        width: "100%", padding: "13px 16px", border: "none", background: "none",
+                        display: "flex", alignItems: "center", gap: 12, cursor: "pointer",
+                        fontFamily: FL, fontSize: 13, fontWeight: 600, color: C.onSurface,
+                        borderBottom: `1px solid ${C.container}`,
+                      }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 18, color: C.primary }}>link</span>
+                      링크 복사
+                    </button>
+                    {/* 카카오톡 */}
+                    <button
+                      onClick={() => {
+                        shareKakao({
+                          title: `${user.nickname}의 공간`,
+                          description: `${user.nickname}님이 아끼는 공간을 구경해보세요!`,
+                          linkUrl: `${API_BASE}/og/@${user.nickname}`,
+                        });
+                        setShowShareMenu(false);
+                      }}
+                      style={{
+                        width: "100%", padding: "13px 16px", border: "none", background: "none",
+                        display: "flex", alignItems: "center", gap: 12, cursor: "pointer",
+                        fontFamily: FL, fontSize: 13, fontWeight: 600, color: C.onSurface,
+                        borderBottom: `1px solid ${C.container}`,
+                      }}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#191919" d="M9 1C4.58 1 1 3.79 1 7.21c0 2.17 1.45 4.08 3.64 5.18l-.93 3.44c-.08.3.26.54.52.37l4.12-2.74c.21.02.43.03.65.03 4.42 0 8-2.79 8-6.28S13.42 1 9 1z"/></svg>
+                      카카오톡
+                    </button>
+                    {/* 인스타그램 */}
+                    <button
+                      onClick={async () => {
+                        setShowShareMenu(false);
+                        try {
+                          await shareProfileCard(
+                            { nickname: user.nickname, profile_photo_url: user.profile_photo_url },
+                            personalPlaces,
+                          );
+                        } catch {
+                          setSuccessMsg("카드 생성에 실패했어요");
+                          setTimeout(() => setSuccessMsg(""), 2500);
+                        }
+                      }}
+                      style={{
+                        width: "100%", padding: "13px 16px", border: "none", background: "none",
+                        display: "flex", alignItems: "center", gap: 12, cursor: "pointer",
+                        fontFamily: FL, fontSize: 13, fontWeight: 600, color: C.onSurface,
+                      }}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M7.5 2h9A5.5 5.5 0 0 1 22 7.5v9a5.5 5.5 0 0 1-5.5 5.5h-9A5.5 5.5 0 0 1 2 16.5v-9A5.5 5.5 0 0 1 7.5 2z" stroke="#E1306C" strokeWidth="2"/><circle cx="12" cy="12" r="4" stroke="#E1306C" strokeWidth="2"/><circle cx="17.5" cy="6.5" r="1" fill="#E1306C"/></svg>
+                      인스타그램
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           )}
 

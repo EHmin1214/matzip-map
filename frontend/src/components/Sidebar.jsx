@@ -553,9 +553,6 @@ export default function Sidebar({
               }}>
                 {user.nickname}
               </p>
-              <p style={{ margin: 0, fontFamily: FL, fontSize: 9, color: C.outlineVariant }}>
-                Personal Curator
-              </p>
             </div>
             <span className="material-symbols-outlined" style={{ fontSize: 16, color: C.outlineVariant }}>
               chevron_right
