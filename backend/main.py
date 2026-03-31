@@ -37,6 +37,7 @@ def _auto_migrate():
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS kakao_id VARCHAR(50) UNIQUE",
             "ALTER TABLE place_comments ADD COLUMN IF NOT EXISTS parent_id INTEGER REFERENCES place_comments(id)",
             "ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_photo_url VARCHAR(500)",
+            "ALTER TABLE folders ADD COLUMN IF NOT EXISTS is_default BOOLEAN DEFAULT FALSE",
         ]:
             try:
                 conn.execute(text(stmt))

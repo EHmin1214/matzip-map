@@ -54,12 +54,18 @@ export default function Sidebar({
   const { user } = useUser();
   const [folders, setFolders] = useState([]);
   const [placeFilter, setPlaceFilter] = useState("");
+  const [sortMode, setSortMode] = useState("newest"); // "newest" | "oldest" | "collection"
   const [followingOpen, setFollowingOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
-    axios.get(`${API_BASE}/folders/?user_id=${user.user_id}`)
-      .then((res) => setFolders(res.data)).catch(() => {});
+    // Seed default folders if they don't exist yet, then fetch
+    axios.post(`${API_BASE}/folders/seed-defaults?user_id=${user.user_id}`)
+      .catch(() => {})
+      .finally(() => {
+        axios.get(`${API_BASE}/folders/?user_id=${user.user_id}`)
+          .then((res) => setFolders(res.data)).catch(() => {});
+      });
   }, [user]);
 
   const getFolderColor = (folderId) => {
@@ -175,7 +181,40 @@ export default function Sidebar({
           <div style={{
             flex: 1, minHeight: 0, display: "flex", flexDirection: "column",
           }}>
-            <SectionLabel>내 공간 ({personalPlaces.length})</SectionLabel>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+              <p style={{
+                fontFamily: "'Manrope', -apple-system, sans-serif", fontSize: 9, fontWeight: 700,
+                textTransform: "uppercase", letterSpacing: "0.18em",
+                color: "#8a8e8a", margin: 0,
+              }}>
+                내 공간 ({personalPlaces.length})
+              </p>
+              <div style={{ display: "flex", gap: 2 }}>
+                {[
+                  { key: "newest", icon: "arrow_downward", title: "최신순" },
+                  { key: "oldest", icon: "arrow_upward", title: "오래된순" },
+                  { key: "collection", icon: "folder", title: "컬렉션별" },
+                ].map((s) => (
+                  <button
+                    key={s.key}
+                    title={s.title}
+                    onClick={() => setSortMode(s.key)}
+                    style={{
+                      background: sortMode === s.key ? "#ede0d5" : "transparent",
+                      border: "none", borderRadius: 4, padding: "2px 4px",
+                      cursor: "pointer", display: "flex", alignItems: "center",
+                      transition: "background 0.15s",
+                    }}
+                  >
+                    <span className="material-symbols-outlined" style={{
+                      fontSize: 12,
+                      color: sortMode === s.key ? "#655d54" : "#8a8e8a",
+                      fontVariationSettings: "'FILL' 0, 'wght' 300",
+                    }}>{s.icon}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
             {personalPlaces.length > 5 && (
               <div style={{ position: "relative", marginBottom: 6, flexShrink: 0 }}>
                 <span className="material-symbols-outlined" style={{
@@ -198,6 +237,19 @@ export default function Sidebar({
             <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
               {personalPlaces
                 .filter((p) => !placeFilter || p.name.toLowerCase().includes(placeFilter.toLowerCase()))
+                .sort((a, b) => {
+                  if (sortMode === "oldest") {
+                    return new Date(a.created_at || 0) - new Date(b.created_at || 0);
+                  }
+                  if (sortMode === "collection") {
+                    const fa = a.folder_id || 999999;
+                    const fb = b.folder_id || 999999;
+                    if (fa !== fb) return fa - fb;
+                    return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+                  }
+                  // newest (default)
+                  return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+                })
                 .slice(0, 50).map((p) => (
                 <div key={p.id}
                   onClick={() => onPlaceSelect && onPlaceSelect(p)}

@@ -303,7 +303,7 @@ export default function SavePlaceModal({ place, onSave, onClose, editMode = fals
                     key={f.id} label={f.name} color={f.color}
                     selected={selectedFolderId === f.id}
                     onClick={() => setSelectedFolderId(f.id)}
-                    onDelete={() => handleDeleteFolder(f.id)}
+                    onDelete={f.is_default ? undefined : () => handleDeleteFolder(f.id)}
                     onColorChange={(c) => handleFolderColorChange(f.id, c)}
                   />
                 ))}

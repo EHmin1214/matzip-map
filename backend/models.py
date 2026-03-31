@@ -136,6 +136,7 @@ class Folder(Base):
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     color: Mapped[str] = mapped_column(String(7), default="#E8593C")
     is_public: Mapped[bool] = mapped_column(Boolean, default=True)
+    is_default: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     user: Mapped["User"] = relationship("User", back_populates="folders")
     places: Mapped[list["PersonalPlace"]] = relationship("PersonalPlace", back_populates="folder")

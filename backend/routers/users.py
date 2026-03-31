@@ -15,6 +15,7 @@ from datetime import datetime
 
 from database import get_db
 from models import User, Follow, PersonalPlace
+from routers.folders import seed_default_folders
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -105,6 +106,7 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
+    seed_default_folders(user.id, db)
     return LoginResponse(user_id=user.id, nickname=user.nickname,
                          instagram_url=user.instagram_url, blog_url=user.blog_url,
                          profile_photo_url=user.profile_photo_url,
@@ -241,6 +243,7 @@ def kakao_login(body: KakaoLoginRequest, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
+    seed_default_folders(user.id, db)
     return LoginResponse(
         user_id=user.id, nickname=user.nickname,
         instagram_url=user.instagram_url, blog_url=user.blog_url,
