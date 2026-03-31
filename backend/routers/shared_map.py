@@ -4,7 +4,6 @@
 """
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from database import get_db
@@ -73,59 +72,33 @@ def list_shared_places(
     db: Session = Depends(get_db),
 ):
     """집계된 장소 목록 (비로그인 접근 가능)."""
-    q = db.query(
-        BestPick.name,
-        BestPick.address,
-        BestPick.lat,
-        BestPick.lng,
-        BestPick.naver_place_id,
-        BestPick.naver_place_url,
-        BestPick.category,
-        func.count(BestPick.id).label("pick_count"),
-    )
+    q = db.query(BestPick)
     if category and category in VALID_CATEGORIES:
         q = q.filter(BestPick.category == category)
 
-    # naver_place_id가 있으면 그걸로 그룹, 없으면 좌표 반올림
-    # COALESCE(naver_place_id, lat||lng) 로 통합 그룹
-    group_key = func.coalesce(
-        BestPick.naver_place_id,
-        func.concat(func.round(BestPick.lat, 3), "_", func.round(BestPick.lng, 3)),
-    )
-    q = q.group_by(
-        group_key,
-        BestPick.category,
-        BestPick.name,
-        BestPick.address,
-        BestPick.lat,
-        BestPick.lng,
-        BestPick.naver_place_id,
-        BestPick.naver_place_url,
-    )
-    q = q.order_by(func.count(BestPick.id).desc())
+    all_picks = q.all()
 
-    rows = q.all()
-    # 같은 group_key 내에서 가장 많이 쓰인 이름/주소를 대표로 사용하기 위해
-    # 이미 GROUP BY에 name이 들어가므로 같은 장소인데 이름이 다른 경우 중복 가능
-    # → naver_place_id 기준으로 deduplicate
-    seen = set()
+    # naver_place_id 또는 좌표 반올림으로 그룹핑
+    groups: dict[str, list] = {}
+    for p in all_picks:
+        key = p.naver_place_id or f"{round(p.lat, 3)}_{round(p.lng, 3)}"
+        cat_key = f"{key}_{p.category}"
+        groups.setdefault(cat_key, []).append(p)
+
     result = []
-    for row in rows:
-        key = row.naver_place_id or f"{round(row.lat, 3)}_{round(row.lng, 3)}"
-        cat_key = f"{key}_{row.category}"
-        if cat_key in seen:
-            continue
-        seen.add(cat_key)
+    for picks in groups.values():
+        rep = picks[0]  # 대표 데이터
         result.append(SharedPlaceOut(
-            name=row.name,
-            address=row.address,
-            lat=row.lat,
-            lng=row.lng,
-            naver_place_id=row.naver_place_id,
-            naver_place_url=row.naver_place_url,
-            category=row.category,
-            pick_count=row.pick_count,
+            name=rep.name,
+            address=rep.address,
+            lat=rep.lat,
+            lng=rep.lng,
+            naver_place_id=rep.naver_place_id,
+            naver_place_url=rep.naver_place_url,
+            category=rep.category,
+            pick_count=len(picks),
         ))
+    result.sort(key=lambda x: x.pick_count, reverse=True)
     return result
 
 

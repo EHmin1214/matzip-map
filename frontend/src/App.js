@@ -234,6 +234,17 @@ export default function App() {
     if (lat && lng) centerMapOnPlace(lat, lng);
   }, [centerMapOnPlace]);
 
+  const handleNotificationPlaceClick = useCallback((placeId) => {
+    axios.get(`${API_BASE}/personal-places/${placeId}/detail`)
+      .then((res) => {
+        const p = res.data;
+        setSelectedRestaurant({ ...p, sources: [], isPersonal: true });
+        setActiveTab("map");
+        if (p.lat && p.lng) centerMapOnPlace(p.lat, p.lng);
+      })
+      .catch(() => {});
+  }, [centerMapOnPlace]);
+
   const hideRestaurant = useCallback((restaurantId, isPersonal = false) => {
     if (isPersonal) {
       const place = personalPlaces.find((p) => `personal_${p.id}` === restaurantId || p.id === restaurantId);
@@ -302,10 +313,16 @@ export default function App() {
     setSelectedRestaurant({ ...place, sources: [], isPersonal: false, isShared: true });
   }, []);
 
+  const [modeTransition, setModeTransition] = useState(false);
   const handleMapModeChange = useCallback((mode) => {
-    setMapMode(mode);
+    if (mode === mapMode) return;
+    setModeTransition(true);
     setSelectedRestaurant(null);
-  }, []);
+    setTimeout(() => {
+      setMapMode(mode);
+      setTimeout(() => setModeTransition(false), 350);
+    }, 300);
+  }, [mapMode]);
 
   const filteredPersonalPlaces = activeFilter ? personalPlaces.filter((p) => p.status === activeFilter) : personalPlaces;
   const visibleRestaurants = restaurants.filter((r) => !hiddenIds.has(r.id));
@@ -353,7 +370,7 @@ export default function App() {
   const renderPanel = (tab) => {
     if (tab === "search")        return <SearchTab onPlaceAdded={addPlace} personalPlaces={personalPlaces} onViewUserProfile={handleViewUserProfile} />;
     if (tab === "feed")          return <FeedTab personalPlaces={personalPlaces} onPlaceClick={handleActivityPlaceClick} onDataChange={loadPersonalPlaces} onNavigate={setActiveTab} />;
-    if (tab === "notifications") return <NotificationTab onUnreadChange={setUnreadCount} />;
+    if (tab === "notifications") return <NotificationTab onUnreadChange={setUnreadCount} onPlaceClick={handleNotificationPlaceClick} />;
     if (tab === "profile")       return <ProfilePage personalPlaces={personalPlaces} onViewMap={() => setActiveTab("map")} onViewUserProfile={handleViewUserProfile} myBestPicks={myBestPicks} onBestPickAdd={handleBestPickAdd} onBestPickReplace={handleBestPickReplace} onBestPickRemove={handleBestPickRemove} onPlaceClick={(p) => {
       setSelectedRestaurant({ id: p.id, name: p.name, lat: p.lat, lng: p.lng, status: p.status, user_id: p.user_id, isPersonal: true, sources: [] });
       setActiveTab("map");
@@ -406,6 +423,19 @@ export default function App() {
               sharedPlaces={sharedPlaces}
               onSharedMarkerClick={handleSharedMarkerClick}
             />
+            {/* 모드 전환 오버레이 */}
+            {modeTransition && (
+              <div style={{
+                position: "absolute", inset: 0, zIndex: 50,
+                background: "#faf9f6",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                animation: "modeTransitionIn 0.25s ease",
+              }}>
+                <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 15, color: "#8a8e8a", letterSpacing: "-0.01em" }}>
+                  전환 중...
+                </p>
+              </div>
+            )}
           </div>
 
           {/* 모바일 지도 상단 — 모드 토글 + 필터 */}
@@ -533,20 +563,20 @@ export default function App() {
               pointerEvents: "none",
             }}>
               <div style={{ pointerEvents: "auto", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
-                <RefreshButton onRefresh={handleRefresh} />
-                <MapFilter
+                {mapMode === "personal" && <RefreshButton onRefresh={handleRefresh} />}
+                {mapMode === "personal" && <MapFilter
                   activeFilter={activeFilter} onFilterChange={setActiveFilter}
                   followingList={[]} selectedFollowingIds={selectedFollowingIds}
                   onToggleFollowing={handleToggleFollowing}
                   showPersonal={showPersonal} onTogglePersonal={() => setShowPersonal((v) => !v)}
-                />
+                />}
                 <LocationButton map={mapRef.current} />
               </div>
             </div>
           )}
 
           {/* 피드백 버튼 — 좌측 하단 */}
-          {showMap && (
+          {showMap && mapMode === "personal" && (
             <div style={{ position: "fixed", left: 14, bottom: 80, zIndex: 26 }}>
               <FeedbackButton />
             </div>
@@ -645,6 +675,19 @@ export default function App() {
                 setActiveTab("map");
               }}
             />
+            {/* 모드 전환 오버레이 */}
+            {modeTransition && (
+              <div style={{
+                position: "absolute", inset: 0, zIndex: 50,
+                background: "#faf9f6",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                animation: "modeTransitionIn 0.25s ease",
+              }}>
+                <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 15, color: "#8a8e8a", letterSpacing: "-0.01em" }}>
+                  전환 중...
+                </p>
+              </div>
+            )}
 
             {/* 지도 위 컨트롤 — 우측 하단 세로 스택 */}
             <div style={{
@@ -654,19 +697,19 @@ export default function App() {
               alignItems: "flex-end", gap: 8,
               zIndex: 26,
             }}>
-              <RefreshButton onRefresh={handleRefresh} />
-              <MapFilter
+              {mapMode === "personal" && <RefreshButton onRefresh={handleRefresh} />}
+              {mapMode === "personal" && <MapFilter
                 activeFilter={activeFilter} onFilterChange={setActiveFilter}
                 followingList={[]} selectedFollowingIds={selectedFollowingIds}
                 onToggleFollowing={handleToggleFollowing}
                 showPersonal={showPersonal} onTogglePersonal={() => setShowPersonal((v) => !v)}
-              />
+              />}
               <LocationButton map={mapRef.current} />
             </div>
             {/* 피드백 버튼 — 좌측 하단 */}
-            <div style={{ position: "absolute", left: 14, bottom: 14, zIndex: 26 }}>
+            {mapMode === "personal" && <div style={{ position: "absolute", left: 14, bottom: 14, zIndex: 26 }}>
               <FeedbackButton />
-            </div>
+            </div>}
           </div>
 
           {/* 슬라이드 패널 — 비지도 탭일 때 */}

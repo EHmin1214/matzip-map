@@ -42,7 +42,7 @@ export default function RestaurantPanel({
   const [comments, setComments] = useState([]);
   const [commentInput, setCommentInput] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
-  const [showComments, setShowComments] = useState(false);
+  const [showComments, setShowComments] = useState(true);
   const [copied, setCopied] = useState(false);
   const [showShareMenu, setShowShareMenu] = useState(false);
   const [showMapMenu, setShowMapMenu] = useState(false);
@@ -652,14 +652,11 @@ export default function RestaurantPanel({
         </p>
       )}
 
-      {/* 댓글 미리보기 */}
-      {comments.length > 0 && !showComments && (
-        <button onClick={() => setShowComments(true)} style={{
-          background: "none", border: "none", cursor: "pointer", padding: 0,
-          fontFamily: FL, fontSize: 12, color: C.outlineVariant, marginBottom: 4,
-        }}>
-          댓글 {comments.length}개 모두 보기
-        </button>
+      {/* 댓글 수 */}
+      {comments.length > 0 && (
+        <p style={{ margin: "0 0 4px", fontFamily: FL, fontSize: 12, color: C.outlineVariant }}>
+          댓글 {comments.length}개
+        </p>
       )}
 
       {/* 댓글 펼침 */}

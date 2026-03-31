@@ -120,6 +120,15 @@ body {
   animation: fadeUp 0.35s ease both;
 }
 
+@keyframes modeTransitionIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes modeTransitionOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
 /* ── Focus ring (accessibility) ──────────────────────────── */
 :focus-visible {
   outline: 2px solid var(--primary);

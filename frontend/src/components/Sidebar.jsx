@@ -99,34 +99,37 @@ export default function Sidebar({
       boxShadow: "1px 0 0 rgba(101,93,84,0.07)",
     }}>
 
-      {/* ── 브랜드 + 모드 토글 ────────────────────────────── */}
+      {/* ── 브랜드 + 모드 토글 (활성 모드가 위로) ──────────── */}
       <div style={{ padding: "0 6px", marginBottom: 14, flexShrink: 0, display: "flex", alignItems: "center", gap: 2 }}>
         <img src="/logo.svg" alt="" style={{ width: 50, height: 50, flexShrink: 0, position: "relative", top: -1 }} />
-        <div>
-          <h1
-            onClick={() => onMapModeChange && onMapModeChange("personal")}
-            style={{
-              fontFamily: FH, fontStyle: "italic",
-              fontSize: 18, margin: "0 0 1px", letterSpacing: "-0.02em",
-              cursor: "pointer", transition: "color 0.15s",
-              color: mapMode === "personal" ? C.primary : C.outlineVariant,
-              fontWeight: mapMode === "personal" ? 700 : 400,
-            }}
-          >
-            나의 공간
-          </h1>
-          <p
-            onClick={() => onMapModeChange && onMapModeChange("shared")}
-            style={{
-              fontFamily: FH, fontStyle: "italic",
-              fontSize: 14, margin: 0, letterSpacing: "-0.02em",
-              cursor: "pointer", transition: "color 0.15s",
-              color: mapMode === "shared" ? C.primary : C.outlineVariant,
-              fontWeight: mapMode === "shared" ? 700 : 400,
-            }}
-          >
-            우리의 공간
-          </p>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          {[
+            { mode: "personal", label: "나의 공간" },
+            { mode: "shared", label: "우리의 공간" },
+          ]
+            .sort((a, b) => (a.mode === mapMode ? -1 : 1))
+            .map(({ mode, label }) => {
+              const isActive = mode === mapMode;
+              return (
+                <p
+                  key={mode}
+                  onClick={() => onMapModeChange && onMapModeChange(mode)}
+                  style={{
+                    fontFamily: FH, fontStyle: "italic",
+                    fontSize: isActive ? 18 : 14,
+                    margin: isActive ? "0 0 1px" : 0,
+                    letterSpacing: "-0.02em",
+                    cursor: "pointer",
+                    transition: "all 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
+                    color: isActive ? C.primary : C.outlineVariant,
+                    fontWeight: isActive ? 700 : 400,
+                    order: isActive ? 0 : 1,
+                  }}
+                >
+                  {label}
+                </p>
+              );
+            })}
         </div>
       </div>
 

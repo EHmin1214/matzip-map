@@ -25,7 +25,7 @@ const TYPE_LABEL = {
   comment: "님이 댓글을 남겼어요",
 };
 
-export default function NotificationTab({ embedded = false, onUnreadChange, noHeader = false }) {
+export default function NotificationTab({ embedded = false, onUnreadChange, noHeader = false, onPlaceClick }) {
   const { user } = useUser();
   const mobile = isMobile();
   const [notifications, setNotifications] = useState([]);
@@ -173,23 +173,23 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
         )}
 
         {loading ? (
-          <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 16, color: "#a8a29e", padding: "60px 0", textAlign: "center" }}>불러오는 중...</p>
+          <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 13, color: "#a8a29e", padding: "60px 0", textAlign: "center" }}>불러오는 중...</p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {/* 팔로우 요청 */}
             {requests.map((req) => (
               <div key={req.from_user_id} style={{
-                display: "flex", alignItems: "flex-start", gap: 16,
-                padding: mobile ? "16px" : "20px 24px",
+                display: "flex", alignItems: "flex-start", gap: 12,
+                padding: mobile ? "12px 14px" : "14px 20px",
                 borderRadius: 10, background: C.containerLowest,
                 borderLeft: `3px solid ${C.primary}`,
               }}>
                 <div style={{ position: "relative", flexShrink: 0 }}>
                   <div style={{
-                    width: 44, height: 44, borderRadius: "50%",
+                    width: 36, height: 36, borderRadius: "50%",
                     background: `linear-gradient(135deg, #595149, #655d54)`,
                     display: "flex", alignItems: "center", justifyContent: "center",
-                    fontFamily: FH, fontStyle: "italic", fontSize: 18, color: "#fff6ef",
+                    fontFamily: FH, fontStyle: "italic", fontSize: 14, color: "#fff6ef",
                   }}>
                     {req.from_nickname?.[0]?.toUpperCase()}
                   </div>
@@ -199,7 +199,7 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
-                    <p style={{ margin: 0, fontFamily: FH, fontSize: mobile ? 15 : 16, color: C.onSurface, lineHeight: 1.5 }}>
+                    <p style={{ margin: 0, fontFamily: FH, fontSize: 13, color: C.onSurface, lineHeight: 1.5 }}>
                       <b>{req.from_nickname}</b>님이 팔로우를 요청했어요
                     </p>
                   </div>
@@ -213,7 +213,7 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
 
             {notifications.length === 0 && requests.length === 0 ? (
               <div style={{ textAlign: "center", padding: "60px 0" }}>
-                <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 18, color: "#a8a29e", margin: 0 }}>아직 알림이 없어요</p>
+                <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 14, color: "#a8a29e", margin: 0 }}>아직 알림이 없어요</p>
               </div>
             ) : (
               notifications.map((n) => {
@@ -222,21 +222,24 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
                 const isFollowType = n.type === "follow" || n.type === "follow_accepted";
                 const actorFollowStatus = isFollowType && n.actor_id ? getFollowStatus(n.actor_id) : "none";
                 return (
-                  <div key={n.id} style={{
+                  <div key={n.id}
+                    onClick={() => n.target_place_id && onPlaceClick && onPlaceClick(n.target_place_id)}
+                    style={{
                     position: "relative",
-                    display: "flex", alignItems: "flex-start", gap: 16,
-                    padding: mobile ? "14px 16px" : "18px 24px",
+                    display: "flex", alignItems: "flex-start", gap: 12,
+                    padding: mobile ? "10px 14px" : "12px 20px",
                     borderRadius: 10,
                     background: isUnread ? C.containerLowest : "transparent",
                     borderLeft: `3px solid ${isUnread ? C.primary : "transparent"}`,
                     transition: "background 0.15s",
+                    cursor: n.target_place_id ? "pointer" : "default",
                   }}
                     onMouseEnter={(e) => { if (!isUnread) e.currentTarget.style.background = C.containerLow; }}
                     onMouseLeave={(e) => { if (!isUnread) e.currentTarget.style.background = "transparent"; }}
                   >
                     {/* 삭제 버튼 */}
                     <button
-                      onClick={() => deleteNotification(n.id)}
+                      onClick={(e) => { e.stopPropagation(); deleteNotification(n.id); }}
                       style={{
                         position: "absolute", top: 8, right: 8,
                         width: 20, height: 20, borderRadius: "50%",
@@ -252,10 +255,10 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
 
                     <div style={{ position: "relative", flexShrink: 0 }}>
                       <div style={{
-                        width: 44, height: 44, borderRadius: "50%",
+                        width: 36, height: 36, borderRadius: "50%",
                         background: isUnread ? `linear-gradient(135deg, #595149, #655d54)` : "#e7e5e4",
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        fontFamily: FH, fontStyle: "italic", fontSize: 18,
+                        fontFamily: FH, fontStyle: "italic", fontSize: 14,
                         color: isUnread ? "#fff6ef" : "#78716c", opacity: isUnread ? 1 : 0.75,
                       }}>
                         {n.actor_nickname?.[0]?.toUpperCase()}
@@ -267,7 +270,7 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
                     <div style={{ flex: 1, paddingRight: 20 }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
                         <div style={{ flex: 1 }}>
-                          <p style={{ margin: 0, fontFamily: FH, fontSize: mobile ? 14 : 15, color: isUnread ? C.onSurface : "#78716c", lineHeight: 1.6 }}>
+                          <p style={{ margin: 0, fontFamily: FH, fontSize: 13, color: isUnread ? C.onSurface : "#78716c", lineHeight: 1.6 }}>
                             <b style={{ color: C.onSurface }}>{n.actor_nickname}</b>{TYPE_LABEL[n.type] || "새 알림"}
                             {n.target_place_name && <span style={{ fontStyle: "italic" }}> — {n.target_place_name}</span>}
                           </p>
