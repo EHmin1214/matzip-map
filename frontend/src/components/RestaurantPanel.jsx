@@ -718,13 +718,13 @@ export default function RestaurantPanel({
           position: "sticky", top: 0, zIndex: 5,
           background: "rgba(250,249,246,0.92)",
           backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)",
-          padding: "12px 16px",
+          padding: "18px 22px 14px",
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          borderBottom: "1px solid rgba(101,93,84,0.06)",
+          borderBottom: `1px solid ${C.container}`,
         }}>
-          <p style={{ margin: 0, fontFamily: FL, fontSize: 9, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.15em", color: C.outlineVariant }}>
+          <h1 style={{ margin: 0, fontFamily: FH, fontStyle: "italic", fontSize: 18, color: C.primary, letterSpacing: "-0.02em" }}>
             장소 상세
-          </p>
+          </h1>
           <div style={{ display: "flex", gap: 4 }}>
             {isPersonalMine && (
               <IconBtn icon="edit" onClick={() => setEditModalOpen(true)} title="수정" size={28} />
