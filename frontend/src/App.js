@@ -57,6 +57,17 @@ export default function App() {
   const isMobile = window.innerWidth <= 768;
   const showMap = activeTab === "map";
 
+  // 지도 센터링 헬퍼 — UI 패널 오프셋 반영, setCenter 1회 (flicker 방지)
+  const centerMapOnPlace = useCallback((lat, lng) => {
+    if (!mapRef.current || !window.naver) return;
+    const mobile = window.innerWidth <= 768;
+    let cLat = Number(lat), cLng = Number(lng);
+    if (mobile) cLat -= 0.0023;
+    else cLng -= 0.004;
+    mapRef.current.setZoom(16);
+    mapRef.current.setCenter(new window.naver.maps.LatLng(cLat, cLng));
+  }, []);
+
   // ── 데이터 로드 ────────────────────────────────────────────
   const loadPersonalPlaces = useCallback(() => {
     if (!user) return Promise.resolve();
@@ -110,8 +121,7 @@ export default function App() {
         setActiveTab("map");
         // 지도가 준비되면 이동, 아직이면 pendingDeepLink에 저장
         if (mapRef.current && window.naver) {
-          mapRef.current.setCenter(new window.naver.maps.LatLng(found.lat, found.lng));
-          mapRef.current.setZoom(16);
+          centerMapOnPlace(found.lat, found.lng);
         } else {
           pendingDeepLink.current = found;
         }
@@ -197,22 +207,8 @@ export default function App() {
     setActiveTab("map");
     const lat = activity.lat || activity.place_lat;
     const lng = activity.lng || activity.place_lng;
-    if (mapRef.current && window.naver && lat && lng) {
-      const mobile = window.innerWidth <= 768;
-      // 오프셋을 좌표에 미리 반영해 setCenter 한 번으로 처리 (flicker 방지)
-      // zoom 16, 서울(~37.5°N) 기준: 1px ≈ 0.0000170° lat, 0.0000215° lng
-      let cLat = Number(lat), cLng = Number(lng);
-      if (mobile) {
-        // 바텀시트(210)+탭바(64)=274px → 센터를 137px 남쪽으로 → 핀이 위로
-        cLat -= 0.0023;
-      } else {
-        // 디테일패널(360px) → 센터를 180px 서쪽으로 → 핀이 오른쪽
-        cLng -= 0.004;
-      }
-      mapRef.current.setZoom(16);
-      mapRef.current.setCenter(new window.naver.maps.LatLng(cLat, cLng));
-    }
-  }, []);
+    if (lat && lng) centerMapOnPlace(lat, lng);
+  }, [centerMapOnPlace]);
 
   const hideRestaurant = useCallback((restaurantId, isPersonal = false) => {
     if (isPersonal) {
@@ -296,7 +292,7 @@ export default function App() {
     if (tab === "profile")       return <ProfilePage personalPlaces={personalPlaces} onViewMap={() => setActiveTab("map")} onViewUserProfile={handleViewUserProfile} onPlaceClick={(p) => {
       setSelectedRestaurant({ id: p.id, name: p.name, lat: p.lat, lng: p.lng, status: p.status, user_id: p.user_id, isPersonal: true, sources: [] });
       setActiveTab("map");
-      if (mapRef.current && window.naver) { mapRef.current.setCenter(new window.naver.maps.LatLng(p.lat, p.lng)); mapRef.current.setZoom(16); }
+      centerMapOnPlace(p.lat, p.lng);
     }} />;
     return null;
   };
@@ -331,11 +327,10 @@ export default function App() {
               onMarkerClick={handleMarkerClick}
               onMapReady={(map) => {
                 mapRef.current = map;
-                if (pendingDeepLink.current && window.naver) {
+                if (pendingDeepLink.current) {
                   const p = pendingDeepLink.current;
                   pendingDeepLink.current = null;
-                  map.setCenter(new window.naver.maps.LatLng(p.lat, p.lng));
-                  map.setZoom(16);
+                  centerMapOnPlace(p.lat, p.lng);
                 }
               }}
               followingPlaces={followingPlaces}
@@ -462,12 +457,7 @@ export default function App() {
             onPlaceSelect={(place) => {
               setSelectedRestaurant({ ...place, sources: [], isPersonal: true });
               setActiveTab("map");
-              if (mapRef.current && window.naver) {
-                // 디테일패널 오프셋을 좌표에 미리 반영 (flicker 방지)
-                const cLng = Number(place.lng) - 0.004;
-                mapRef.current.setZoom(16);
-                mapRef.current.setCenter(new window.naver.maps.LatLng(place.lat, cLng));
-              }
+              centerMapOnPlace(place.lat, place.lng);
             }}
           />
 
@@ -488,11 +478,10 @@ export default function App() {
               }}
               onMapReady={(map) => {
                 mapRef.current = map;
-                if (pendingDeepLink.current && window.naver) {
+                if (pendingDeepLink.current) {
                   const p = pendingDeepLink.current;
                   pendingDeepLink.current = null;
-                  map.setCenter(new window.naver.maps.LatLng(p.lat, p.lng));
-                  map.setZoom(16);
+                  centerMapOnPlace(p.lat, p.lng);
                 }
               }}
               followingPlaces={followingPlaces}

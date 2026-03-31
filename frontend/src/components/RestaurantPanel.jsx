@@ -587,7 +587,7 @@ export default function RestaurantPanel({
   // 모바일 레이아웃: 바텀 시트 (peek ↔ full)
   // ═══════════════════════════════════════════════════════════
   if (mobile) {
-    const peekHeight = galleryUrls.length > 0 ? 210 : 160;
+    const peekHeight = galleryUrls.length > 0 ? 260 : 210;
     return (
       <>
         <div
