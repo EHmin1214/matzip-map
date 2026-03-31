@@ -1181,7 +1181,8 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
 
           return (
             <div style={{
-              position: "fixed", inset: 0, zIndex: 60,
+              position: "fixed", top: 0, left: mobile ? 0 : -300, zIndex: 60,
+              width: "100vw", height: "100vh",
               background: C.bg,
               overflowY: "auto",
               WebkitOverflowScrolling: "touch",
@@ -1255,18 +1256,27 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
                                 cursor: onPlaceClick ? "pointer" : "default",
                               }}
                             >
-                              {photo && (
+                              {photo ? (
                                 <img src={photo} alt={p.name}
                                   style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                              ) : (
+                                <div style={{
+                                  width: "100%", height: "100%",
+                                  display: "flex", alignItems: "center", justifyContent: "center",
+                                  flexDirection: "column", gap: 4,
+                                }}>
+                                  <span className="material-symbols-outlined" style={{ fontSize: 20, color: C.outlineVariant }}>add_a_photo</span>
+                                  <p style={{ margin: 0, fontFamily: FL, fontSize: 9, color: C.outlineVariant, fontWeight: 600 }}>사진 등록</p>
+                                </div>
                               )}
                               <div style={{
                                 position: "absolute", bottom: 0, left: 0, right: 0,
-                                background: "linear-gradient(transparent, rgba(0,0,0,0.55))",
+                                background: photo ? "linear-gradient(transparent, rgba(0,0,0,0.55))" : "none",
                                 padding: "16px 6px 5px",
                               }}>
                                 <p style={{
                                   margin: 0, fontFamily: FL, fontSize: 10, fontWeight: 700,
-                                  color: "#fff", lineHeight: 1.3,
+                                  color: photo ? "#fff" : C.onSurface, lineHeight: 1.3, textAlign: "center",
                                   overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
                                 }}>{p.name}</p>
                               </div>
