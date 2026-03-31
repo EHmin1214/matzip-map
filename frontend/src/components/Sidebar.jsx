@@ -98,13 +98,16 @@ export default function Sidebar({
 
       {/* ── 브랜드 ─────────────────────────────────────────── */}
       <div style={{ padding: "0 6px", marginBottom: 14, flexShrink: 0 }}>
-        <h1 style={{
-          fontFamily: FH, fontStyle: "italic",
-          fontSize: 18, color: C.primary,
-          margin: "0 0 2px", letterSpacing: "-0.02em",
-        }}>
-          나의 공간
-        </h1>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <img src="/logo.svg" alt="" style={{ width: 22, height: 22 }} />
+          <h1 style={{
+            fontFamily: FH, fontStyle: "italic",
+            fontSize: 18, color: C.primary,
+            margin: 0, letterSpacing: "-0.02em",
+          }}>
+            나의 공간
+          </h1>
+        </div>
         <p style={{
           fontFamily: FL, fontSize: 8, fontWeight: 700,
           textTransform: "uppercase", letterSpacing: "0.22em",
