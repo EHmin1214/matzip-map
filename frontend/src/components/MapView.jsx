@@ -334,7 +334,8 @@ export default function MapView({
     if (!mapReady) return;
     const isPersonal = mapMode === "personal";
     markersRef.current.forEach((m) => m.setMap(isPersonal ? mapInstance.current : null));
-    personalMarkersRef.current.forEach((m) => m.setMap(isPersonal ? mapInstance.current : null));
+    // shared 모드에서도 personalPlaces가 넘어오면 표시 (App에서 빈 배열이면 마커 없음)
+    personalMarkersRef.current.forEach((m) => m.setMap(mapInstance.current));
     followingMarkersRef.current.forEach((m) => m.setMap(isPersonal ? mapInstance.current : null));
     sharedMarkersRef.current.forEach((m) => m.setMap(!isPersonal ? mapInstance.current : null));
   }, [mapMode, mapReady]);

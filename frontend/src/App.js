@@ -320,14 +320,22 @@ export default function App() {
     modeTarget.current = mode;
     setModeTransition("in");
     setSelectedRestaurant(null);
+    if (mode === "shared") setShowPersonal(false);
     setTimeout(() => {
       setMapMode(mode);
       setModeTransition("out");
-      setTimeout(() => setModeTransition(null), 600);
+      setTimeout(() => setModeTransition(null), 800);
     }, 600);
   }, [mapMode]);
 
   const filteredPersonalPlaces = activeFilter ? personalPlaces.filter((p) => p.status === activeFilter) : personalPlaces;
+  // 우리의 공간에서 내 장소 켰을 때 — 베스트 픽과 겹치는 장소 제외
+  const personalForMap = mapMode === "shared"
+    ? filteredPersonalPlaces.filter((p) => {
+        const allBestIds = Object.values(myBestPicks).flat().map((b) => b.personal_place_id);
+        return !allBestIds.includes(p.id);
+      })
+    : filteredPersonalPlaces;
   const visibleRestaurants = restaurants.filter((r) => !hiddenIds.has(r.id));
 
   // ── 로딩 ──────────────────────────────────────────────────
@@ -407,7 +415,7 @@ export default function App() {
           <div style={{ position: "fixed", inset: 0, zIndex: 1 }}>
             <MapView
               restaurants={visibleRestaurants}
-              personalPlaces={showPersonal ? filteredPersonalPlaces : []}
+              personalPlaces={showPersonal ? personalForMap : []}
               accounts={accounts}
               onMarkerClick={handleMarkerClick}
               onMapReady={(map) => {
@@ -433,7 +441,7 @@ export default function App() {
                 background: "linear-gradient(135deg, #faf9f6 0%, #ede0d5 50%, #faf9f6 100%)",
                 backgroundSize: "200% 200%",
                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6,
-                animation: `${modeTransition === "in" ? "modeOverlayIn 0.5s ease forwards" : "modeOverlayOut 0.55s ease forwards"}, modeGradient 1.2s ease infinite`,
+                animation: `${modeTransition === "in" ? "modeOverlayIn 0.5s ease forwards" : "modeOverlayOut 0.75s ease forwards"}, modeGradient 1.2s ease infinite`,
               }}>
                 <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 17, color: "#655d54", letterSpacing: "-0.02em", margin: 0, fontWeight: 600 }}>
                   {modeTarget.current === "shared" ? "우리의 공간" : "나의 공간"}
@@ -672,7 +680,7 @@ export default function App() {
           }}>
             <MapView
               restaurants={visibleRestaurants}
-              personalPlaces={showPersonal ? filteredPersonalPlaces : []}
+              personalPlaces={showPersonal ? personalForMap : []}
               accounts={accounts}
               onMarkerClick={(id, isPersonal) => {
                 handleMarkerClick(id, isPersonal);
@@ -707,7 +715,7 @@ export default function App() {
                 background: "linear-gradient(135deg, #faf9f6 0%, #ede0d5 50%, #faf9f6 100%)",
                 backgroundSize: "200% 200%",
                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6,
-                animation: `${modeTransition === "in" ? "modeOverlayIn 0.5s ease forwards" : "modeOverlayOut 0.55s ease forwards"}, modeGradient 1.2s ease infinite`,
+                animation: `${modeTransition === "in" ? "modeOverlayIn 0.5s ease forwards" : "modeOverlayOut 0.75s ease forwards"}, modeGradient 1.2s ease infinite`,
               }}>
                 <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 17, color: "#655d54", letterSpacing: "-0.02em", margin: 0, fontWeight: 600 }}>
                   {modeTarget.current === "shared" ? "우리의 공간" : "나의 공간"}
