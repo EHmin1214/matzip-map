@@ -359,7 +359,7 @@ export default function MapView({
       });
 
       const folderColor = getFolderColor(r.folder_id);
-      const dotColor = folderColor || MY_PRIMARY;
+      const dotColor = folderColor || STATUS_DOT[r.status] || MY_PRIMARY;
       const pillIcon = {
         content: myMarker({ name: r.name, status: r.status, shared: sharedWith.length > 0, folderColor }),
         anchor: new window.naver.maps.Point(6, 12),
