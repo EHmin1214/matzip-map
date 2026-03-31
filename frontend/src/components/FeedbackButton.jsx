@@ -53,18 +53,19 @@ export default function FeedbackButton() {
       <button
         onClick={() => setOpen(true)}
         style={{
-          width: 36, height: 36, borderRadius: "50%",
+          padding: "6px 12px", borderRadius: 999,
           background: "rgba(250,249,246,0.92)",
           border: "1px solid rgba(101,93,84,0.12)",
           boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
           cursor: "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center",
+          display: "flex", alignItems: "center", gap: 4,
+          fontFamily: "'Manrope', -apple-system, sans-serif",
+          fontSize: 11, fontWeight: 600, color: C.primary,
         }}
         title="이슈/아이디어 보고"
       >
-        <span className="material-symbols-outlined" style={{ fontSize: 18, color: C.primary }}>
-          campaign
-        </span>
+        <span style={{ fontSize: 14 }}>📢</span>
+        피드백
       </button>
 
       {/* 모달 */}
