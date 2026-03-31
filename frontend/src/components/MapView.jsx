@@ -212,26 +212,40 @@ export default function MapView({
 
   // 지도 초기화
   useEffect(() => {
+    const FALLBACK = { lat: 37.5665, lng: 126.978 }; // 서울 시청
+
+    const initMap = (lat, lng) => {
+      mapInstance.current = new window.naver.maps.Map(mapRef.current, {
+        center: new window.naver.maps.LatLng(lat, lng),
+        zoom: 13,
+        mapTypeControl: false,
+        scaleControl: false,
+        logoControl: false,
+        mapDataControl: false,
+      });
+      window.naver.maps.Event.addListener(mapInstance.current, "zoom_changed", (zoom) => {
+        const wasPill = zoomRef.current >= ZOOM_THRESHOLD;
+        const isPill = zoom >= ZOOM_THRESHOLD;
+        zoomRef.current = zoom;
+        if (wasPill !== isPill) updateMarkerIcons(isPill);
+      });
+      setMapReady(true);
+      if (onMapReady) onMapReady(mapInstance.current);
+    };
+
     const check = setInterval(() => {
       if (window.naver?.maps) {
         clearInterval(check);
-        mapInstance.current = new window.naver.maps.Map(mapRef.current, {
-          center: new window.naver.maps.LatLng(37.5665, 126.978),
-          zoom: 13,
-          mapTypeControl: false,
-          scaleControl: false,
-          logoControl: false,
-          mapDataControl: false,
-        });
-        // 줌 변경 시 마커 pill ↔ dot 전환
-        window.naver.maps.Event.addListener(mapInstance.current, "zoom_changed", (zoom) => {
-          const wasPill = zoomRef.current >= ZOOM_THRESHOLD;
-          const isPill = zoom >= ZOOM_THRESHOLD;
-          zoomRef.current = zoom;
-          if (wasPill !== isPill) updateMarkerIcons(isPill);
-        });
-        setMapReady(true);
-        if (onMapReady) onMapReady(mapInstance.current);
+        // 현위치 기반 초기화, 실패 시 서울 시청 폴백
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => initMap(pos.coords.latitude, pos.coords.longitude),
+            () => initMap(FALLBACK.lat, FALLBACK.lng),
+            { timeout: 3000, maximumAge: 300000 }
+          );
+        } else {
+          initMap(FALLBACK.lat, FALLBACK.lng);
+        }
       }
     }, 100);
     return () => clearInterval(check);
