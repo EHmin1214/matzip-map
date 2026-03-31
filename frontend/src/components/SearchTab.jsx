@@ -118,38 +118,14 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUse
           borderBottom: `1px solid ${C.container}`,
           padding: "14px 40px",
         }}>
-          <h1 style={{ fontFamily: FH, fontStyle: "italic", fontSize: 22, color: C.primary, margin: 0 }}>My Space</h1>
+          <h1 style={{ fontFamily: FH, fontStyle: "italic", fontSize: 15, color: C.primary, margin: 0 }}>Discovery</h1>
         </header>
       )}
 
-      <main style={{ maxWidth: 960, margin: "0 auto", padding: mobile ? "20px 16px" : "32px 28px" }}>
-
-        {/* 에디토리얼 헤더 */}
-        <div style={{
-          display: "flex", justifyContent: "space-between", alignItems: "flex-end",
-          marginBottom: 48, flexWrap: "wrap", gap: 16,
-        }}>
-          <div style={{ maxWidth: 480 }}>
-            <h2 style={{
-              fontFamily: FH, fontSize: mobile ? 36 : 40,
-              fontWeight: 400, color: C.onSurface,
-              margin: "0 0 12px", letterSpacing: "-0.02em", lineHeight: 1.1,
-            }}>Discovery</h2>
-            <p style={{
-              fontFamily: FH, fontStyle: "italic", fontSize: 15,
-              color: "#78716c", lineHeight: 1.6, margin: 0, opacity: 0.8,
-            }}>
-              나만의 공간 컬렉션에 새로운 기록을 추가하세요.
-            </p>
-          </div>
-          <div style={{ textAlign: "right" }}>
-            <p style={{ fontFamily: FL, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.2em", color: "#a8a29e", margin: 0 }}>Last Indexed</p>
-            <p style={{ fontFamily: FL, fontSize: 12, color: "#78716c", margin: 0 }}>{new Date().toLocaleDateString("ko-KR")}</p>
-          </div>
-        </div>
+      <main style={{ maxWidth: 960, margin: "0 auto", padding: mobile ? "20px 16px" : "16px 18px" }}>
 
         {/* 검색 모드 토글 */}
-        <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
+        <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
           {[
             { key: "place", label: "장소", icon: "location_on" },
             { key: "person", label: "사람", icon: "person_search" },
@@ -157,29 +133,29 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUse
             <button key={m.key}
               onClick={() => { setSearchMode(m.key); setResults([]); setUserResults([]); setError(""); }}
               style={{
-                flex: 1, padding: "10px 16px",
-                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                flex: 1, padding: "8px 12px",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
                 background: searchMode === m.key ? C.primary : C.containerLow,
                 color: searchMode === m.key ? "#fff6ef" : "#78716c",
-                border: "none", borderRadius: 10, cursor: "pointer",
-                fontFamily: FL, fontSize: 13, fontWeight: 700,
+                border: "none", borderRadius: 8, cursor: "pointer",
+                fontFamily: FL, fontSize: 11, fontWeight: 700,
                 transition: "all 0.15s",
               }}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{m.icon}</span>
+              <span className="material-symbols-outlined" style={{ fontSize: 15 }}>{m.icon}</span>
               {m.label}
             </button>
           ))}
         </div>
 
         {/* 검색창 */}
-        <section style={{ marginBottom: 48 }}>
+        <section style={{ marginBottom: 20 }}>
           <div style={{ position: "relative" }}>
             <div style={{
-              position: "absolute", left: 20, top: "50%", transform: "translateY(-50%)",
+              position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)",
               pointerEvents: "none",
             }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 22, color: searching ? C.primary : "#a8a29e", transition: "color 0.2s" }}>search</span>
+              <span className="material-symbols-outlined" style={{ fontSize: 17, color: searching ? C.primary : "#a8a29e", transition: "color 0.2s" }}>search</span>
             </div>
             <input
               value={query}
@@ -188,20 +164,20 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUse
               placeholder={searchMode === "place" ? "장소 이름과 지역으로 검색..." : "닉네임으로 검색..."}
               autoFocus={!mobile}
               style={{
-                width: "100%", padding: "20px 20px 20px 54px",
+                width: "100%", padding: "13px 14px 13px 38px",
                 background: C.containerLow, border: "none",
-                borderRadius: 12, outline: "none",
-                fontFamily: FL, fontSize: 17, color: C.onSurface,
+                borderRadius: 10, outline: "none",
+                fontFamily: FL, fontSize: 12, color: C.onSurface,
                 boxSizing: "border-box", transition: "background 0.2s",
               }}
               onFocus={(e) => e.target.style.background = C.container}
               onBlur={(e) => e.target.style.background = C.containerLow}
             />
-            <div style={{ position: "absolute", right: 20, top: "50%", transform: "translateY(-50%)" }}>
+            <div style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)" }}>
               {searching ? (
-                <span style={{ fontFamily: FL, fontSize: 12, color: "#a8a29e" }}>검색 중...</span>
+                <span style={{ fontFamily: FL, fontSize: 10, color: "#a8a29e" }}>검색 중...</span>
               ) : (
-                <span className="material-symbols-outlined" style={{ fontSize: 20, color: "#c7c4bf", cursor: "pointer" }}
+                <span className="material-symbols-outlined" style={{ fontSize: 16, color: "#c7c4bf", cursor: "pointer" }}
                   onClick={() => handleSearch()}>tune</span>
               )}
             </div>
@@ -209,17 +185,17 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUse
 
           {/* 추천 태그 (장소 모드만) */}
           {searchMode === "place" && (
-            <div style={{ marginTop: 16, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
-              <span style={{ fontFamily: FL, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.15em", color: "#a8a29e", marginRight: 4 }}>
+            <div style={{ marginTop: 10, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
+              <span style={{ fontFamily: FL, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.15em", color: "#a8a29e", marginRight: 2 }}>
                 Suggested:
               </span>
               {SUGGESTIONS.map((s) => (
                 <button key={s} onClick={() => { setQuery(s); handleSearch(s); }}
                   style={{
-                    padding: "5px 14px",
+                    padding: "4px 10px",
                     borderRadius: 999, border: "none",
                     background: C.containerLow,
-                    fontFamily: FL, fontSize: 10, fontWeight: 600,
+                    fontFamily: FL, fontSize: 9, fontWeight: 600,
                     textTransform: "uppercase", letterSpacing: "0.1em",
                     color: "#78716c", cursor: "pointer", transition: "all 0.15s",
                   }}
@@ -236,10 +212,10 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUse
         {/* 저장 성공 메시지 */}
         {savedMsg && (
           <div style={{
-            padding: "14px 20px", background: C.containerLowest,
-            borderLeft: `4px solid ${C.primary}`,
-            borderRadius: 8, marginBottom: 24,
-            fontFamily: FH, fontStyle: "italic", fontSize: 14, color: C.onSurface,
+            padding: "10px 14px", background: C.containerLowest,
+            borderLeft: `3px solid ${C.primary}`,
+            borderRadius: 6, marginBottom: 16,
+            fontFamily: FH, fontStyle: "italic", fontSize: 12, color: C.onSurface,
           }}>
             ✓ {savedMsg}
           </div>
@@ -248,10 +224,10 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUse
         {/* 에러 */}
         {error && (
           <div style={{
-            padding: "14px 20px", background: "#fef0ec",
-            borderLeft: "4px solid #9e422c",
-            borderRadius: 8, marginBottom: 24,
-            fontFamily: FH, fontStyle: "italic", fontSize: 14, color: "#9e422c",
+            padding: "10px 14px", background: "#fef0ec",
+            borderLeft: "3px solid #9e422c",
+            borderRadius: 6, marginBottom: 16,
+            fontFamily: FH, fontStyle: "italic", fontSize: 12, color: "#9e422c",
           }}>
             {error}
           </div>
@@ -259,9 +235,9 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUse
 
         {/* 사람 검색 결과 */}
         {userResults.length > 0 && (
-          <section style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <section style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             <span style={{
-              fontFamily: FL, fontSize: 9, fontWeight: 600,
+              fontFamily: FL, fontSize: 8, fontWeight: 600,
               textTransform: "uppercase", letterSpacing: "0.2em",
               color: C.primary, padding: "0 4px",
             }}>
@@ -272,7 +248,7 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUse
               return (
                 <div key={u.id} style={{
                   display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "12px 16px", borderRadius: 12,
+                  padding: "10px 12px", borderRadius: 10,
                   background: C.containerLowest, transition: "background 0.2s",
                 }}
                   onMouseEnter={(e) => e.currentTarget.style.background = C.bg}
@@ -280,21 +256,21 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUse
                 >
                   <div
                     onClick={() => onViewUserProfile?.(u.nickname)}
-                    style={{ display: "flex", alignItems: "center", gap: 12, cursor: "pointer", flex: 1 }}
+                    style={{ display: "flex", alignItems: "center", gap: 10, cursor: "pointer", flex: 1 }}
                   >
                     <div style={{
-                      width: 40, height: 40, borderRadius: "50%", flexShrink: 0,
+                      width: 32, height: 32, borderRadius: "50%", flexShrink: 0,
                       background: u.profile_photo_url
                         ? `url(${u.profile_photo_url}) center/cover`
                         : `linear-gradient(135deg, #595149, #655d54)`,
                       display: "flex", alignItems: "center", justifyContent: "center",
                       fontFamily: FH, fontStyle: "italic",
-                      fontSize: 16, color: "#fff6ef", fontWeight: 700,
+                      fontSize: 13, color: "#fff6ef", fontWeight: 700,
                     }}>
                       {!u.profile_photo_url && u.nickname?.[0]?.toUpperCase()}
                     </div>
                     <div>
-                      <p style={{ margin: 0, fontFamily: FL, fontSize: 14, fontWeight: 600, color: C.onSurface }}>
+                      <p style={{ margin: 0, fontFamily: FL, fontSize: 12, fontWeight: 600, color: C.onSurface }}>
                         {u.nickname}
                       </p>
                       {u.instagram_url && (
@@ -342,19 +318,19 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUse
 
         {/* 장소 검색 결과 */}
         {results.length > 0 && (
-          <section style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <section style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {results.map((place, idx) => (
               <div
                 key={place.naver_place_id || idx}
                 style={{
-                  background: C.containerLowest, borderRadius: 16,
+                  background: C.containerLowest, borderRadius: 10,
                   overflow: "hidden", transition: "background 0.3s",
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.background = C.bg}
                 onMouseLeave={(e) => e.currentTarget.style.background = C.containerLowest}
               >
                 {idx === 0 && (
-                  <div style={{ padding: "20px 24px 0" }}>
+                  <div style={{ padding: "14px 16px 0" }}>
                     <span style={{
                       fontFamily: FL, fontSize: 9, fontWeight: 600,
                       textTransform: "uppercase", letterSpacing: "0.2em",
@@ -365,8 +341,8 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUse
                   </div>
                 )}
 
-                <div style={{ padding: mobile ? "16px" : idx === 0 ? "16px 24px 24px" : "14px 24px" }}>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ padding: mobile ? "12px" : idx === 0 ? "12px 16px 16px" : "10px 16px" }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                     <div>
                       {place.category && (
                         <p style={{ margin: "0 0 6px", fontFamily: FL, fontSize: 10, textTransform: "uppercase", letterSpacing: "0.15em", color: "#a8a29e" }}>
@@ -375,7 +351,7 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUse
                       )}
                       <h3 style={{
                         margin: "0 0 4px", fontFamily: FH,
-                        fontSize: idx === 0 ? (mobile ? 22 : 24) : (mobile ? 16 : 18),
+                        fontSize: idx === 0 ? (mobile ? 18 : 17) : (mobile ? 14 : 14),
                         fontWeight: 400, color: C.onSurface, letterSpacing: "-0.01em",
                       }}>
                         {place.name}
@@ -383,7 +359,7 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUse
                       {place.address && (
                         <p style={{
                           margin: "0 0 8px", fontFamily: FH, fontStyle: "italic",
-                          fontSize: 13, color: "#78716c",
+                          fontSize: 11, color: "#78716c",
                           display: "flex", alignItems: "center", gap: 4,
                         }}>
                           <span className="material-symbols-outlined" style={{ fontSize: 14, flexShrink: 0 }}>location_on</span>
@@ -417,18 +393,18 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUse
                         color: C.outlineVariant,
                         width: "100%", boxSizing: "border-box",
                       }}>
-                        <span className="material-symbols-outlined" style={{ fontSize: 14 }}>check_circle</span>
+                        <span className="material-symbols-outlined" style={{ fontSize: 12 }}>check_circle</span>
                         추가된 공간
                       </span>
                     ) : (
                       <button
                         onClick={() => setPendingPlace(place)}
                         style={{
-                          display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                          padding: "12px 20px",
+                          display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                          padding: "9px 16px",
                           background: C.primary, color: "#fff6ef",
-                          border: "none", borderRadius: 8,
-                          fontFamily: FL, fontSize: 12, fontWeight: 700,
+                          border: "none", borderRadius: 7,
+                          fontFamily: FL, fontSize: 11, fontWeight: 700,
                           letterSpacing: "0.04em",
                           cursor: "pointer", transition: "background 0.15s",
                           width: "100%",
@@ -450,10 +426,10 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUse
         {/* 초기 상태 — 빈 화면 */}
         {results.length === 0 && userResults.length === 0 && !error && !savedMsg && !searching && (
           <div style={{ textAlign: "center", padding: "80px 0" }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 40, color: "#d6d3d1", display: "block", marginBottom: 20 }}>
+            <span className="material-symbols-outlined" style={{ fontSize: 32, color: "#d6d3d1", display: "block", marginBottom: 14 }}>
               {searchMode === "place" ? "search" : "person_search"}
             </span>
-            <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 18, color: "#a8a29e", margin: "0 0 8px" }}>
+            <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 14, color: "#a8a29e", margin: "0 0 6px" }}>
               {searchMode === "place" ? "가게 이름으로 검색해보세요" : "닉네임으로 사람을 찾아보세요"}
             </p>
             <p style={{ fontFamily: FL, fontSize: 11, color: "#a8a29e", letterSpacing: "0.1em" }}>

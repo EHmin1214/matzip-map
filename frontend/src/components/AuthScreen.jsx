@@ -136,11 +136,39 @@ export default function AuthScreen({ embedded = false }) {
             }} />
           </div>
 
+          {/* 모드 탭 */}
+          <div style={{
+            display: "flex", gap: 0, marginBottom: 28,
+            background: C.container, borderRadius: 10, padding: 3,
+          }}>
+            {[
+              { key: "login", label: "로그인" },
+              { key: "register", label: "회원가입" },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => { setMode(tab.key); setError(""); }}
+                style={{
+                  flex: 1, padding: "10px 0",
+                  background: mode === tab.key ? C.surface : "transparent",
+                  border: "none", borderRadius: 8,
+                  fontFamily: FL, fontSize: 13, fontWeight: mode === tab.key ? 700 : 500,
+                  color: mode === tab.key ? C.onSurface : C.outline,
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                  boxShadow: mode === tab.key ? "0 1px 4px rgba(0,0,0,0.08)" : "none",
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
           {/* 헤더 */}
-          <div style={{ marginBottom: 32 }}>
+          <div style={{ marginBottom: 28 }}>
             <h2 style={{
-              fontFamily: FH, fontSize: 32, fontWeight: 700,
-              color: C.onSurface, margin: "0 0 8px", letterSpacing: "-0.5px",
+              fontFamily: FH, fontSize: 28, fontWeight: 700,
+              color: C.onSurface, margin: "0 0 6px", letterSpacing: "-0.5px",
             }}>
               {mode === "login" ? "다시 오셨군요" : "처음 오셨군요"}
             </h2>
@@ -235,29 +263,6 @@ export default function AuthScreen({ embedded = false }) {
             카카오로 시작하기
           </button>
 
-          {/* 모드 전환 */}
-          <div style={{
-            marginTop: 28, paddingTop: 28,
-            borderTop: `1px solid ${C.outline}22`,
-            textAlign: "center",
-          }}>
-            <p style={{ fontFamily: FL, fontSize: 13, color: C.variant, margin: 0 }}>
-              {mode === "login" ? "처음이신가요?" : "이미 계정이 있나요?"}
-              {" "}
-              <button
-                onClick={() => { setMode(mode === "login" ? "register" : "login"); setError(""); }}
-                style={{
-                  background: "none", border: "none",
-                  fontFamily: FL, fontSize: 13, fontWeight: 700,
-                  color: C.primary, cursor: "pointer",
-                  textDecoration: "underline", textUnderlineOffset: 3,
-                  padding: 0,
-                }}
-              >
-                {mode === "login" ? "계정 만들기" : "로그인"}
-              </button>
-            </p>
-          </div>
         </div>
       </div>
 
