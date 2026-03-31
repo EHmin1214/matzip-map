@@ -97,8 +97,8 @@ export default function Sidebar({
     }}>
 
       {/* ── 브랜드 ─────────────────────────────────────────── */}
-      <div style={{ padding: "0 6px", marginBottom: 14, flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
-        <img src="/logo.svg" alt="" style={{ width: 40, height: 40, flexShrink: 0 }} />
+      <div style={{ padding: "0 6px", marginBottom: 14, flexShrink: 0, display: "flex", alignItems: "center", gap: 4 }}>
+        <img src="/logo.svg" alt="" style={{ width: 45, height: 45, flexShrink: 0 }} />
         <div>
           <h1 style={{
             fontFamily: FH, fontStyle: "italic",
