@@ -46,6 +46,8 @@
   </head>
   <body>
     <noscript>JavaScript가 필요합니다.</noscript>
+    <div id="__crash" style="position:fixed;bottom:0;left:0;right:0;z-index:99999;padding:8px 12px;font:11px/1.4 monospace;color:#900;background:#ffe0e0;display:none"></div>
+    <script>document.getElementById('__crash').style.display='none';window.addEventListener('error',function(){document.getElementById('__crash').style.display='block'});window.addEventListener('unhandledrejection',function(){document.getElementById('__crash').style.display='block'})</script>
     <div id="root"></div>
   </body>
 </html>

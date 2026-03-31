@@ -59,13 +59,18 @@ export default function Sidebar({
 
   useEffect(() => {
     if (!user) return;
-    // Seed default folders if they don't exist yet, then fetch
-    axios.post(`${API_BASE}/folders/seed-defaults?user_id=${user.user_id}`)
-      .catch(() => {})
-      .finally(() => {
-        axios.get(`${API_BASE}/folders/?user_id=${user.user_id}`)
-          .then((res) => setFolders(res.data)).catch(() => {});
-      });
+    const seeded = sessionStorage.getItem(`folders_seeded_${user.user_id}`);
+    const fetchFolders = () =>
+      axios.get(`${API_BASE}/folders/?user_id=${user.user_id}`)
+        .then((res) => setFolders(res.data)).catch(() => {});
+    if (!seeded) {
+      axios.post(`${API_BASE}/folders/seed-defaults?user_id=${user.user_id}`)
+        .then(() => sessionStorage.setItem(`folders_seeded_${user.user_id}`, "1"))
+        .catch(() => {})
+        .finally(fetchFolders);
+    } else {
+      fetchFolders();
+    }
   }, [user]);
 
   const getFolderColor = (folderId) => {
