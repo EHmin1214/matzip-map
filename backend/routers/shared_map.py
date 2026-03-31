@@ -55,6 +55,12 @@ class BestPickOut(BaseModel):
         from_attributes = True
 
 
+class PickerOut(BaseModel):
+    user_id: int
+    nickname: str
+    profile_photo_url: str | None
+    is_public: bool
+
 class SharedPlaceOut(BaseModel):
     name: str
     address: str | None
@@ -64,6 +70,7 @@ class SharedPlaceOut(BaseModel):
     naver_place_url: str | None
     category: str
     pick_count: int
+    pickers: list[PickerOut] = []
 
 
 # ── Endpoints ─────────────────────────────────────────────────
@@ -87,12 +94,29 @@ def list_shared_places(
         key = p.naver_place_id or f"{round(p.lat, 3)}_{round(p.lng, 3)}"
         groups.setdefault(key, []).append(p)
 
+    # 유저 정보 일괄 조회
+    user_ids = set(p.user_id for p in all_picks)
+    users_map = {}
+    if user_ids:
+        users = db.query(User).filter(User.id.in_(user_ids)).all()
+        users_map = {u.id: u for u in users}
+
     result = []
     for picks in groups.values():
         rep = picks[0]
-        # 유니크 유저 수 = 실제 추천 인원
-        unique_users = len(set(p.user_id for p in picks))
-        # 대표 카테고리 = 가장 많이 선택된 카테고리
+        seen_users = set()
+        pickers = []
+        for p in picks:
+            if p.user_id in seen_users:
+                continue
+            seen_users.add(p.user_id)
+            u = users_map.get(p.user_id)
+            if u and u.is_public:
+                pickers.append(PickerOut(
+                    user_id=u.id, nickname=u.nickname,
+                    profile_photo_url=u.profile_photo_url,
+                    is_public=True,
+                ))
         cat_counts = Counter(p.category for p in picks)
         top_category = cat_counts.most_common(1)[0][0]
         result.append(SharedPlaceOut(
@@ -103,7 +127,8 @@ def list_shared_places(
             naver_place_id=rep.naver_place_id,
             naver_place_url=rep.naver_place_url,
             category=top_category,
-            pick_count=unique_users,
+            pick_count=len(seen_users),
+            pickers=pickers,
         ))
     result.sort(key=lambda x: x.pick_count, reverse=True)
     return result

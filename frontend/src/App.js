@@ -621,6 +621,7 @@ export default function App() {
               onBestPickAdd={handleBestPickAdd}
               onBestPickReplace={handleBestPickReplace}
               onBestPickRemove={handleBestPickRemove}
+              onViewUserProfile={handleViewUserProfile}
             />
           )}
 
@@ -776,6 +777,7 @@ export default function App() {
               onBestPickAdd={handleBestPickAdd}
               onBestPickReplace={handleBestPickReplace}
               onBestPickRemove={handleBestPickRemove}
+              onViewUserProfile={handleViewUserProfile}
             />
           )}
         </>

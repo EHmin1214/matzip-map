@@ -343,64 +343,97 @@ export default function Sidebar({
               </div>
             )}
             <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
-              {personalPlaces
-                .filter((p) => !placeFilter || p.name.toLowerCase().includes(placeFilter.toLowerCase()))
-                .sort((a, b) => {
-                  if (sortMode === "oldest") {
-                    return new Date(a.created_at || 0) - new Date(b.created_at || 0);
-                  }
-                  if (sortMode === "collection") {
-                    const fa = a.folder_id || 999999;
-                    const fb = b.folder_id || 999999;
-                    if (fa !== fb) return fa - fb;
-                    return new Date(b.created_at || 0) - new Date(a.created_at || 0);
-                  }
-                  // newest (default)
-                  return new Date(b.created_at || 0) - new Date(a.created_at || 0);
-                })
-                .slice(0, 50).map((p) => (
-                <div key={p.id}
-                  onClick={() => onPlaceSelect && onPlaceSelect(p)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 6,
-                    padding: "4px 4px", borderRadius: 6,
-                    cursor: "pointer", transition: "background 0.12s",
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = C.surfaceLow}
-                  onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-                >
-                  <div style={{
-                    width: 3, height: 18, borderRadius: 2,
-                    background: getFolderColor(p.folder_id), flexShrink: 0,
-                  }} />
-                  <span style={{ fontSize: 11 }}>{statusEmoji(p.status)}</span>
-                  <p style={{
-                    margin: 0, fontFamily: FL, fontSize: 11, fontWeight: 600,
-                    color: C.onSurface, flex: 1,
-                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                  }}>
-                    {p.name}
-                  </p>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onDeletePersonalPlace(p.id); }}
+              {(() => {
+                const filtered = personalPlaces
+                  .filter((p) => !placeFilter || p.name.toLowerCase().includes(placeFilter.toLowerCase()));
+                const timeSort = sortMode === "oldest"
+                  ? (a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0)
+                  : (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0);
+
+                const PlaceRow = ({ p }) => (
+                  <div key={p.id}
+                    onClick={() => onPlaceSelect && onPlaceSelect(p)}
                     style={{
-                      background: "none", border: "none",
-                      fontFamily: FL, fontSize: 9, color: C.outlineVariant,
-                      cursor: "pointer", padding: "2px 4px",
-                      transition: "color 0.15s",
+                      display: "flex", alignItems: "center", gap: 6,
+                      padding: "4px 4px", borderRadius: 6,
+                      cursor: "pointer", transition: "background 0.12s",
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.color = "#9e422c"}
-                    onMouseLeave={(e) => e.currentTarget.style.color = C.outlineVariant}
+                    onMouseEnter={(e) => e.currentTarget.style.background = C.surfaceLow}
+                    onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
                   >
-                    삭제
-                  </button>
-                </div>
-              ))}
-              {personalPlaces.length === 0 && (
-                <p style={{ fontFamily: FL, fontSize: 11, color: C.outlineVariant, margin: "8px 4px" }}>
-                  아직 저장된 공간이 없어요
-                </p>
-              )}
+                    {sortMode !== "collection" && <div style={{
+                      width: 3, height: 18, borderRadius: 2,
+                      background: getFolderColor(p.folder_id), flexShrink: 0,
+                    }} />}
+                    <span style={{ fontSize: 11 }}>{statusEmoji(p.status)}</span>
+                    <p style={{
+                      margin: 0, fontFamily: FL, fontSize: 11, fontWeight: 600,
+                      color: C.onSurface, flex: 1,
+                      overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    }}>
+                      {p.name}
+                    </p>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onDeletePersonalPlace(p.id); }}
+                      style={{
+                        background: "none", border: "none",
+                        fontFamily: FL, fontSize: 9, color: C.outlineVariant,
+                        cursor: "pointer", padding: "2px 4px",
+                        transition: "color 0.15s",
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.color = "#9e422c"}
+                      onMouseLeave={(e) => e.currentTarget.style.color = C.outlineVariant}
+                    >
+                      삭제
+                    </button>
+                  </div>
+                );
+
+                if (sortMode === "collection") {
+                  // 컬렉션별 그룹
+                  const grouped = {};
+                  filtered.forEach((p) => {
+                    const fid = p.folder_id || 0;
+                    (grouped[fid] = grouped[fid] || []).push(p);
+                  });
+                  // 폴더 순서: folders 배열 순서 → 미분류(0)는 마지막
+                  const orderedFids = folders.map((f) => f.id).filter((id) => grouped[id]);
+                  if (grouped[0]) orderedFids.push(0);
+                  return orderedFids.length === 0 ? (
+                    <p style={{ fontFamily: FL, fontSize: 11, color: C.outlineVariant, margin: "8px 4px" }}>
+                      아직 저장된 공간이 없어요
+                    </p>
+                  ) : orderedFids.map((fid) => {
+                    const folder = folders.find((f) => f.id === fid);
+                    const color = folder?.color || C.outlineVariant;
+                    const name = folder?.name || "미분류";
+                    const items = grouped[fid].sort(timeSort);
+                    return (
+                      <div key={fid} style={{ marginBottom: 10 }}>
+                        <div style={{
+                          display: "flex", alignItems: "center", gap: 5,
+                          padding: "4px 4px 2px", marginBottom: 2,
+                        }}>
+                          <div style={{ width: 3, height: 12, borderRadius: 2, background: color, flexShrink: 0 }} />
+                          <p style={{
+                            margin: 0, fontFamily: FL, fontSize: 9, fontWeight: 700,
+                            textTransform: "uppercase", letterSpacing: "0.1em",
+                            color: C.outlineVariant,
+                          }}>{name} ({items.length})</p>
+                        </div>
+                        {items.map((p) => <PlaceRow key={p.id} p={p} />)}
+                      </div>
+                    );
+                  });
+                }
+
+                // newest / oldest
+                return filtered.length === 0 ? (
+                  <p style={{ fontFamily: FL, fontSize: 11, color: C.outlineVariant, margin: "8px 4px" }}>
+                    아직 저장된 공간이 없어요
+                  </p>
+                ) : filtered.sort(timeSort).slice(0, 50).map((p) => <PlaceRow key={p.id} p={p} />);
+              })()}
             </div>
           </div>
 

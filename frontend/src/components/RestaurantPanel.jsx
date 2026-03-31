@@ -31,6 +31,7 @@ export default function RestaurantPanel({
   restaurant, onClose, onHide, sidebarWidth = 240,
   onPlaceUpdated, mapInstance, onDataChange,
   myBestPicks = {}, onBestPickAdd, onBestPickReplace, onBestPickRemove,
+  onViewUserProfile,
 }) {
   const { user } = useUser();
   const mobile = isMobile();
@@ -439,7 +440,7 @@ export default function RestaurantPanel({
               </button>
             )}
             {showBestMenu && !bestSlotFull && (
-              <div style={{
+              <div onClick={(e) => e.stopPropagation()} style={{
                 position: "absolute", top: "100%", left: 0, marginTop: 4,
                 display: "flex", flexDirection: "column", gap: 2, zIndex: 10,
                 background: C.surfaceLowest, borderRadius: 8, padding: 6,
@@ -461,7 +462,7 @@ export default function RestaurantPanel({
               </div>
             )}
             {showBestMenu && bestSlotFull && (
-              <div style={{
+              <div onClick={(e) => e.stopPropagation()} style={{
                 position: "absolute", top: "100%", left: 0, marginTop: 4,
                 zIndex: 10, background: C.surfaceLowest, borderRadius: 8, padding: 8,
                 boxShadow: "0 4px 16px rgba(47,52,48,0.15)",
@@ -615,6 +616,42 @@ export default function RestaurantPanel({
     </div>
   ) : null;
 
+  const pickers = r.pickers || [];
+  const PickersBlock = pickers.length > 0 ? (
+    <div style={{ marginBottom: 12 }}>
+      <p style={{
+        fontFamily: FL, fontSize: 9, fontWeight: 700,
+        textTransform: "uppercase", letterSpacing: "0.15em",
+        color: C.outlineVariant, margin: "0 0 6px",
+      }}>추가한 사람들 {pickers.length}명</p>
+      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+        {pickers.map((p) => (
+          <button
+            key={p.user_id}
+            onClick={() => onViewUserProfile && onViewUserProfile(p.nickname)}
+            style={{
+              display: "flex", alignItems: "center", gap: 5,
+              background: C.surfaceLow, borderRadius: 6, padding: "4px 8px",
+              border: "none", cursor: "pointer", transition: "background 0.12s",
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.background = C.container}
+            onMouseLeave={(e) => e.currentTarget.style.background = C.surfaceLow}
+          >
+            <div style={{
+              width: 18, height: 18, borderRadius: "50%",
+              background: p.profile_photo_url
+                ? `url(${p.profile_photo_url}) center/cover`
+                : `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontSize: 8, color: "white", fontWeight: 700, flexShrink: 0, fontFamily: FL,
+            }}>{!p.profile_photo_url && p.nickname?.[0]?.toUpperCase()}</div>
+            <span style={{ fontFamily: FL, fontSize: 11, color: C.onSurfaceVariant }}>{p.nickname}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  ) : null;
+
   const SocialBlock = r.isPersonal && r.id ? (
     <div style={{ marginTop: 4 }}>
       {/* 액션 바 — 피드 스타일 */}
@@ -694,16 +731,16 @@ export default function RestaurantPanel({
               onKeyDown={(e) => e.key === "Enter" && handleComment()}
               placeholder={replyTo ? `${replyTo.author_nickname}에게 답글 달기...` : "댓글 달기..."}
               style={{
-                flex: 1, padding: "8px 0",
+                flex: 1, padding: "6px 0",
                 background: "none", border: "none", borderBottom: `1px solid ${C.container}`,
-                fontFamily: FL, fontSize: 12, color: C.onSurface, outline: "none",
+                fontFamily: FL, fontSize: 11, color: C.onSurface, outline: "none",
               }}
             />
             {commentInput.trim() && (
               <button onClick={handleComment} disabled={submittingComment} style={{
                 background: "none", border: "none", cursor: "pointer",
-                fontFamily: FL, fontSize: 12, fontWeight: 700, color: C.primary,
-                padding: "8px 0", opacity: submittingComment ? 0.5 : 1,
+                fontFamily: FL, fontSize: 11, fontWeight: 700, color: C.primary,
+                padding: "6px 0", opacity: submittingComment ? 0.5 : 1,
               }}>게시</button>
             )}
           </div>
@@ -769,8 +806,9 @@ export default function RestaurantPanel({
             {/* 좋아요/댓글 */}
             {SocialBlock}
 
-            {/* 함께 추가한 사람들 */}
+            {/* 함께 추가한 사람들 / 우리의 공간 추가자 */}
             {NeighborsBlock}
+            {PickersBlock}
           </div>
 
           {/* peek 상태에서 스크롤 유도 화살표 */}
@@ -906,7 +944,7 @@ function PanelCommentThread({ comment, depth, user, onReply, onDelete }) {
     <>
       <div style={{ marginBottom: 4, paddingLeft: depth * 20, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div style={{ flex: 1 }}>
-          <p style={{ margin: 0, fontFamily: FL, fontSize: 12, color: "#2f3430", lineHeight: 1.5 }}>
+          <p style={{ margin: 0, fontFamily: FL, fontSize: 11, color: "#2f3430", lineHeight: 1.5 }}>
             <span style={{ fontWeight: 700 }}>{comment.author_nickname}</span>{" "}
             <span style={{ color: "#5c605c" }}>{comment.content}</span>
           </p>
