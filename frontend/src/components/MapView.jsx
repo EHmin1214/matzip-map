@@ -134,27 +134,22 @@ export default function MapView({
     } catch (e) {}
   };
 
+  // z-index 스택 카운터 — hover/touch 할 때마다 증가 (FILO)
+  const zCounterRef = useRef(100);
+
   // 모바일 touchstart 리스너를 마커 DOM에 부착
-  const lastTouchedMarkerRef = useRef(null);
   const attachTouchZ = (marker) => {
     const el = marker.getElement?.();
     if (!el) return;
     el.addEventListener("touchstart", () => {
-      if (lastTouchedMarkerRef.current && lastTouchedMarkerRef.current !== marker && lastTouchedMarkerRef.current !== activeMarkerRef.current) {
-        setMarkerZ(lastTouchedMarkerRef.current, "");
-      }
-      if (marker !== activeMarkerRef.current) {
-        setMarkerZ(marker, 5000);
-        lastTouchedMarkerRef.current = marker;
-      }
+      zCounterRef.current += 1;
+      setMarkerZ(marker, zCounterRef.current);
     }, { passive: true });
   };
 
   const bringToFront = (marker) => {
-    // 이전 활성 마커 초기화
+    // 이전 활성 마커: 줌아웃 상태이면 dot으로 복원
     if (activeMarkerRef.current && activeMarkerRef.current !== marker) {
-      setMarkerZ(activeMarkerRef.current, "");
-      // 이전 마커: 줌아웃 상태이면 dot으로 복원
       if (zoomRef.current < ZOOM_THRESHOLD && activeMarkerRef.current._dotIcon) {
         activeMarkerRef.current.setIcon(activeMarkerRef.current._dotIcon);
       }
@@ -166,22 +161,22 @@ export default function MapView({
       const map = mapInstance.current;
       marker.setMap(null);
       marker.setMap(map);
+      zCounterRef.current += 1;
+      const z = zCounterRef.current;
       requestAnimationFrame(() => {
-        setMarkerZ(marker, 9999);
-        attachTouchZ(marker); // DOM 재생성 후 터치 리스너 재부착
+        setMarkerZ(marker, z);
+        attachTouchZ(marker);
       });
     } catch (e) {}
     activeMarkerRef.current = marker;
   };
 
-  // 마커에 hover/touch 이벤트 — 부모 컨테이너 z-index 올리기/내리기
+  // 마커에 hover/touch 이벤트 — FILO 스택: 올라온 순서대로 z-index 유지
   const addHoverZ = (marker) => {
-    // 데스크톱: hover
+    // 데스크톱: mouseover — 카운터 증가, mouseout에서 되돌리지 않음
     window.naver.maps.Event.addListener(marker, "mouseover", () => {
-      if (marker !== activeMarkerRef.current) setMarkerZ(marker, 5000);
-    });
-    window.naver.maps.Event.addListener(marker, "mouseout", () => {
-      if (marker !== activeMarkerRef.current) setMarkerZ(marker, "");
+      zCounterRef.current += 1;
+      setMarkerZ(marker, zCounterRef.current);
     });
     // 모바일: touchstart (DOM 렌더 후 부착)
     requestAnimationFrame(() => attachTouchZ(marker));
