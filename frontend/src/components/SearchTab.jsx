@@ -116,9 +116,9 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUse
           position: "sticky", top: 0, zIndex: 10,
           background: "rgba(250,249,246,0.85)", backdropFilter: "blur(12px)",
           borderBottom: `1px solid ${C.container}`,
-          padding: "14px 40px",
+          padding: "18px 22px 14px",
         }}>
-          <h1 style={{ fontFamily: FH, fontStyle: "italic", fontSize: 15, color: C.primary, margin: 0 }}>Discovery</h1>
+          <h1 style={{ fontFamily: FH, fontStyle: "italic", fontSize: 18, color: C.primary, margin: "0 0 2px", letterSpacing: "-0.02em" }}>Discovery</h1>
         </header>
       )}
 
@@ -152,10 +152,10 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUse
         <section style={{ marginBottom: 20 }}>
           <div style={{ position: "relative" }}>
             <div style={{
-              position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)",
+              position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)",
               pointerEvents: "none",
             }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 17, color: searching ? C.primary : "#a8a29e", transition: "color 0.2s" }}>search</span>
+              <span className="material-symbols-outlined" style={{ fontSize: 14, color: searching ? C.primary : "#a8a29e", transition: "color 0.2s" }}>search</span>
             </div>
             <input
               value={query}
@@ -164,20 +164,20 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUse
               placeholder={searchMode === "place" ? "장소 이름과 지역으로 검색..." : "닉네임으로 검색..."}
               autoFocus={!mobile}
               style={{
-                width: "100%", padding: "13px 14px 13px 38px",
+                width: "100%", padding: "10px 12px 10px 32px",
                 background: C.containerLow, border: "none",
-                borderRadius: 10, outline: "none",
-                fontFamily: FL, fontSize: 12, color: C.onSurface,
+                borderRadius: 8, outline: "none",
+                fontFamily: FL, fontSize: 11, color: C.onSurface,
                 boxSizing: "border-box", transition: "background 0.2s",
               }}
               onFocus={(e) => e.target.style.background = C.container}
               onBlur={(e) => e.target.style.background = C.containerLow}
             />
-            <div style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)" }}>
+            <div style={{ position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)" }}>
               {searching ? (
-                <span style={{ fontFamily: FL, fontSize: 10, color: "#a8a29e" }}>검색 중...</span>
+                <span style={{ fontFamily: FL, fontSize: 9, color: "#a8a29e" }}>검색 중...</span>
               ) : (
-                <span className="material-symbols-outlined" style={{ fontSize: 16, color: "#c7c4bf", cursor: "pointer" }}
+                <span className="material-symbols-outlined" style={{ fontSize: 14, color: "#c7c4bf", cursor: "pointer" }}
                   onClick={() => handleSearch()}>tune</span>
               )}
             </div>
