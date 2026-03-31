@@ -267,24 +267,24 @@ function FeedCard({ item, mobile, onPlaceClick, onDataChange }) {
     }}>
       {/* Card header */}
       <div style={{
-        display: "flex", alignItems: "center", gap: 6,
-        padding: "8px 12px",
+        display: "flex", alignItems: "center", gap: mobile ? 10 : 6,
+        padding: mobile ? "10px 14px" : "8px 12px",
       }}>
         <div style={{
-          width: 24, height: 24, borderRadius: "50%", flexShrink: 0,
+          width: mobile ? 32 : 24, height: mobile ? 32 : 24, borderRadius: "50%", flexShrink: 0,
           background: `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`,
           display: "flex", alignItems: "center", justifyContent: "center",
           fontFamily: FH, fontStyle: "italic",
-          fontSize: 10, color: "#fff6ef", fontWeight: 700,
+          fontSize: mobile ? 13 : 10, color: "#fff6ef", fontWeight: 700,
         }}>
           {displayNickname?.[0]?.toUpperCase()}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ margin: 0, fontFamily: FL, fontSize: 10, fontWeight: 700, color: C.onSurface }}>
+          <p style={{ margin: 0, fontFamily: FL, fontSize: mobile ? 13 : 10, fontWeight: 700, color: C.onSurface }}>
             {displayNickname}
             {item.isOwn && (
               <span style={{
-                marginLeft: 4, fontFamily: FL, fontSize: 7, fontWeight: 600,
+                marginLeft: 4, fontFamily: FL, fontSize: mobile ? 9 : 7, fontWeight: 600,
                 padding: "1px 4px", borderRadius: 3,
                 background: C.primaryContainer, color: C.primary,
                 verticalAlign: "middle",
@@ -293,11 +293,11 @@ function FeedCard({ item, mobile, onPlaceClick, onDataChange }) {
               </span>
             )}
           </p>
-          <p style={{ margin: 0, fontFamily: FL, fontSize: 8, color: C.outlineVariant }}>
+          <p style={{ margin: 0, fontFamily: FL, fontSize: mobile ? 11 : 8, color: C.outlineVariant }}>
             {item.place_category || formatTime(item.created_at)}
           </p>
         </div>
-        <span style={{ fontFamily: FL, fontSize: 8, color: C.outlineVariant }}>
+        <span style={{ fontFamily: FL, fontSize: mobile ? 11 : 8, color: C.outlineVariant }}>
           {item.place_category ? formatTime(item.created_at) : ""}
         </span>
       </div>
@@ -363,17 +363,17 @@ function FeedCard({ item, mobile, onPlaceClick, onDataChange }) {
       ) : (
         <div onClick={(e) => { handleDoubleTap(); handlePlaceClick(); }}
           style={{
-            padding: mobile ? "20px 14px" : "22px 14px",
+            padding: mobile ? "24px 16px" : "22px 14px",
             background: `linear-gradient(135deg, ${C.primaryDim}18, ${C.primary}10)`,
             cursor: onPlaceClick ? "pointer" : "default",
             position: "relative",
           }}>
-          <p style={{ margin: 0, fontFamily: FH, fontStyle: "italic", fontSize: mobile ? 15 : 16, color: C.primary, textAlign: "center", lineHeight: 1.3 }}>
+          <p style={{ margin: 0, fontFamily: FH, fontStyle: "italic", fontSize: mobile ? 17 : 16, color: C.primary, textAlign: "center", lineHeight: 1.3 }}>
             {item.place_name}
           </p>
           {item.place_address && (
-            <p style={{ margin: "5px 0 0", fontFamily: FL, fontSize: 9, color: C.outlineVariant, textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: 3 }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 11 }}>location_on</span>
+            <p style={{ margin: "5px 0 0", fontFamily: FL, fontSize: mobile ? 12 : 9, color: C.outlineVariant, textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: 3 }}>
+              <span className="material-symbols-outlined" style={{ fontSize: mobile ? 14 : 11 }}>location_on</span>
               {item.place_address}
             </p>
           )}
@@ -381,15 +381,15 @@ function FeedCard({ item, mobile, onPlaceClick, onDataChange }) {
       )}
 
       {/* Bottom content */}
-      <div style={{ padding: "6px 12px 10px" }}>
+      <div style={{ padding: mobile ? "8px 14px 12px" : "6px 12px 10px" }}>
         {/* Action bar: like / comment / location */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: mobile ? 12 : 8, marginBottom: mobile ? 6 : 4 }}>
           <button onClick={handleLike} style={{
             display: "flex", alignItems: "center", gap: 4,
             background: "none", border: "none", cursor: "pointer", padding: 0,
             color: liked ? "#D4537E" : C.onSurfaceVariant, transition: "color 0.15s",
           }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill={liked ? "#D4537E" : "none"} stroke={liked ? "#D4537E" : "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+            <svg width={mobile ? 20 : 16} height={mobile ? 20 : 16} viewBox="0 0 24 24" fill={liked ? "#D4537E" : "none"} stroke={liked ? "#D4537E" : "currentColor"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
               style={{ transition: "transform 0.3s cubic-bezier(0.17,0.89,0.32,1.49)", transform: heartAnim ? "scale(1.3)" : "scale(1)" }}>
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
             </svg>
@@ -399,7 +399,7 @@ function FeedCard({ item, mobile, onPlaceClick, onDataChange }) {
             background: "none", border: "none", cursor: "pointer", padding: 0,
             color: C.onSurfaceVariant,
           }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>chat_bubble_outline</span>
+            <span className="material-symbols-outlined" style={{ fontSize: mobile ? 20 : 16 }}>chat_bubble_outline</span>
           </button>
           {onPlaceClick && (
             <button onClick={handlePlaceClick} style={{
@@ -407,23 +407,23 @@ function FeedCard({ item, mobile, onPlaceClick, onDataChange }) {
               background: "none", border: "none", cursor: "pointer", padding: 0,
               color: C.onSurfaceVariant,
             }}>
-              <span className="material-symbols-outlined" style={{ fontSize: 16 }}>location_on</span>
+              <span className="material-symbols-outlined" style={{ fontSize: mobile ? 20 : 16 }}>location_on</span>
             </button>
           )}
         </div>
 
         {/* Like count */}
         {likeCount > 0 && (
-          <p style={{ margin: "0 0 2px", fontFamily: FL, fontSize: 10, fontWeight: 700, color: C.onSurface }}>
+          <p style={{ margin: "0 0 2px", fontFamily: FL, fontSize: mobile ? 13 : 10, fontWeight: 700, color: C.onSurface }}>
             좋아요 {likeCount}개
           </p>
         )}
 
         {/* Status badge + rating + place name */}
-        <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap", marginBottom: item.memo ? 4 : 2 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: mobile ? 6 : 4, flexWrap: "wrap", marginBottom: item.memo ? 4 : 2 }}>
           <span style={{
-            fontFamily: FL, fontSize: 9, fontWeight: 600,
-            padding: "1px 5px", borderRadius: 3,
+            fontFamily: FL, fontSize: mobile ? 11 : 9, fontWeight: 600,
+            padding: mobile ? "2px 7px" : "1px 5px", borderRadius: 3,
             background: sc?.bg || C.surfaceLow,
             color: sc?.color || C.onSurfaceVariant,
           }}>
@@ -431,14 +431,14 @@ function FeedCard({ item, mobile, onPlaceClick, onDataChange }) {
           </span>
           {item.rating > 0 && (
             <span style={{
-              fontFamily: FL, fontSize: 9, padding: "1px 5px",
+              fontFamily: FL, fontSize: mobile ? 11 : 9, padding: mobile ? "2px 7px" : "1px 5px",
               background: C.primaryContainer, color: C.primary,
               borderRadius: 3, fontWeight: 600,
             }}>
               {"★".repeat(item.rating)}{"☆".repeat(5 - item.rating)}
             </span>
           )}
-          <span style={{ fontFamily: FH, fontSize: 10, fontWeight: 600, color: C.onSurface }}>
+          <span style={{ fontFamily: FH, fontSize: mobile ? 14 : 10, fontWeight: 600, color: C.onSurface }}>
             {item.place_name}
           </span>
         </div>
@@ -447,7 +447,7 @@ function FeedCard({ item, mobile, onPlaceClick, onDataChange }) {
         {item.memo && (
           <p style={{
             margin: "0 0 4px", fontFamily: FH, fontStyle: "italic",
-            fontSize: 10, color: C.onSurfaceVariant, lineHeight: 1.6,
+            fontSize: mobile ? 13 : 10, color: C.onSurfaceVariant, lineHeight: 1.6,
           }}>
             "{item.memo}"
           </p>
@@ -456,10 +456,10 @@ function FeedCard({ item, mobile, onPlaceClick, onDataChange }) {
         {/* Address */}
         {item.place_address && galleryUrls.length > 0 && (
           <p style={{
-            margin: "0 0 3px", fontFamily: FL, fontSize: 9, color: C.outlineVariant,
+            margin: "0 0 3px", fontFamily: FL, fontSize: mobile ? 11 : 9, color: C.outlineVariant,
             display: "flex", alignItems: "center", gap: 3,
           }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 10 }}>location_on</span>
+            <span className="material-symbols-outlined" style={{ fontSize: mobile ? 13 : 10 }}>location_on</span>
             {item.place_address}
           </p>
         )}
@@ -468,7 +468,7 @@ function FeedCard({ item, mobile, onPlaceClick, onDataChange }) {
         {item.comment_count > 0 && !showComments && (
           <button onClick={toggleComments} style={{
             background: "none", border: "none", cursor: "pointer", padding: 0,
-            fontFamily: FL, fontSize: 10, color: C.outlineVariant, marginBottom: 2,
+            fontFamily: FL, fontSize: mobile ? 12 : 10, color: C.outlineVariant, marginBottom: 2,
           }}>
             댓글 {item.comment_count}개 모두 보기
           </button>
@@ -477,12 +477,12 @@ function FeedCard({ item, mobile, onPlaceClick, onDataChange }) {
         {showComments && (
           <div style={{ marginTop: 6 }}>
             {comments.length === 0 && (
-              <p style={{ margin: "0 0 5px", fontFamily: FL, fontSize: 10, color: C.outlineVariant, fontStyle: "italic" }}>
+              <p style={{ margin: "0 0 5px", fontFamily: FL, fontSize: mobile ? 12 : 10, color: C.outlineVariant, fontStyle: "italic" }}>
                 첫 댓글을 남겨보세요
               </p>
             )}
             {comments.map((c) => (
-              <CommentThread key={c.id} comment={c} depth={0} user={user}
+              <CommentThread key={c.id} comment={c} depth={0} user={user} mobile={mobile}
                 onReply={(c) => { setReplyTo(c); setTimeout(() => commentInputRef.current?.focus(), 0); }}
               />
             ))}
@@ -490,12 +490,12 @@ function FeedCard({ item, mobile, onPlaceClick, onDataChange }) {
             {replyTo && (
               <div style={{
                 display: "flex", alignItems: "center", gap: 6, padding: "4px 0",
-                fontFamily: FL, fontSize: 10, color: C.outlineVariant,
+                fontFamily: FL, fontSize: mobile ? 12 : 10, color: C.outlineVariant,
               }}>
                 <span>{replyTo.author_nickname}에게 답글</span>
                 <button onClick={() => setReplyTo(null)} style={{
                   background: "none", border: "none", cursor: "pointer",
-                  fontFamily: FL, fontSize: 10, color: C.outlineVariant, padding: 0,
+                  fontFamily: FL, fontSize: mobile ? 12 : 10, color: C.outlineVariant, padding: 0,
                 }}>✕</button>
               </div>
             )}
@@ -509,13 +509,13 @@ function FeedCard({ item, mobile, onPlaceClick, onDataChange }) {
                 style={{
                   flex: 1, padding: "5px 0",
                   background: "none", border: "none", borderBottom: `1px solid ${C.container}`,
-                  fontFamily: FL, fontSize: 10, color: C.onSurface, outline: "none",
+                  fontFamily: FL, fontSize: mobile ? 13 : 10, color: C.onSurface, outline: "none",
                 }}
               />
               {commentInput.trim() && (
                 <button onClick={handleComment} disabled={submitting} style={{
                   background: "none", border: "none", cursor: "pointer",
-                  fontFamily: FL, fontSize: 10, fontWeight: 700, color: C.primary,
+                  fontFamily: FL, fontSize: mobile ? 13 : 10, fontWeight: 700, color: C.primary,
                   padding: "5px 0", opacity: submitting ? 0.5 : 1,
                 }}>
                   게시
@@ -526,7 +526,7 @@ function FeedCard({ item, mobile, onPlaceClick, onDataChange }) {
         )}
 
         {/* Timestamp */}
-        <p style={{ margin: "4px 0 0", fontFamily: FL, fontSize: 9, color: C.outlineVariant }}>
+        <p style={{ margin: "4px 0 0", fontFamily: FL, fontSize: mobile ? 11 : 9, color: C.outlineVariant }}>
           {formatTime(item.created_at)}
         </p>
       </div>
@@ -534,7 +534,7 @@ function FeedCard({ item, mobile, onPlaceClick, onDataChange }) {
   );
 }
 
-function CommentThread({ comment, depth, user, onReply }) {
+function CommentThread({ comment, depth, user, onReply, mobile }) {
   const FL = "'Manrope', -apple-system, sans-serif";
   const C_onSurface = "#2f3430";
   const C_onSurfaceVariant = "#5c605c";
@@ -542,19 +542,19 @@ function CommentThread({ comment, depth, user, onReply }) {
   return (
     <>
       <div style={{ marginBottom: 3, paddingLeft: depth * 16 }}>
-        <p style={{ margin: 0, fontFamily: FL, fontSize: 10, color: C_onSurface, lineHeight: 1.5 }}>
+        <p style={{ margin: 0, fontFamily: FL, fontSize: mobile ? 13 : 10, color: C_onSurface, lineHeight: 1.5 }}>
           <span style={{ fontWeight: 700 }}>{comment.author_nickname}</span>{" "}
           <span style={{ color: C_onSurfaceVariant }}>{comment.content}</span>
         </p>
         {user && (
           <button onClick={() => onReply({ id: comment.id, author_nickname: comment.author_nickname })} style={{
             background: "none", border: "none", cursor: "pointer", padding: 0,
-            fontFamily: FL, fontSize: 8, color: C_outlineVariant, marginTop: 1,
+            fontFamily: FL, fontSize: mobile ? 10 : 8, color: C_outlineVariant, marginTop: 1,
           }}>답글 달기</button>
         )}
       </div>
       {comment.replies?.map((r) => (
-        <CommentThread key={r.id} comment={r} depth={depth + 1} user={user} onReply={onReply} />
+        <CommentThread key={r.id} comment={r} depth={depth + 1} user={user} onReply={onReply} mobile={mobile} />
       ))}
     </>
   );
