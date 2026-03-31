@@ -252,8 +252,7 @@ function FeedCard({ item, mobile, onPlaceClick, onDataChange }) {
 
   const handlePlaceClick = () => {
     if (!onPlaceClick) return;
-    // For own places, pass the original place object; for following, pass the activity item
-    onPlaceClick(item._original || item);
+    onPlaceClick(item);
   };
 
   const displayNickname = item.isOwn ? (user?.nickname || "나") : item.owner_nickname;
