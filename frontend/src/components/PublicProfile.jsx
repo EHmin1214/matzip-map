@@ -105,7 +105,7 @@ export default function PublicProfile({ nickname }) {
   }, [places, filter]);
 
   const shareProfile = () => {
-    const url = `${window.location.origin}/@${nickname}`;
+    const url = `${API_BASE}/og/@${nickname}`;
     navigator.clipboard?.writeText(url).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);

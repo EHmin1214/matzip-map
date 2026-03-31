@@ -13,19 +13,19 @@ const C = {
 
 const STEPS = [
   {
-    icon: "search",
-    title: "장소를 검색하세요",
-    desc: "가게 이름으로 검색하면 위치와 정보를 자동으로 불러와요.",
-  },
-  {
     icon: "bookmark_add",
-    title: "나만의 기록을 남기세요",
-    desc: "가고 싶은 곳, 가본 곳, 또 가고 싶은 곳으로 분류하고 별점과 메모를 남겨요.",
+    title: "좋아하는 장소를 저장하세요",
+    desc: "맛집, 카페, 여행지 — 흩어진 장소들을 한 곳에 모아 나만의 지도를 만들어요.",
   },
   {
-    icon: "map",
-    title: "지도에서 한눈에 보세요",
-    desc: "저장한 모든 장소가 지도에 표시돼요. 친구를 팔로우하면 그 친구의 장소도 함께!",
+    icon: "group",
+    title: "친구의 공간도 구경해요",
+    desc: "팔로우하면 친구의 장소가 내 지도에 함께 표시돼요. 서로의 취향을 공유해보세요.",
+  },
+  {
+    icon: "share",
+    title: "링크 하나로 공유하세요",
+    desc: "내 프로필 링크를 인스타 바이오나 카카오톡에 걸면 누구나 내 지도를 볼 수 있어요.",
   },
 ];
 
@@ -55,19 +55,24 @@ export default function OnboardingGuide({ onStart, onDismiss }) {
         background: C.containerLowest, borderRadius: 20,
         overflow: "hidden", boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
       }}>
-        {/* 상단 그라데이션 */}
+        {/* 상단 */}
         <div key={step} style={{
           animation: "fadeUp 0.25s ease-out",
           padding: "36px 32px 28px",
           background: `linear-gradient(135deg, ${C.primaryDim}18, ${C.primary}10)`,
           textAlign: "center",
         }}>
-          <span className="material-symbols-outlined" style={{
-            fontSize: 48, color: C.primary, marginBottom: 16, display: "block",
-            fontVariationSettings: "'FILL' 0, 'wght' 300",
-          }}>
-            {STEPS[step].icon}
-          </span>
+          {step === 0 && (
+            <img src="/logo.svg" alt="" style={{ width: 48, height: 48, marginBottom: 12 }} />
+          )}
+          {step !== 0 && (
+            <span className="material-symbols-outlined" style={{
+              fontSize: 48, color: C.primary, marginBottom: 16, display: "block",
+              fontVariationSettings: "'FILL' 0, 'wght' 300",
+            }}>
+              {STEPS[step].icon}
+            </span>
+          )}
           <h2 style={{
             fontFamily: FH, fontSize: mobile ? 22 : 24, fontWeight: 400,
             color: C.onSurface, margin: "0 0 10px", letterSpacing: "-0.02em",
@@ -115,10 +120,10 @@ export default function OnboardingGuide({ onStart, onDismiss }) {
           ) : (
             <button onClick={handleStart} style={{
               width: "100%", padding: "14px", border: "none", borderRadius: 10,
-              background: "transparent", fontFamily: FL, fontSize: 13,
-              fontWeight: 600, color: C.primary, letterSpacing: "0.01em", cursor: "pointer",
+              background: C.primary, fontFamily: FL, fontSize: 14,
+              fontWeight: 700, color: "#fff6ef", cursor: "pointer",
             }}>
-              첫 장소 검색하러 가기
+              첫 장소 검색하러 가기 →
             </button>
           )}
         </div>
