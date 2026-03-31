@@ -44,7 +44,6 @@ export default function Sidebar({
   unreadCount,
   selectedFollowingIds, onToggleFollowing,
   followingList = [],
-  onFollowChange,
   sidebarWidth = 240,
   onPlaceSelect,
   onViewUserProfile,
@@ -56,8 +55,6 @@ export default function Sidebar({
   const [folders, setFolders] = useState([]);
   const [placeFilter, setPlaceFilter] = useState("");
   const [sortMode, setSortMode] = useState("collection"); // "newest" | "oldest" | "collection"
-  const [followingOpen, setFollowingOpen] = useState(false);
-
   useEffect(() => {
     if (!user) return;
     const seeded = sessionStorage.getItem(`folders_seeded_${user.user_id}`);
@@ -252,8 +249,8 @@ export default function Sidebar({
                 sharedPlaces.forEach((p) => {
                   (grouped[p.category] = grouped[p.category] || []).push(p);
                 });
-                const catOrder = ["restaurant", "cafe", "bar", "general_store"];
-                const catLabel = { restaurant: "음식점", cafe: "카페", bar: "바", general_store: "잡화점" };
+                const catOrder = BEST_CATEGORIES.map((c) => c.key);
+                const catLabel = Object.fromEntries(BEST_CATEGORIES.map((c) => [c.key, c.label]));
                 return catOrder.filter((c) => grouped[c]).map((cat) => (
                   <div key={cat} style={{ marginBottom: 10 }}>
                     <div style={{

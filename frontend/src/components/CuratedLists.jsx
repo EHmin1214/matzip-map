@@ -89,15 +89,12 @@ export default function CuratedLists({ personalPlaces = [] }) {
           <h3 style={{ margin: 0, fontFamily: FH, fontSize: 18, fontWeight: 400, color: C.onSurface }}>
             큐레이션 리스트
           </h3>
-          <p style={{ margin: "4px 0 0", fontFamily: FL, fontSize: 10, color: C.outlineVariant, letterSpacing: "0.1em" }}>
-            테마별 장소 모음을 만들고 공유하세요
-          </p>
         </div>
         <button onClick={() => setCreating(!creating)} style={{
-          padding: "8px 16px", border: "none", borderRadius: 8,
+          padding: "4px 10px", border: "none", borderRadius: 6,
           background: creating ? C.container : C.primary,
           color: creating ? C.onSurfaceVariant : "#fff6ef",
-          fontFamily: FL, fontSize: 11, fontWeight: 700, cursor: "pointer",
+          fontFamily: FL, fontSize: 10, fontWeight: 700, cursor: "pointer",
         }}>
           {creating ? "취소" : "+ 새 리스트"}
         </button>
@@ -172,7 +169,7 @@ export default function CuratedLists({ personalPlaces = [] }) {
             아직 리스트가 없어요
           </p>
           <p style={{ fontFamily: FL, fontSize: 11, color: C.outlineVariant }}>
-            테마별로 장소를 모아보세요
+            테마별로 공간을 모아보세요
           </p>
         </div>
       ) : (

@@ -62,6 +62,14 @@ def get_list(list_id: int, db: Session = Depends(get_db)):
     return _to_response(cl, db, include_places=True)
 
 
+@router.get("/{list_id}/mine")
+def get_my_list(list_id: int, user_id: int = Query(...), db: Session = Depends(get_db)):
+    cl = db.query(CuratedList).filter(CuratedList.id == list_id, CuratedList.user_id == user_id).first()
+    if not cl:
+        raise HTTPException(status_code=404, detail="리스트를 찾을 수 없습니다")
+    return _to_response(cl, db, include_places=True)
+
+
 @router.patch("/{list_id}")
 def update_list(list_id: int, body: ListUpdate, user_id: int = Query(...), db: Session = Depends(get_db)):
     cl = db.query(CuratedList).filter(CuratedList.id == list_id, CuratedList.user_id == user_id).first()

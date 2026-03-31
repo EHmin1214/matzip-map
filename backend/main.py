@@ -15,6 +15,8 @@ FastAPI 진입점.
   pip install bcrypt
 """
 
+import html as _html
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
@@ -121,7 +123,9 @@ def og_profile(nickname: str):
     finally:
         db.close()
 
-    redirect_url = f"{FRONTEND_URL}/@{nickname}"
+    title = _html.escape(title)
+    desc = _html.escape(desc)
+    redirect_url = f"{FRONTEND_URL}/@{_html.escape(nickname)}"
     return f"""<!DOCTYPE html>
 <html>
 <head>
@@ -166,6 +170,9 @@ def og_place(place_id: int):
     finally:
         db.close()
 
+    title = _html.escape(title)
+    desc = _html.escape(desc)
+    image = _html.escape(image)
     redirect_url = f"{FRONTEND_URL}/?place={place_id}"
     return f"""<!DOCTYPE html>
 <html>
@@ -209,6 +216,8 @@ def og_list(list_id: int):
     finally:
         db.close()
 
+    title = _html.escape(title)
+    desc = _html.escape(desc)
     redirect_url = f"{FRONTEND_URL}/list/{list_id}"
     return f"""<!DOCTYPE html>
 <html>

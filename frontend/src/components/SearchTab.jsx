@@ -127,7 +127,7 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUse
         {/* 검색 모드 토글 */}
         <div style={{ display: "flex", gap: 6, marginBottom: 16 }}>
           {[
-            { key: "place", label: "장소", icon: "location_on" },
+            { key: "place", label: "공간", icon: "location_on" },
             { key: "person", label: "사람", icon: "person_search" },
           ].map((m) => (
             <button key={m.key}
@@ -431,7 +431,7 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUse
               {searchMode === "place" ? "search" : "person_search"}
             </span>
             <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 14, color: "#a8a29e", margin: "0 0 6px" }}>
-              {searchMode === "place" ? "가게 이름으로 검색해보세요" : "닉네임으로 사람을 찾아보세요"}
+              {searchMode === "place" ? "내 공간을 만들어보세요" : "닉네임으로 사람을 찾아보세요"}
             </p>
             <p style={{ fontFamily: FL, fontSize: 11, color: "#a8a29e", letterSpacing: "0.1em" }}>
               {searchMode === "place" ? "예: 을지면옥, 스타벅스 강남점" : "팔로우하고 서로의 공간을 공유하세요"}

@@ -701,8 +701,6 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
           {/* 공개 설정 — Rule of Silence: padding separation */}
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
-            padding: "14px 0",
-            /* Tonal separation: slightly different bg instead of border */
             background: C.surfaceLow,
             borderRadius: 8, padding: "12px 14px",
             marginBottom: 16,

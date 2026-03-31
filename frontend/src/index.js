@@ -46,10 +46,11 @@ root.render(
 
 reportWebVitals();
 
-// 서비스워커 해제 (캐싱 문제 방지)
+// CRA 기본 서비스워커만 해제 (푸시 알림용 sw.js는 유지)
 if ("serviceWorker" in navigator) {
   navigator.serviceWorker.getRegistrations().then((regs) => {
-    regs.forEach((r) => r.unregister());
+    regs.forEach((r) => {
+      if (!r.active?.scriptURL?.includes("/sw.js")) r.unregister();
+    });
   });
-  caches.keys().then((keys) => keys.forEach((k) => caches.delete(k)));
 }

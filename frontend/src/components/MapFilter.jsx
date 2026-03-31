@@ -1,6 +1,6 @@
 // src/components/MapFilter.jsx
 // 지도 우측 세로 컨트롤 — 이모지 상태 필터 + 팔로잉 선택
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { FOLLOWING_COLORS, getFollowingColor } from "../constants";
 
 const FL = "'Manrope', -apple-system, sans-serif";
@@ -47,14 +47,16 @@ export default function MapFilter({
   // followingList sync
   const followIds = followingList.map((f) => f.id).join(",");
   const orderedIds = orderedFollowing.map((f) => f.id).join(",");
-  if (followIds !== orderedIds) {
-    const existingIds = new Set(orderedFollowing.map((f) => f.id));
-    const newOnes = followingList.filter((f) => !existingIds.has(f.id));
-    const filtered = orderedFollowing.filter((f) => followingList.some((fl) => fl.id === f.id));
-    if (newOnes.length > 0 || filtered.length !== orderedFollowing.length) {
-      setOrderedFollowing([...filtered, ...newOnes]);
-    }
-  }
+  useEffect(() => {
+    if (followIds === orderedIds) return;
+    setOrderedFollowing((prev) => {
+      const existingIds = new Set(prev.map((f) => f.id));
+      const newOnes = followingList.filter((f) => !existingIds.has(f.id));
+      const filtered = prev.filter((f) => followingList.some((fl) => fl.id === f.id));
+      return [...filtered, ...newOnes];
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [followIds]);
 
   const handleLongPressStart = (id) => {
     longPressTimer.current = setTimeout(() => {

@@ -2,7 +2,7 @@
 // 마커: 미니멀 — 이름 + 상태 도트만. 이모지/아바타 스택 제거.
 import { useEffect, useRef, useState } from "react";
 
-import { FOLLOWING_COLORS, getFollowingColor, SHARED_CAT_COLOR } from "../constants";
+import { getFollowingColor, SHARED_CAT_COLOR } from "../constants";
 
 const MY_PRIMARY = "#655d54";
 const MY_DIM     = "#595149";

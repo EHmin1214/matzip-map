@@ -26,7 +26,6 @@ import "./App.css";
 const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
 import { FOLLOWING_COLORS, BEST_CATEGORIES, SHARED_CAT_COLOR } from "./constants";
-export { ACCOUNT_COLORS, getAccountColor, FOLLOWING_COLORS } from "./constants";
 
 // ── 레이아웃 상수 ─────────────────────────────────────────────
 const SIDEBAR_W = 300;   // 일차 사이드탭 너비

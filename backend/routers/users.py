@@ -71,8 +71,8 @@ def _verify_pin(pin: str, hashed: str) -> bool:
     return bcrypt.checkpw(pin.encode(), hashed.encode())
 
 def _to_response(user: User, db: Session) -> UserResponse:
-    follower_count = db.query(Follow).filter(Follow.following_id == user.id).count()
-    following_count = db.query(Follow).filter(Follow.follower_id == user.id).count()
+    follower_count = db.query(Follow).filter(Follow.following_id == user.id, Follow.status == "accepted").count()
+    following_count = db.query(Follow).filter(Follow.follower_id == user.id, Follow.status == "accepted").count()
     place_count = db.query(PersonalPlace).filter(
         PersonalPlace.user_id == user.id,
         PersonalPlace.is_public == True,

@@ -1,7 +1,7 @@
 // src/utils/generateShareCard.js
 // Canvas API로 인스타 스토리/피드 공유 카드 생성
 
-import { STATUS_LABEL, SHARED_CAT_COLOR, BEST_CATEGORIES } from "../constants";
+import { STATUS_LABEL, STATUS_COLOR, SHARED_CAT_COLOR, BEST_CATEGORIES } from "../constants";
 
 const COLORS = {
   bg: "#faf9f6",
@@ -13,11 +13,9 @@ const COLORS = {
   surfaceLow: "#f4f4f0",
 };
 
-const STATUS_PILL = {
-  want_to_go:   { bg: "#FEF3CD", color: "#BA7517", label: "가고 싶어요" },
-  visited:      { bg: "#E0F4EC", color: "#1D9E75", label: "가봤어요" },
-  want_revisit: { bg: "#FCE4EE", color: "#D4537E", label: "또 가고 싶어요" },
-};
+const STATUS_PILL = Object.fromEntries(
+  Object.entries(STATUS_COLOR).map(([k, v]) => [k, { ...v, label: STATUS_LABEL[k] }])
+);
 
 function roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath();

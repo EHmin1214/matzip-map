@@ -8,8 +8,8 @@ scrapers/naver_blog.py
 
 [사전 준비]
   환경변수:
-    NAVER_CLIENT_ID     : wyVKZWOYKnFJRgZBU81N
-    NAVER_CLIENT_SECRET : DNWYqsDHSf
+    NAVER_CLIENT_ID     : (네이버 개발자 센터에서 발급)
+    NAVER_CLIENT_SECRET : (네이버 개발자 센터에서 발급)
   발급: https://developers.naver.com → Application 등록 → 검색 API 선택
   무료 할당량: 25,000건/일
 """

@@ -13,7 +13,6 @@ load_dotenv()
 from routers.place_resolver import PlaceResolver
 from scrapers.base import PostData, SourceType
 from datetime import datetime
-from routers.place_resolver import PlaceResolver
 
 
 router = APIRouter(prefix="/search-place", tags=["search-place"])

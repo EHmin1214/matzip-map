@@ -9,7 +9,7 @@ export function getAccountColor(accountId, accounts) {
   return ACCOUNT_COLORS[index % ACCOUNT_COLORS.length] || "#888";
 }
 
-export const FOLLOWING_COLORS = ["#B5784E","#5F8B5A","#7E6BAD","#5A8FA8","#D4537E","#655d54"];
+export const FOLLOWING_COLORS = ["#E8593C","#3B8BD4","#1D9E75","#BA7517","#7F77DD","#D4537E"];
 export const getFollowingColor = (idx) => FOLLOWING_COLORS[idx % FOLLOWING_COLORS.length];
 
 export const STATUS_COLOR = {
@@ -31,16 +31,16 @@ export const STATUS_LABEL = {
 };
 
 export const SHARED_CAT_COLOR = {
-  restaurant:    "#B5784E",
-  cafe:          "#5F8B5A",
-  bar:           "#7E6BAD",
-  general_store: "#5A8FA8",
+  restaurant:    "#E8593C",
+  cafe:          "#3B8BD4",
+  bar:           "#7F77DD",
+  general_store: "#BA7517",
 };
 
 export const BEST_CATEGORIES = [
   { key: "restaurant", emoji: "🍽", label: "음식점" },
-  { key: "cafe",       emoji: "☕", label: "카페" },
-  { key: "bar",        emoji: "🍸", label: "바" },
+  { key: "cafe",       emoji: "☕", label: "카페/베이커리" },
+  { key: "bar",        emoji: "🍸", label: "술집" },
   { key: "general_store", emoji: "🛍", label: "잡화점" },
 ];
 
