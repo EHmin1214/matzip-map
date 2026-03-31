@@ -198,8 +198,20 @@ export default function App() {
     const lat = activity.lat || activity.place_lat;
     const lng = activity.lng || activity.place_lng;
     if (mapRef.current && window.naver && lat && lng) {
-      mapRef.current.setCenter(new window.naver.maps.LatLng(lat, lng));
+      const coord = new window.naver.maps.LatLng(lat, lng);
       mapRef.current.setZoom(16);
+      mapRef.current.panTo(coord, { duration: 280 });
+      setTimeout(() => {
+        if (!mapRef.current) return;
+        const mobile = window.innerWidth <= 768;
+        if (mobile) {
+          // 바텀시트(peek ~210px) + 탭바(64px) 만큼 위로 보정
+          mapRef.current.panBy(new window.naver.maps.Point(0, -120));
+        } else {
+          // 사이드바(300px) + 디테일패널(360px) 보정
+          mapRef.current.panBy(new window.naver.maps.Point(-180, 0));
+        }
+      }, 300);
     }
   }, []);
 
