@@ -46,7 +46,7 @@ export default function BottomTabBar({ activeTab, onTabChange, unreadCount = 0, 
               <div style={{
                 position: "absolute", top: 2, right: "calc(50% - 20px)",
                 width: 7, height: 7, borderRadius: "50%",
-                background: "#9e422c", border: "1.5px solid rgba(250,249,246,0.9)",
+                background: "#D4537E", border: "1.5px solid rgba(250,249,246,0.9)",
               }} />
             )}
 
@@ -73,14 +73,23 @@ export default function BottomTabBar({ activeTab, onTabChange, unreadCount = 0, 
                 {userNickname?.[0]?.toUpperCase()}
               </div>
             ) : (
-              <span className="material-symbols-outlined" style={{
-                fontSize: 22, marginBottom: 2,
-                fontVariationSettings: isActive
-                  ? "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24"
-                  : "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24",
+              <div style={{
+                background: isActive ? "#ede0d5" : "transparent",
+                borderRadius: 999,
+                padding: "4px 16px",
+                transition: "background 0.2s ease",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                marginBottom: 2,
               }}>
-                {tab.icon}
-              </span>
+                <span className="material-symbols-outlined" style={{
+                  fontSize: 22,
+                  fontVariationSettings: isActive
+                    ? "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24"
+                    : "'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24",
+                }}>
+                  {tab.icon}
+                </span>
+              </div>
             )}
 
             <span style={{

@@ -11,12 +11,12 @@ const C = {
   bg: "#faf9f6", surfaceLow: "#f4f4f0",
   container: "#edeeea", containerLowest: "#ffffff",
   onSurface: "#2f3430", onSurfaceVariant: "#5c605c",
-  outlineVariant: "#afb3ae", primaryContainer: "#ede0d5",
+  outlineVariant: "#8a8e8a", primaryContainer: "#ede0d5",
 };
 
 const isMobile = () => window.innerWidth <= 768;
 
-export default function FeedTab({ personalPlaces = [], onPlaceClick, onDataChange }) {
+export default function FeedTab({ personalPlaces = [], onPlaceClick, onDataChange, onNavigate }) {
   const { user } = useUser();
   const mobile = isMobile();
   const [activities, setActivities] = useState([]);
@@ -112,6 +112,16 @@ export default function FeedTab({ personalPlaces = [], onPlaceClick, onDataChang
             <p style={{ fontFamily: FL, fontSize: 11, color: "#a8a29e", letterSpacing: "0.08em" }}>
               장소를 추가하거나 팔로우를 시작해보세요
             </p>
+            {onNavigate && (
+              <button onClick={() => onNavigate("search")} style={{
+                background: "none", border: "none", cursor: "pointer",
+                fontFamily: FL, fontSize: 13, fontWeight: 700,
+                color: C.primary, textDecoration: "underline",
+                textUnderlineOffset: 3, marginTop: 16, padding: 0,
+              }}>
+                첫 장소를 검색해보세요
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -127,8 +137,8 @@ export default function FeedTab({ personalPlaces = [], onPlaceClick, onDataChang
           <p style={{ fontFamily: FL, fontSize: 11, color: C.outlineVariant, margin: 0 }}>새로고침 중...</p>
         </div>
       )}
-      <div style={{ maxWidth: 560, margin: "0 auto", padding: mobile ? "12px 0" : "16px 0" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: mobile ? 2 : 8 }}>
+      <div style={{ maxWidth: 560, margin: "0 auto", padding: mobile ? "12px 12px" : "16px 0" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: mobile ? 12 : 8 }}>
           {combinedFeed.map((item, idx) => (
             <FeedCard key={`${item.isOwn ? "own" : "follow"}-${item.place_id}-${idx}`} item={item} mobile={mobile} onPlaceClick={onPlaceClick} onDataChange={onDataChange} />
           ))}
@@ -251,9 +261,9 @@ function FeedCard({ item, mobile, onPlaceClick, onDataChange }) {
   return (
     <article style={{
       background: C.containerLowest,
-      borderRadius: mobile ? 0 : 8,
+      borderRadius: mobile ? 12 : 8,
       overflow: "hidden",
-      boxShadow: mobile ? "none" : "0 1px 6px rgba(47,52,48,0.05)",
+      boxShadow: mobile ? "0 1px 6px rgba(47,52,48,0.04)" : "0 1px 6px rgba(47,52,48,0.05)",
     }}>
       {/* Card header */}
       <div style={{
@@ -528,7 +538,7 @@ function CommentThread({ comment, depth, user, onReply }) {
   const FL = "'Manrope', -apple-system, sans-serif";
   const C_onSurface = "#2f3430";
   const C_onSurfaceVariant = "#5c605c";
-  const C_outlineVariant = "#afb3ae";
+  const C_outlineVariant = "#8a8e8a";
   return (
     <>
       <div style={{ marginBottom: 3, paddingLeft: depth * 16 }}>

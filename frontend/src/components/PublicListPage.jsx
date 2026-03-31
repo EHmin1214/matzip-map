@@ -11,7 +11,7 @@ const C = {
   primary: "#655d54", primaryDim: "#595149",
   bg: "#faf9f6", surfaceLow: "#f4f4f0",
   container: "#edeeea", containerLowest: "#ffffff",
-  onSurface: "#2f3430", outlineVariant: "#afb3ae",
+  onSurface: "#2f3430", outlineVariant: "#8a8e8a",
   primaryContainer: "#ede0d5",
 };
 

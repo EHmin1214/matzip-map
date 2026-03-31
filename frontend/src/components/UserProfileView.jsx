@@ -15,7 +15,7 @@ const C = {
   surfaceLowest: "#ffffff",
   container: "#edeeea",
   onSurface: "#2f3430", onSurfaceVariant: "#5c605c",
-  outlineVariant: "#afb3ae", error: "#9e422c",
+  outlineVariant: "#8a8e8a", error: "#9e422c",
 };
 
 export default function UserProfileView({ nickname, onClose, embedded = false }) {

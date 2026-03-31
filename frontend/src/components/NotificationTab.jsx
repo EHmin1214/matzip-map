@@ -289,7 +289,7 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
                               padding: "5px 10px", borderRadius: 6,
                               border: "1px solid rgba(101,93,84,0.15)",
                               fontFamily: FL, fontSize: 10, fontWeight: 600,
-                              color: "#afb3ae", flexShrink: 0,
+                              color: "#8a8e8a", flexShrink: 0,
                               letterSpacing: "0.08em",
                             }}>
                               신청됨

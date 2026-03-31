@@ -45,20 +45,21 @@ const myMarker = ({ name, status, shared = false, folderColor }) => {
 const followingMarker = ({ name, color, nickname }) => `
   <div class="map-pill" style="
     display:inline-flex;align-items:center;gap:5px;
-    background:${color};
-    color:white;
+    background:rgba(255,255,255,0.92);
+    color:${color};
     padding:4px 9px 4px 4px;
     border-radius:6px;
+    border:1.5px solid ${color};
     font-family:'Manrope',-apple-system,sans-serif;
     font-size:11px;font-weight:600;
     white-space:nowrap;
-    box-shadow:0 2px 10px rgba(0,0,0,0.15);
+    box-shadow:0 2px 8px rgba(0,0,0,0.08);
     cursor:pointer;
     letter-spacing:0.01em;
   ">
     <span style="
       width:18px;height:18px;border-radius:50%;
-      background:rgba(255,255,255,0.3);
+      background:${color};
       display:inline-flex;align-items:center;justify-content:center;
       font-family:'Noto Serif',Georgia,serif;font-style:italic;
       font-size:9px;color:white;font-weight:700;flex-shrink:0;

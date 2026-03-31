@@ -10,7 +10,7 @@ const C = {
   container:  "#f4f4f0",
   onSurface:  "#2f3430",
   variant:    "#5c605c",
-  outline:    "#afb3ae",
+  outline:    "#8a8e8a",
   error:      "#9e422c",
 };
 
@@ -237,31 +237,33 @@ export default function AuthScreen({ embedded = false }) {
             {loading ? "처리 중..." : mode === "login" ? "시작하기" : "계정 만들기"}
           </button>
 
-          {/* 구분선 */}
-          <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "24px 0" }}>
-            <div style={{ flex: 1, height: 1, background: `${C.outline}33` }} />
-            <span style={{ fontFamily: FL, fontSize: 11, color: C.outline }}>또는</span>
-            <div style={{ flex: 1, height: 1, background: `${C.outline}33` }} />
-          </div>
-
-          {/* 카카오 로그인 */}
-          <button
-            onClick={handleKakaoLogin}
-            disabled={loading}
-            style={{
-              width: "100%", padding: "14px",
-              background: "#FEE500", color: "#191919",
-              border: "none", borderRadius: 12,
-              fontFamily: FL, fontSize: 14, fontWeight: 700,
-              cursor: loading ? "not-allowed" : "pointer",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-              transition: "opacity 0.15s",
-              opacity: loading ? 0.6 : 1,
-            }}
-          >
-            <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#191919" d="M9 1C4.58 1 1 3.79 1 7.21c0 2.17 1.45 4.08 3.64 5.18l-.93 3.44c-.08.3.26.54.52.37l4.12-2.74c.21.02.43.03.65.03 4.42 0 8-2.79 8-6.28S13.42 1 9 1z"/></svg>
-            카카오로 시작하기
-          </button>
+          {/* 카카오 로그인 — 현재 비활성, KAKAO_KEY 설정 시 자동 노출 */}
+          {KAKAO_KEY && (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "24px 0" }}>
+                <div style={{ flex: 1, height: 1, background: `${C.outline}33` }} />
+                <span style={{ fontFamily: FL, fontSize: 11, color: C.outline }}>또는</span>
+                <div style={{ flex: 1, height: 1, background: `${C.outline}33` }} />
+              </div>
+              <button
+                onClick={handleKakaoLogin}
+                disabled={loading}
+                style={{
+                  width: "100%", padding: "14px",
+                  background: "#FEE500", color: "#191919",
+                  border: "none", borderRadius: 12,
+                  fontFamily: FL, fontSize: 14, fontWeight: 700,
+                  cursor: loading ? "not-allowed" : "pointer",
+                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  transition: "opacity 0.15s",
+                  opacity: loading ? 0.6 : 1,
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#191919" d="M9 1C4.58 1 1 3.79 1 7.21c0 2.17 1.45 4.08 3.64 5.18l-.93 3.44c-.08.3.26.54.52.37l4.12-2.74c.21.02.43.03.65.03 4.42 0 8-2.79 8-6.28S13.42 1 9 1z"/></svg>
+                카카오로 시작하기
+              </button>
+            </>
+          )}
 
         </div>
       </div>

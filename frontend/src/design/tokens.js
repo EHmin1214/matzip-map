@@ -26,7 +26,7 @@ export const COLORS = {
   onSurface:         "#2f3430",
   onSurfaceVariant:  "#5c605c",
   outline:           "#777c77",
-  outlineVariant:    "#afb3ae",
+  outlineVariant:    "#8a8e8a",
 
   // Tertiary
   tertiary:          "#685f39",

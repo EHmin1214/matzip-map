@@ -8,7 +8,7 @@ const C = {
   primary:          "#655d54",
   primaryContainer: "#ede0d5",
   bg:               "rgba(250,249,246,0.94)",
-  outlineVariant:   "#afb3ae",
+  outlineVariant:   "#8a8e8a",
 };
 
 const STATUS_FILTERS = [

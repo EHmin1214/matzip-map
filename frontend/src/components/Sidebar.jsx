@@ -12,7 +12,7 @@ const C = {
   container:        "#edeeea",
   onSurface:        "#2f3430",
   onSurfaceVariant: "#5c605c",
-  outlineVariant:   "#afb3ae",
+  outlineVariant:   "#8a8e8a",
 };
 const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
@@ -54,6 +54,7 @@ export default function Sidebar({
   const { user } = useUser();
   const [folders, setFolders] = useState([]);
   const [placeFilter, setPlaceFilter] = useState("");
+  const [followingOpen, setFollowingOpen] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -77,7 +78,7 @@ export default function Sidebar({
       background: C.bg,
       display: "flex",
       flexDirection: "column",
-      padding: "18px 16px 14px",
+      padding: "20px 20px 16px",
       overflowY: "auto",
       overflowX: "hidden",
       boxSizing: "border-box",
@@ -103,7 +104,7 @@ export default function Sidebar({
       </div>
 
       {/* ── 네비게이션 ─────────────────────────────────────── */}
-      <nav style={{ display: "flex", flexDirection: "column", gap: 0, marginBottom: 10, flexShrink: 0 }}>
+      <nav style={{ display: "flex", flexDirection: "column", gap: 0, marginBottom: 20, flexShrink: 0 }}>
         {NAV_ITEMS.map((item) => {
           const isActive = activeTab === item.id;
           const hasUnread = item.id === "notifications" && unreadCount > 0;
@@ -164,14 +165,11 @@ export default function Sidebar({
         })}
       </nav>
 
-      {/* 구분선 */}
-      <div style={{ height: 1, background: "rgba(101,93,84,0.08)", margin: "0 0 6px", flexShrink: 0 }} />
-
       {/* ── 지도 탭 전용 콘텐츠 ───────────────────────────── */}
       {activeTab === "map" && (
         <div style={{
           flex: 1, display: "flex", flexDirection: "column",
-          paddingTop: 4, minHeight: 0, gap: 4,
+          paddingTop: 4, minHeight: 0, gap: 12,
         }}>
           {/* 내 공간 섹션 */}
           <div style={{
@@ -246,18 +244,30 @@ export default function Sidebar({
             </div>
           </div>
 
-          {/* 구분선 */}
-          {followingList.length > 0 && (
-            <div style={{ height: 1, background: "rgba(101,93,84,0.08)", margin: "4px 0", flexShrink: 0 }} />
-          )}
-
           {/* 팔로잉 레이어 */}
           {followingList.length > 0 && (
             <div style={{
-              flex: 1, minHeight: 0, display: "flex", flexDirection: "column",
+              flex: followingOpen ? 1 : "none", minHeight: 0, display: "flex", flexDirection: "column",
             }}>
-              <SectionLabel>팔로잉</SectionLabel>
-              <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+              <div
+                onClick={() => setFollowingOpen(!followingOpen)}
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  cursor: "pointer", padding: "2px 2px",
+                }}
+              >
+                <SectionLabel>팔로잉 ({followingList.length})</SectionLabel>
+                <span className="material-symbols-outlined" style={{
+                  fontSize: 14, color: "#8a8e8a",
+                  transform: followingOpen ? "rotate(180deg)" : "rotate(0deg)",
+                  transition: "transform 0.2s ease",
+                }}>expand_more</span>
+              </div>
+              <div style={{
+                maxHeight: followingOpen ? 400 : 0,
+                overflow: "hidden",
+                transition: "max-height 0.25s ease",
+              }}>
                 {followingList.map((f, idx) => {
                   const color = getFollowingColor(idx);
                   const isSelected = selectedFollowingIds.includes(f.id);

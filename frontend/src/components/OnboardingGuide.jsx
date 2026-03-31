@@ -1,6 +1,6 @@
 // src/components/OnboardingGuide.jsx
 // 첫 사용자 온보딩 — 장소가 0개일 때 3단계 가이드
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
@@ -8,7 +8,7 @@ const C = {
   primary: "#655d54", primaryDim: "#595149",
   bg: "#faf9f6", container: "#edeeea",
   containerLowest: "#ffffff", onSurface: "#2f3430",
-  outlineVariant: "#afb3ae", primaryContainer: "#ede0d5",
+  outlineVariant: "#8a8e8a", primaryContainer: "#ede0d5",
 };
 
 const STEPS = [
@@ -31,13 +31,24 @@ const STEPS = [
 
 export default function OnboardingGuide({ onStart, onDismiss }) {
   const [step, setStep] = useState(0);
+  const [closing, setClosing] = useState(false);
   const mobile = window.innerWidth <= 768;
+
+  useEffect(() => {
+    if (closing) {
+      const t = setTimeout(() => onStart(), 300);
+      return () => clearTimeout(t);
+    }
+  }, [closing]); // eslint-disable-line
+
+  const handleStart = () => { setClosing(true); };
 
   return (
     <div style={{
       position: "fixed", inset: 0, zIndex: 9999,
       display: "flex", alignItems: "center", justifyContent: "center",
       background: "rgba(47,52,48,0.4)", backdropFilter: "blur(6px)",
+      opacity: closing ? 0 : 1, transition: "opacity 0.3s ease",
     }}>
       <div style={{
         width: mobile ? "calc(100% - 40px)" : 420,
@@ -45,14 +56,15 @@ export default function OnboardingGuide({ onStart, onDismiss }) {
         overflow: "hidden", boxShadow: "0 8px 40px rgba(0,0,0,0.15)",
       }}>
         {/* 상단 그라데이션 */}
-        <div style={{
+        <div key={step} style={{
+          animation: "fadeUp 0.25s ease-out",
           padding: "36px 32px 28px",
           background: `linear-gradient(135deg, ${C.primaryDim}18, ${C.primary}10)`,
           textAlign: "center",
         }}>
           <span className="material-symbols-outlined" style={{
             fontSize: 48, color: C.primary, marginBottom: 16, display: "block",
-            fontVariationSettings: "'FILL' 0, 'wght' 200",
+            fontVariationSettings: "'FILL' 0, 'wght' 300",
           }}>
             {STEPS[step].icon}
           </span>
@@ -101,16 +113,22 @@ export default function OnboardingGuide({ onStart, onDismiss }) {
               </button>
             </div>
           ) : (
-            <button onClick={onStart} style={{
+            <button onClick={handleStart} style={{
               width: "100%", padding: "14px", border: "none", borderRadius: 10,
-              background: C.primary, fontFamily: FL, fontSize: 13,
-              fontWeight: 700, color: "#fff6ef", cursor: "pointer",
+              background: "transparent", fontFamily: FL, fontSize: 13,
+              fontWeight: 600, color: C.primary, letterSpacing: "0.01em", cursor: "pointer",
             }}>
               첫 장소 검색하러 가기
             </button>
           )}
         </div>
       </div>
+      <style>{`
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }

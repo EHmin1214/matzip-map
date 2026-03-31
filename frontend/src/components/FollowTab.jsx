@@ -17,7 +17,7 @@ const C = {
   container:        "#edeeea",
   onSurface:        "#2f3430",
   onSurfaceVariant: "#5c605c",
-  outlineVariant:   "#afb3ae",
+  outlineVariant:   "#8a8e8a",
   error:            "#9e422c",
 };
 const isMobile = () => window.innerWidth <= 768;

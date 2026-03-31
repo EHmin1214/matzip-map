@@ -19,6 +19,7 @@ import UserProfileView from "./components/UserProfileView";
 import PublicListPage from "./components/PublicListPage";
 import OnboardingGuide from "./components/OnboardingGuide";
 import LoginPrompt from "./components/LoginPrompt";
+import Toast from "./components/Toast";
 import "./App.css";
 
 const FH = "'Noto Serif', Georgia, serif";
@@ -50,6 +51,7 @@ export default function App() {
   const [followingList, setFollowingList] = useState([]);
   const [folders, setFolders] = useState([]);
   const [viewingUserNickname, setViewingUserNickname] = useState(null);
+  const [toast, setToast] = useState(null);
 
   const isMobile = window.innerWidth <= 768;
   const showMap = activeTab === "map";
@@ -223,13 +225,14 @@ export default function App() {
   const deletePersonalPlace = useCallback(async (placeId) => {
     await axios.delete(`${API_BASE}/personal-places/${placeId}${user ? `?user_id=${user.user_id}` : ""}`);
     setPersonalPlaces((prev) => prev.filter((p) => p.id !== placeId));
+    setToast("삭제됐어요");
   }, [user]);
 
   const handlePlaceUpdated = useCallback((updated) => {
     setPersonalPlaces((prev) => prev.map((p) => p.id === updated.id ? { ...p, ...updated } : p));
   }, []);
 
-  const addPlace = (p) => setPersonalPlaces((prev) => { const e = prev.find((x) => x.id === p.id); return e ? prev : [...prev, p]; });
+  const addPlace = (p) => { setPersonalPlaces((prev) => { const e = prev.find((x) => x.id === p.id); return e ? prev : [...prev, p]; }); setToast("저장됐어요"); };
 
   const filteredPersonalPlaces = activeFilter ? personalPlaces.filter((p) => p.status === activeFilter) : personalPlaces;
   const visibleRestaurants = restaurants.filter((r) => !hiddenIds.has(r.id));
@@ -276,7 +279,7 @@ export default function App() {
 
   const renderPanel = (tab) => {
     if (tab === "search")        return <SearchTab onPlaceAdded={addPlace} personalPlaces={personalPlaces} onViewUserProfile={handleViewUserProfile} />;
-    if (tab === "feed")          return <FeedTab personalPlaces={personalPlaces} onPlaceClick={handleActivityPlaceClick} onDataChange={loadPersonalPlaces} />;
+    if (tab === "feed")          return <FeedTab personalPlaces={personalPlaces} onPlaceClick={handleActivityPlaceClick} onDataChange={loadPersonalPlaces} onNavigate={setActiveTab} />;
     if (tab === "notifications") return <NotificationTab onUnreadChange={setUnreadCount} />;
     if (tab === "profile")       return <ProfilePage personalPlaces={personalPlaces} onViewMap={() => setActiveTab("map")} onViewUserProfile={handleViewUserProfile} onPlaceClick={(p) => {
       setSelectedRestaurant({ id: p.id, name: p.name, lat: p.lat, lng: p.lng, status: p.status, user_id: p.user_id, isPersonal: true, sources: [] });
@@ -561,6 +564,8 @@ export default function App() {
           </div>
         )
       )}
+
+      <Toast message={toast} onClose={() => setToast(null)} />
 
       <style>{`
         @keyframes slideInPanel {

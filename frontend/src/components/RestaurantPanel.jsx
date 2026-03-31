@@ -19,7 +19,7 @@ const C = {
   container:        "#edeeea",
   onSurface:        "#2f3430",
   onSurfaceVariant: "#5c605c",
-  outlineVariant:   "#afb3ae",
+  outlineVariant:   "#8a8e8a",
   error:            "#9e422c",
 };
 
@@ -785,13 +785,13 @@ function PanelCommentThread({ comment, depth, user, onReply, onDelete }) {
             {user && (
               <button onClick={() => onReply({ id: comment.id, author_nickname: comment.author_nickname })} style={{
                 background: "none", border: "none", cursor: "pointer", padding: 0,
-                fontFamily: FL, fontSize: 10, color: "#afb3ae",
+                fontFamily: FL, fontSize: 10, color: "#8a8e8a",
               }}>답글 달기</button>
             )}
             {comment.user_id === user?.user_id && (
               <button onClick={() => onDelete(comment.id)} style={{
                 background: "none", border: "none", cursor: "pointer", padding: 0,
-                fontFamily: FL, fontSize: 10, color: "#afb3ae",
+                fontFamily: FL, fontSize: 10, color: "#8a8e8a",
               }}>삭제</button>
             )}
           </div>

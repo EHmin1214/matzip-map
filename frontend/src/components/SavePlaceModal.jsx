@@ -12,7 +12,7 @@ const C = {
   containerHigh: "#edeeea",
   onSurface:  "#2f3430",
   variant:    "#5c605c",
-  outline:    "#afb3ae",
+  outline:    "#8a8e8a",
   outlineFaint: "rgba(101,93,84,0.08)",
   error:      "#9e422c",
 };

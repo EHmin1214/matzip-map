@@ -16,7 +16,7 @@ const C = {
   containerLow: "#f4f4f0",
   containerLowest: "#ffffff",
   onSurface:  "#2f3430",
-  outlineVariant: "#afb3ae",
+  outlineVariant: "#8a8e8a",
 };
 
 const isMobile = () => window.innerWidth <= 768;
