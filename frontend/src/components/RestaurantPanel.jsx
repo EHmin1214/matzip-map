@@ -725,6 +725,7 @@ export default function RestaurantPanel({
           )}
           <div style={{ display: "flex", gap: 8, marginTop: replyTo ? 0 : 8 }}>
             <input
+              className="comment-input"
               ref={commentInputRef}
               value={commentInput}
               onChange={(e) => setCommentInput(e.target.value)}
@@ -934,6 +935,7 @@ export default function RestaurantPanel({
           from { opacity: 0; transform: translateY(-4px); }
           to   { opacity: 1; transform: translateY(0); }
         }
+        .comment-input { font-size: 11px !important; }
       `}</style>
     </>
   );

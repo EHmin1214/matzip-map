@@ -104,8 +104,8 @@ export default function Sidebar({
         <img src="/logo.svg" alt="" style={{ width: 50, height: 50, flexShrink: 0, position: "relative", top: -1 }} />
         <div style={{ display: "flex", flexDirection: "column" }}>
           {[
-            { mode: "personal", label: "나의 공간" },
-            { mode: "shared", label: "우리의 공간" },
+            { mode: "personal", label: "🏠 나의 공간" },
+            { mode: "shared", label: "🌐 우리의 공간" },
           ]
             .sort((a, b) => (a.mode === mapMode ? -1 : 1))
             .map(({ mode, label }) => {

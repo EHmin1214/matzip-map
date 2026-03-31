@@ -70,10 +70,10 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
 
   const markAllRead = async () => {
     try {
-      await axios.delete(`${API_BASE}/notifications/?user_id=${user.user_id}`);
-      setNotifications([]);
+      await axios.patch(`${API_BASE}/notifications/read?user_id=${user.user_id}`);
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
       if (onUnreadChange) onUnreadChange(0);
-    } catch { alert("알림 삭제에 실패했습니다."); }
+    } catch { alert("읽음 처리에 실패했습니다."); }
   };
 
   const deleteNotification = async (id) => {
@@ -119,7 +119,7 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
               background: C.primary, border: "none",
               fontFamily: FL, fontSize: 9, color: "#fff6ef", cursor: "pointer", fontWeight: 700,
             }}>
-              모두 삭제
+              모두 읽음
             </button>
           )}
         </div>
@@ -167,7 +167,7 @@ export default function NotificationTab({ embedded = false, onUnreadChange, noHe
               onMouseEnter={(e) => e.currentTarget.style.background = C.primaryDim}
               onMouseLeave={(e) => e.currentTarget.style.background = C.primary}
             >
-              모두 삭제
+              모두 읽음
             </button>
           </div>
         )}

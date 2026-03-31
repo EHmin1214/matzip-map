@@ -87,11 +87,12 @@ def list_shared_places(
 
     all_picks = q.all()
 
-    # naver_place_id 또는 좌표 반올림으로 그룹핑 (카테고리 무관 — 같은 장소면 합산)
+    # 좌표 반올림으로 그룹핑 (카테고리 무관 — 같은 장소면 합산)
+    # naver_place_id가 있는 유저/없는 유저가 섞여도 같은 좌표면 합산
     # 단, 같은 user_id의 중복 추가는 1회로 카운트 (유저 수 기준)
     groups: dict[str, list] = {}
     for p in all_picks:
-        key = p.naver_place_id or f"{round(p.lat, 3)}_{round(p.lng, 3)}"
+        key = f"{round(p.lat, 3)}_{round(p.lng, 3)}"
         groups.setdefault(key, []).append(p)
 
     # 유저 정보 일괄 조회

@@ -433,7 +433,7 @@ export default function App() {
                 animation: `${modeTransition === "in" ? "modeOverlayIn" : "modeOverlayOut"} 0.35s ease forwards`,
               }}>
                 <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 17, color: "#655d54", letterSpacing: "-0.02em", margin: 0, fontWeight: 600 }}>
-                  {mapMode === "shared" ? "우리의 공간" : "나의 공간"}
+                  {mapMode === "shared" ? "🌐 우리의 공간" : "🏠 나의 공간"}
                 </p>
                 <p style={{ fontFamily: FL, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.2em", color: "#b5b0ab", margin: 0 }}>
                   {mapMode === "shared" ? "Shared Curation" : "My Archive"}
@@ -463,7 +463,7 @@ export default function App() {
                     fontWeight: mapMode === "personal" ? 700 : 400,
                     color: mapMode === "personal" ? "#655d54" : "#8a8e8a",
                     transition: "all 0.15s",
-                  }}>나의 공간</button>
+                  }}>🏠 나의 공간</button>
                   <span style={{ margin: "0 8px", color: "#c7c4bf", fontSize: 11 }}>·</span>
                   <button onClick={() => handleMapModeChange("shared")} style={{
                     background: "none", border: "none", cursor: "pointer", padding: 0,
@@ -471,7 +471,7 @@ export default function App() {
                     fontWeight: mapMode === "shared" ? 700 : 400,
                     color: mapMode === "shared" ? "#655d54" : "#8a8e8a",
                     transition: "all 0.15s",
-                  }}>우리의 공간</button>
+                  }}>🌐 우리의 공간</button>
                 </div>
               </div>
 
@@ -705,7 +705,7 @@ export default function App() {
                 animation: `${modeTransition === "in" ? "modeOverlayIn" : "modeOverlayOut"} 0.35s ease forwards`,
               }}>
                 <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 17, color: "#655d54", letterSpacing: "-0.02em", margin: 0, fontWeight: 600 }}>
-                  {mapMode === "shared" ? "우리의 공간" : "나의 공간"}
+                  {mapMode === "shared" ? "🌐 우리의 공간" : "🏠 나의 공간"}
                 </p>
                 <p style={{ fontFamily: FL, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.2em", color: "#b5b0ab", margin: 0 }}>
                   {mapMode === "shared" ? "Shared Curation" : "My Archive"}
