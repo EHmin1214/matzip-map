@@ -264,8 +264,8 @@ export default function RestaurantPanel({
           overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
         }}>{r.address}</p>
       )}
-      {/* 지도/공유 버튼 — 우측 정렬 */}
-      <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
+      {/* 지도/공유 버튼 — 좌측 정렬 */}
+      <div style={{ display: "flex", gap: 4, justifyContent: "flex-start" }}>
         {(naverUrl || kakaoMapUrl) && (
           <div style={{ position: "relative" }}>
             <button onClick={() => { setShowMapMenu((v) => !v); setShowShareMenu(false); }} style={{
@@ -280,7 +280,7 @@ export default function RestaurantPanel({
             </button>
             {showMapMenu && (
               <div style={{
-                position: "absolute", top: "100%", right: 0, marginTop: 4,
+                position: "absolute", top: "100%", left: 0, marginTop: 4,
                 display: "flex", gap: 4, zIndex: 10,
                 background: C.surfaceLowest, borderRadius: 8, padding: 4,
                 boxShadow: "0 4px 16px rgba(47,52,48,0.15)",
@@ -289,7 +289,7 @@ export default function RestaurantPanel({
                 {naverUrl && (
                   <a href={naverUrl} target="_blank" rel="noreferrer" onClick={() => setShowMapMenu(false)} style={{
                     display: "inline-flex", alignItems: "center", gap: 4, padding: "7px 12px",
-                    background: "#03C75A", color: "white",
+                    background: "#5EB87B", color: "white",
                     border: "none", borderRadius: 6, fontFamily: FL, fontSize: 10, fontWeight: 600,
                     textDecoration: "none", whiteSpace: "nowrap",
                   }}>
@@ -300,11 +300,11 @@ export default function RestaurantPanel({
                 {kakaoMapUrl && (
                   <a href={kakaoMapUrl} target="_blank" rel="noreferrer" onClick={() => setShowMapMenu(false)} style={{
                     display: "inline-flex", alignItems: "center", gap: 4, padding: "7px 12px",
-                    background: "#FEE500", color: "#191919",
+                    background: "#F0DFA0", color: "#5c5340",
                     border: "none", borderRadius: 6, fontFamily: FL, fontSize: 10, fontWeight: 600,
                     textDecoration: "none", whiteSpace: "nowrap",
                   }}>
-                    <svg width="10" height="10" viewBox="0 0 18 18"><path fill="#191919" d="M9 1C4.58 1 1 3.79 1 7.21c0 2.17 1.45 4.08 3.64 5.18l-.93 3.44c-.08.3.26.54.52.37l4.12-2.74c.21.02.43.03.65.03 4.42 0 8-2.79 8-6.28S13.42 1 9 1z"/></svg>
+                    <svg width="10" height="10" viewBox="0 0 18 18"><path fill="#5c5340" d="M9 1C4.58 1 1 3.79 1 7.21c0 2.17 1.45 4.08 3.64 5.18l-.93 3.44c-.08.3.26.54.52.37l4.12-2.74c.21.02.43.03.65.03 4.42 0 8-2.79 8-6.28S13.42 1 9 1z"/></svg>
                     카카오맵
                   </a>
                 )}
@@ -326,7 +326,7 @@ export default function RestaurantPanel({
             </button>
             {showShareMenu && (
               <div style={{
-                position: "absolute", top: "100%", right: 0, marginTop: 4,
+                position: "absolute", top: "100%", left: 0, marginTop: 4,
                 display: "flex", gap: 4, zIndex: 10,
                 background: C.surfaceLowest, borderRadius: 8, padding: 4,
                 boxShadow: "0 4px 16px rgba(47,52,48,0.15)",
@@ -346,11 +346,11 @@ export default function RestaurantPanel({
                 </button>
                 <button onClick={() => { handleKakaoShare(); setShowShareMenu(false); }} style={{
                   display: "inline-flex", alignItems: "center", gap: 4, padding: "7px 12px",
-                  background: "#FEE500", color: "#191919",
+                  background: "#F0DFA0", color: "#5c5340",
                   border: "none", borderRadius: 6, fontFamily: FL, fontSize: 10, fontWeight: 600,
                   cursor: "pointer", whiteSpace: "nowrap",
                 }}>
-                  <svg width="12" height="12" viewBox="0 0 18 18"><path fill="#191919" d="M9 1C4.58 1 1 3.79 1 7.21c0 2.17 1.45 4.08 3.64 5.18l-.93 3.44c-.08.3.26.54.52.37l4.12-2.74c.21.02.43.03.65.03 4.42 0 8-2.79 8-6.28S13.42 1 9 1z"/></svg>
+                  <svg width="12" height="12" viewBox="0 0 18 18"><path fill="#5c5340" d="M9 1C4.58 1 1 3.79 1 7.21c0 2.17 1.45 4.08 3.64 5.18l-.93 3.44c-.08.3.26.54.52.37l4.12-2.74c.21.02.43.03.65.03 4.42 0 8-2.79 8-6.28S13.42 1 9 1z"/></svg>
                   카카오톡
                 </button>
               </div>
