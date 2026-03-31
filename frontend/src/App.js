@@ -462,9 +462,10 @@ export default function App() {
               setSelectedRestaurant({ ...place, sources: [], isPersonal: true });
               setActiveTab("map");
               if (mapRef.current && window.naver) {
-                mapRef.current.panTo(new window.naver.maps.LatLng(place.lat, place.lng), { duration: 280 });
-                // 디테일 패널(360px) 보정
-                setTimeout(() => mapRef.current?.panBy(new window.naver.maps.Point(-180, 0)), 300);
+                // 디테일패널 오프셋을 좌표에 미리 반영 (flicker 방지)
+                const cLng = Number(place.lng) - 0.004;
+                mapRef.current.setZoom(16);
+                mapRef.current.setCenter(new window.naver.maps.LatLng(place.lat, cLng));
               }
             }}
           />
