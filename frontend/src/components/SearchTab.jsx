@@ -167,9 +167,10 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUse
                 width: "100%", padding: "10px 12px 10px 32px",
                 background: C.containerLow, border: "none",
                 borderRadius: 8, outline: "none",
-                fontFamily: FL, fontSize: 11, color: C.onSurface,
+                fontFamily: FL, color: C.onSurface,
                 boxSizing: "border-box", transition: "background 0.2s",
               }}
+              ref={(el) => { if (el) el.style.setProperty("font-size", "12px", "important"); }}
               onFocus={(e) => e.target.style.background = C.container}
               onBlur={(e) => e.target.style.background = C.containerLow}
             />
