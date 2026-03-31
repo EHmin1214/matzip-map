@@ -233,9 +233,10 @@ export default function Sidebar({
                   style={{
                     width: "100%", padding: "4px 6px 4px 22px",
                     background: C.surfaceLow, border: "none", borderRadius: 5,
-                    fontFamily: FL, fontSize: 11, color: C.onSurface,
+                    fontFamily: FL, color: C.onSurface,
                     outline: "none", boxSizing: "border-box",
                   }}
+                  ref={(el) => { if (el) el.style.setProperty("font-size", "12px", "important"); }}
                 />
               </div>
             )}
