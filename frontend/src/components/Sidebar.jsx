@@ -239,38 +239,60 @@ export default function Sidebar({
           {/* 구분선 */}
           <div style={{ height: 1, background: C.container }} />
 
-          {/* 인기 장소 리스트 */}
+          {/* 인기 장소 리스트 — 카테고리별 그룹 */}
           <div style={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
             <SectionLabel>인기 장소</SectionLabel>
             <div style={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
-              {sharedPlaces.length === 0 && (
+              {sharedPlaces.length === 0 ? (
                 <p style={{ fontFamily: FL, fontSize: 11, color: C.outlineVariant, margin: "8px 4px", fontStyle: "italic" }}>
                   아직 베스트로 선정된 장소가 없어요
                 </p>
-              )}
-              {sharedPlaces.map((p, i) => (
-                <div
-                  key={`${p.naver_place_id || i}_${p.category}`}
-                  onClick={() => onSharedPlaceSelect && onSharedPlaceSelect(p)}
-                  style={{
-                    display: "flex", alignItems: "center", gap: 8,
-                    padding: "5px 6px", borderRadius: 6,
-                    cursor: "pointer", transition: "background 0.12s",
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = C.surfaceLow}
-                  onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-                >
-                  <span style={{
-                    fontFamily: FL, fontSize: 11, fontWeight: 800,
-                    color: SHARED_CAT_COLOR[p.category] || C.primary, flexShrink: 0, minWidth: 24,
-                  }}>({p.pick_count})</span>
-                  <p style={{
-                    margin: 0, fontFamily: FL, fontSize: 11, fontWeight: 600,
-                    color: C.onSurface, flex: 1,
-                    overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                  }}>{p.name}</p>
-                </div>
-              ))}
+              ) : (() => {
+                const grouped = {};
+                sharedPlaces.forEach((p) => {
+                  (grouped[p.category] = grouped[p.category] || []).push(p);
+                });
+                const catOrder = ["restaurant", "cafe", "bar", "general_store"];
+                const catLabel = { restaurant: "음식점", cafe: "카페", bar: "바", general_store: "잡화점" };
+                return catOrder.filter((c) => grouped[c]).map((cat) => (
+                  <div key={cat} style={{ marginBottom: 10 }}>
+                    <div style={{
+                      display: "flex", alignItems: "center", gap: 5,
+                      padding: "4px 4px 2px", marginBottom: 2,
+                    }}>
+                      <div style={{ width: 3, height: 12, borderRadius: 2, background: SHARED_CAT_COLOR[cat], flexShrink: 0 }} />
+                      <p style={{
+                        margin: 0, fontFamily: FL, fontSize: 9, fontWeight: 700,
+                        textTransform: "uppercase", letterSpacing: "0.1em",
+                        color: C.outlineVariant,
+                      }}>{catLabel[cat]} ({grouped[cat].length})</p>
+                    </div>
+                    {grouped[cat].map((p, i) => (
+                      <div
+                        key={`${p.naver_place_id || i}_${cat}`}
+                        onClick={() => onSharedPlaceSelect && onSharedPlaceSelect(p)}
+                        style={{
+                          display: "flex", alignItems: "center", gap: 8,
+                          padding: "4px 6px", borderRadius: 6,
+                          cursor: "pointer", transition: "background 0.12s",
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = C.surfaceLow}
+                        onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+                      >
+                        <span style={{
+                          fontFamily: FL, fontSize: 11, fontWeight: 800,
+                          color: SHARED_CAT_COLOR[cat], flexShrink: 0, minWidth: 24,
+                        }}>({p.pick_count})</span>
+                        <p style={{
+                          margin: 0, fontFamily: FL, fontSize: 11, fontWeight: 600,
+                          color: C.onSurface, flex: 1,
+                          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                        }}>{p.name}</p>
+                      </div>
+                    ))}
+                  </div>
+                ));
+              })()}
             </div>
           </div>
         </div>

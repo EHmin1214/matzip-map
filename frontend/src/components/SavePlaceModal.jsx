@@ -26,7 +26,7 @@ const STATUS_OPTIONS = [
 ];
 
 const VISITED_STATUSES = ["visited", "want_revisit"];
-const FOLDER_COLORS = ["#655d54", "#3B8BD4", "#1D9E75", "#BA7517", "#7F77DD", "#D4537E"];
+const FOLDER_COLORS = ["#655d54", "#B5784E", "#5F8B5A", "#7E6BAD", "#5A8FA8", "#D4537E"];
 
 export default function SavePlaceModal({ place, onSave, onClose, editMode = false, onDelete }) {
   const { user } = useUser();

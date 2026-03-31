@@ -433,7 +433,7 @@ export default function App() {
                 background: "linear-gradient(135deg, #faf9f6 0%, #ede0d5 50%, #faf9f6 100%)",
                 backgroundSize: "200% 200%",
                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6,
-                animation: `${modeTransition === "in" ? "modeOverlayIn" : "modeOverlayOut"} 0.5s ease forwards, modeGradient 1.2s ease infinite`,
+                animation: `${modeTransition === "in" ? "modeOverlayIn 0.5s ease forwards" : "modeOverlayOut 0.55s ease forwards"}, modeGradient 1.2s ease infinite`,
               }}>
                 <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 17, color: "#655d54", letterSpacing: "-0.02em", margin: 0, fontWeight: 600 }}>
                   {modeTarget.current === "shared" ? "우리의 공간" : "나의 공간"}
@@ -707,7 +707,7 @@ export default function App() {
                 background: "linear-gradient(135deg, #faf9f6 0%, #ede0d5 50%, #faf9f6 100%)",
                 backgroundSize: "200% 200%",
                 display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6,
-                animation: `${modeTransition === "in" ? "modeOverlayIn" : "modeOverlayOut"} 0.5s ease forwards, modeGradient 1.2s ease infinite`,
+                animation: `${modeTransition === "in" ? "modeOverlayIn 0.5s ease forwards" : "modeOverlayOut 0.55s ease forwards"}, modeGradient 1.2s ease infinite`,
               }}>
                 <p style={{ fontFamily: FH, fontStyle: "italic", fontSize: 17, color: "#655d54", letterSpacing: "-0.02em", margin: 0, fontWeight: 600 }}>
                   {modeTarget.current === "shared" ? "우리의 공간" : "나의 공간"}

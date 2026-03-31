@@ -9,7 +9,7 @@ export function getAccountColor(accountId, accounts) {
   return ACCOUNT_COLORS[index % ACCOUNT_COLORS.length] || "#888";
 }
 
-export const FOLLOWING_COLORS = ["#3B8BD4","#1D9E75","#BA7517","#7F77DD","#D4537E","#0F6E56"];
+export const FOLLOWING_COLORS = ["#B5784E","#5F8B5A","#7E6BAD","#5A8FA8","#D4537E","#655d54"];
 export const getFollowingColor = (idx) => FOLLOWING_COLORS[idx % FOLLOWING_COLORS.length];
 
 export const STATUS_COLOR = {
@@ -31,10 +31,10 @@ export const STATUS_LABEL = {
 };
 
 export const SHARED_CAT_COLOR = {
-  restaurant:    "#BA7517",
-  cafe:          "#1D9E75",
-  bar:           "#7F77DD",
-  general_store: "#3B8BD4",
+  restaurant:    "#B5784E",
+  cafe:          "#5F8B5A",
+  bar:           "#7E6BAD",
+  general_store: "#5A8FA8",
 };
 
 export const BEST_CATEGORIES = [
