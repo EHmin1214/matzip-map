@@ -445,11 +445,12 @@ export default function MapView({
     if (exists) return;
 
     const color = focusPlace.owner_nickname ? "#8B7E74" : MY_PRIMARY;
+    const inner = focusPlace.owner_nickname
+      ? followingMarker({ name: focusPlace.name, color, nickname: focusPlace.owner_nickname })
+      : myMarker({ name: focusPlace.name, status: focusPlace.status });
     const icon = {
-      content: focusPlace.owner_nickname
-        ? followingMarker({ name: focusPlace.name, color, nickname: focusPlace.owner_nickname })
-        : myMarker({ name: focusPlace.name, status: focusPlace.status }),
-      anchor: new window.naver.maps.Point(6, 12),
+      content: `<div style="transform:translateX(-50%)">${inner}</div>`,
+      anchor: new window.naver.maps.Point(0, 12),
     };
     focusMarkerRef.current = new window.naver.maps.Marker({
       position: new window.naver.maps.LatLng(focusPlace.lat, focusPlace.lng),
