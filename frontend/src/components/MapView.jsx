@@ -100,6 +100,7 @@ const dotMarker = (color) => `
 export default function MapView({
   restaurants, personalPlaces = [], accounts, onMarkerClick, onMapReady,
   followingPlaces = [], onFollowingMarkerClick, folders = [],
+  focusPlace = null,
 }) {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
@@ -428,6 +429,33 @@ export default function MapView({
       });
     });
   }, [followingPlaces, personalPlaces, mapReady]); // eslint-disable-line
+
+  // 피드에서 다이렉트로 진입한 장소 — 임시 마커 표시
+  const focusMarkerRef = useRef(null);
+  useEffect(() => {
+    if (focusMarkerRef.current) { focusMarkerRef.current.setMap(null); focusMarkerRef.current = null; }
+    if (!mapReady || !focusPlace || !window.naver) return;
+
+    // 이미 지도에 마커가 있는 장소면 임시 마커 불필요
+    const allMarkers = [...personalMarkersRef.current, ...followingMarkersRef.current];
+    const exists = allMarkers.some((m) => {
+      const pos = m.getPosition();
+      return Math.abs(pos.lat() - focusPlace.lat) < 0.0001 && Math.abs(pos.lng() - focusPlace.lng) < 0.0001;
+    });
+    if (exists) return;
+
+    const color = focusPlace.owner_nickname ? "#8B7E74" : MY_PRIMARY;
+    const icon = {
+      content: focusPlace.owner_nickname
+        ? followingMarker({ name: focusPlace.name, color, nickname: focusPlace.owner_nickname })
+        : myMarker({ name: focusPlace.name, status: focusPlace.status }),
+      anchor: new window.naver.maps.Point(6, 12),
+    };
+    focusMarkerRef.current = new window.naver.maps.Marker({
+      position: new window.naver.maps.LatLng(focusPlace.lat, focusPlace.lng),
+      map: mapInstance.current, icon, zIndex: 10,
+    });
+  }, [focusPlace, mapReady]); // eslint-disable-line
 
   return (
     <div style={{ width: "100%", height: "100%", position: "relative" }}>

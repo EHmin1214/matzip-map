@@ -341,6 +341,7 @@ export default function App() {
               followingPlaces={followingPlaces}
               onFollowingMarkerClick={handleFollowingMarkerClick}
               folders={folders}
+              focusPlace={selectedRestaurant}
             />
           </div>
 
@@ -499,6 +500,7 @@ export default function App() {
                 handleFollowingMarkerClick(place);
                 setActiveTab("map");
               }}
+              focusPlace={selectedRestaurant}
             />
 
             {/* 지도 위 컨트롤 — 우측 하단 세로 스택 */}
