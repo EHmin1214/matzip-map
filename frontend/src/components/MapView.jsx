@@ -22,16 +22,15 @@ const isSameLocation = (a, b, threshold = 0.0001) =>
 
 /* ── 마커 HTML ───────────────────────────────────────────── */
 
-// 내 맛집 — 컬렉션 색상 pill + 상태 도트
+// 내 맛집 — 컬렉션/상태 색상 pill (dot 제거)
 const myMarker = ({ name, status, shared = false, folderColor }) => {
-  const dotColor = STATUS_DOT[status] || MY_PRIMARY;
-  const bg = folderColor || MY_PRIMARY;
+  const bg = folderColor || STATUS_DOT[status] || MY_PRIMARY;
   return `
     <div class="map-pill" style="
-      display:inline-flex;align-items:center;gap:5px;
+      display:inline-flex;align-items:center;
       background:${bg};
       color:#fff6ef;
-      padding:4px 9px 4px 6px;
+      padding:4px 9px;
       border-radius:6px;
       font-family:'Manrope',-apple-system,sans-serif;
       font-size:11px;font-weight:600;
@@ -41,12 +40,6 @@ const myMarker = ({ name, status, shared = false, folderColor }) => {
       letter-spacing:0.01em;
       ${shared ? "outline:1.5px solid rgba(255,246,239,0.5);outline-offset:1px;" : ""}
     ">
-      <span style="
-        width:6px;height:6px;border-radius:50%;
-        background:${dotColor};flex-shrink:0;
-        display:inline-block;
-        box-shadow:0 0 0 1px rgba(255,255,255,0.3);
-      "></span>
       <span>${name}</span>
     </div>
   `;
