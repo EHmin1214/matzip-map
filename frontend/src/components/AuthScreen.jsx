@@ -122,7 +122,7 @@ export default function AuthScreen({ embedded = false }) {
         <div style={{ width: "100%", maxWidth: 400 }}>
 
           {/* 모바일 브랜드 */}
-          <div style={{ marginBottom: 48 }}>
+          <div style={{ marginBottom: 24 }}>
             <h1 style={{
               fontFamily: FH, fontStyle: "italic",
               fontSize: 28, fontWeight: 700, color: C.primary,
