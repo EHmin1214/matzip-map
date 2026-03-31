@@ -37,6 +37,8 @@ export default function App() {
   const [unreadCount, setUnreadCount] = useState(0);
   const mapRef = useRef(null);
   const pendingDeepLink = useRef(null);
+  const pullStartY = useRef(null);
+  const [pullRefreshing, setPullRefreshing] = useState(false);
 
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
@@ -372,6 +374,22 @@ export default function App() {
     return false;
   };
 
+  // ── 모바일 pull-to-refresh (비지도 탭) ───────────────────
+  const handlePullStart = (e) => {
+    if (!isMobile) return;
+    const el = e.currentTarget;
+    if (el && el.scrollTop <= 0) pullStartY.current = e.touches[0].clientY;
+  };
+  const handlePullEnd = (e) => {
+    if (pullStartY.current === null) return;
+    const diff = e.changedTouches[0].clientY - pullStartY.current;
+    pullStartY.current = null;
+    if (diff > 80 && !pullRefreshing) {
+      setPullRefreshing(true);
+      handleRefresh().finally(() => setPullRefreshing(false));
+    }
+  };
+
   const handleTabChange = (tab) => {
     if (requireAuth(tab)) return;
     setActiveTab(tab);
@@ -614,7 +632,14 @@ export default function App() {
 
           {/* 비지도 탭 콘텐츠 */}
           {!showMap && (
-            <div style={{ position: "fixed", inset: 0, zIndex: 20, paddingBottom: "calc(64px + env(safe-area-inset-bottom, 0px))", overflowY: "auto", background: "#faf9f6" }}>
+            <div
+              onTouchStart={handlePullStart}
+              onTouchEnd={handlePullEnd}
+              style={{ position: "fixed", inset: 0, zIndex: 20, paddingBottom: "calc(64px + env(safe-area-inset-bottom, 0px))", overflowY: "auto", background: "#faf9f6" }}
+            >
+              {pullRefreshing && (
+                <div style={{ textAlign: "center", padding: "10px 0", fontSize: 11, color: "#8a8e8a", fontFamily: FL }}>새로고침 중...</div>
+              )}
               {renderPanel(activeTab)}
             </div>
           )}
