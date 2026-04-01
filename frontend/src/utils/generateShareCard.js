@@ -232,8 +232,13 @@ function drawDotMap(ctx, places, x, y, w, h, r) {
   roundRect(ctx, x, y, w, h, r);
   ctx.clip();
 
-  /* 배경 */
-  ctx.fillStyle = "#f0efec";
+  /* 배경 — 지도 느낌의 그라디언트 */
+  const bgGrad = ctx.createLinearGradient(x, y, x + w, y + h);
+  bgGrad.addColorStop(0, "#eae7e0");
+  bgGrad.addColorStop(0.3, "#f0efec");
+  bgGrad.addColorStop(0.7, "#ece9e3");
+  bgGrad.addColorStop(1, "#f2f0ec");
+  ctx.fillStyle = bgGrad;
   ctx.fillRect(x, y, w, h);
 
   if (places.length === 0) {
@@ -260,8 +265,55 @@ function drawDotMap(ctx, places, x, y, w, h, r) {
   const latR = maxLat - minLat || 0.01;
   const lngR = maxLng - minLng || 0.01;
 
-  /* grid lines */
-  ctx.strokeStyle = "#e4e2de";
+  /* 지도 배경 — 불규칙한 도로/블록 패턴 */
+  ctx.globalAlpha = 0.12;
+  ctx.strokeStyle = "#c5c0b8";
+  ctx.lineWidth = 1;
+  // 가로 도로
+  const seed = places.length * 7;
+  for (let i = 0; i < 8; i++) {
+    const ry = y + h * ((i * 0.13 + 0.04 + (((seed + i * 37) % 100) / 1000)));
+    const thick = (i % 3 === 0) ? 2.5 : 1;
+    ctx.lineWidth = thick;
+    ctx.beginPath();
+    ctx.moveTo(x, ry);
+    // 약간 구불구불한 선
+    for (let sx = 0; sx <= w; sx += w / 4) {
+      const offset = ((seed + i * 13 + sx) % 20) - 10;
+      ctx.lineTo(x + sx, ry + offset * 0.3);
+    }
+    ctx.stroke();
+  }
+  // 세로 도로
+  for (let i = 0; i < 6; i++) {
+    const rx = x + w * ((i * 0.17 + 0.06 + (((seed + i * 53) % 100) / 1000)));
+    const thick = (i % 2 === 0) ? 2.5 : 1;
+    ctx.lineWidth = thick;
+    ctx.beginPath();
+    ctx.moveTo(rx, y);
+    for (let sy = 0; sy <= h; sy += h / 4) {
+      const offset = ((seed + i * 17 + sy) % 20) - 10;
+      ctx.lineTo(rx + offset * 0.3, y + sy);
+    }
+    ctx.stroke();
+  }
+
+  /* 블록 채움 — 도시 느낌 */
+  ctx.globalAlpha = 0.04;
+  ctx.fillStyle = "#a09888";
+  for (let i = 0; i < 12; i++) {
+    const bx = x + ((seed * 3 + i * 67) % (w - 60 | 0));
+    const by = y + ((seed * 5 + i * 43) % (h - 40 | 0));
+    const bw = 30 + ((seed + i * 23) % 40);
+    const bh = 20 + ((seed + i * 31) % 30);
+    roundRect(ctx, bx, by, bw, bh, 3);
+    ctx.fill();
+  }
+
+  ctx.globalAlpha = 1;
+
+  /* grid lines (subtle) */
+  ctx.strokeStyle = "#ddd9d2";
   ctx.lineWidth = 0.5;
   for (let i = 1; i < 6; i++) {
     const gy = y + (h / 6) * i;
@@ -277,11 +329,16 @@ function drawDotMap(ctx, places, x, y, w, h, r) {
     const px = x + mp + ((p.lng - minLng) / lngR) * (w - mp * 2);
     const py = y + mp + ((maxLat - p.lat) / latR) * (h - mp * 2);
     const color = STATUS_DOT[p.status] || "#655d54";
-    ctx.beginPath(); ctx.arc(px, py, dotR + 4, 0, Math.PI * 2);
-    ctx.fillStyle = color + "18"; ctx.fill();
+    // glow
+    ctx.beginPath(); ctx.arc(px, py, dotR + 6, 0, Math.PI * 2);
+    ctx.fillStyle = color + "15"; ctx.fill();
+    // outer ring
+    ctx.beginPath(); ctx.arc(px, py, dotR + 3, 0, Math.PI * 2);
+    ctx.fillStyle = color + "25"; ctx.fill();
+    // dot
     ctx.beginPath(); ctx.arc(px, py, dotR, 0, Math.PI * 2);
     ctx.fillStyle = color; ctx.fill();
-    ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke();
   });
 
   ctx.restore();

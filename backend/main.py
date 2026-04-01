@@ -174,44 +174,15 @@ def og_profile(nickname: str):
 <meta name="twitter:title" content="{title}" />
 <meta name="twitter:description" content="{desc}" />
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,400;0,700;1,400&family=Manrope:wght@400;600;700&display=swap" rel="stylesheet">
+<meta http-equiv="refresh" content="0;url={redirect_url}">
 <style>
 *{{margin:0;padding:0;box-sizing:border-box}}
-body{{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#faf9f6;font-family:'Manrope',sans-serif;padding:20px}}
-.card{{max-width:380px;width:100%;background:#fff;border-radius:20px;padding:28px 24px;box-shadow:0 2px 24px rgba(47,52,48,0.06);text-decoration:none;color:inherit;display:block}}
-.map{{border-radius:12px;background:#f0efec;margin-bottom:18px;overflow:hidden;line-height:0}}
-.map svg{{width:100%;height:auto;display:block}}
-.map.empty{{padding:48px 0;text-align:center;font-style:italic;font-size:12px;color:#a8a29e;line-height:1}}
-.avatar-row{{display:flex;align-items:center;gap:12px;margin-bottom:4px}}
-.avatar{{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#595149,#655d54);display:flex;align-items:center;justify-content:center;font-family:'Noto Serif',Georgia,serif;font-style:italic;font-size:18px;color:#fff6ef;font-weight:700;overflow:hidden;flex-shrink:0}}
-.avatar img{{width:100%;height:100%;object-fit:cover}}
-.name{{font-family:'Noto Serif',Georgia,serif;font-size:17px;font-weight:700;color:#2f3430;margin:0;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}}
-.stats{{font-size:12px;font-weight:600;color:#5c605c;margin:6px 0 18px;text-align:left}}
-.divider{{height:1px;background:#e8e8ed;margin-bottom:14px}}
-.brand-row{{display:flex;align-items:center;gap:8px}}
-.logo{{width:20px;height:20px;position:relative;flex-shrink:0}}
-.logo .b{{position:absolute;top:1px;left:5px;width:11px;height:14px;border-radius:1.5px;background:#a89a8e}}
-.logo .f{{position:absolute;top:3px;left:2px;width:11px;height:14px;border-radius:1.5px;background:#867a6e}}
-.brand-name{{font-family:'Noto Serif',Georgia,serif;font-style:italic;font-weight:700;font-size:13px;color:#655d54}}
-.cta{{text-align:center;margin-top:18px;font-size:12px;color:#a89a8e;font-weight:500}}
-.cta span{{display:inline-block;animation:pulse 2s ease-in-out infinite}}
-@keyframes pulse{{0%,100%{{opacity:.6}}50%{{opacity:1}}}}
+body{{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#faf9f6;font-family:'Manrope',sans-serif}}
 </style>
+<script>window.location.replace("{redirect_url}");</script>
 </head>
 <body>
-<a class="card" href="{redirect_url}">
-  {map_html}
-  <div class="avatar-row">
-    <div class="avatar">{avatar_inner}</div>
-    <p class="name">{title}</p>
-  </div>
-  <p class="stats">총 {place_count}개의 큐레이션 공간</p>
-  <div class="divider"></div>
-  <div class="brand-row">
-    <div class="logo"><div class="b"></div><div class="f"></div></div>
-    <span class="brand-name">나의 공간</span>
-  </div>
-  <p class="cta"><span>프로필을 눌러서 자세히 살펴보세요</span></p>
-</a>
+<p style="color:#a8a29e;font-size:13px">이동 중...</p>
 </body>
 </html>"""
 
