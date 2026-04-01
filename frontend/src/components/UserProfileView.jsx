@@ -18,7 +18,7 @@ const C = {
   outlineVariant: "#8a8e8a", error: "#9e422c",
 };
 
-export default function UserProfileView({ nickname, onClose, embedded = false }) {
+export default function UserProfileView({ nickname, onClose, embedded = false, onViewMap }) {
   const { user } = useUser();
   const [profile, setProfile] = useState(null);
   const [places, setPlaces] = useState([]);
@@ -257,23 +257,43 @@ export default function UserProfileView({ nickname, onClose, embedded = false })
                 }}>
                   {profile.nickname}의 공간 지도
                 </p>
-                <div ref={mapContainerRef} style={{
-                  width: "100%", height: embedded ? 130 : 160, borderRadius: 10,
-                  overflow: "hidden", background: C.surfaceLow, marginBottom: 12,
-                }} />
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                  {Object.entries(counts).map(([status, count]) => (
-                    <span key={status} style={{
-                      fontFamily: FL, fontSize: 11, color: C.onSurfaceVariant,
-                      display: "flex", alignItems: "center", gap: 4,
-                    }}>
-                      {STATUS_EMOJI[status] || "📍"} {count}
-                    </span>
-                  ))}
-                  <span style={{ fontFamily: FL, fontSize: 11, color: C.outlineVariant }}>
-                    총 {places.length}곳
-                  </span>
-                </div>
+                {(() => {
+                  const canViewMap = onViewMap && followStatus === "accepted";
+                  return (
+                    <>
+                      <div
+                        onClick={() => canViewMap && onViewMap(profile.id)}
+                        style={{ cursor: canViewMap ? "pointer" : "default" }}
+                      >
+                        <div ref={mapContainerRef} style={{
+                          width: "100%", height: embedded ? 130 : 160, borderRadius: 10,
+                          overflow: "hidden", background: C.surfaceLow, marginBottom: 12,
+                          pointerEvents: "none",
+                        }} />
+                      </div>
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+                        {Object.entries(counts).map(([status, count]) => (
+                          <span key={status} style={{
+                            fontFamily: FL, fontSize: 11, color: C.onSurfaceVariant,
+                            display: "flex", alignItems: "center", gap: 4,
+                          }}>
+                            {STATUS_EMOJI[status] || "📍"} {count}
+                          </span>
+                        ))}
+                        {canViewMap && (
+                          <button onClick={() => onViewMap(profile.id)} style={{
+                            marginLeft: "auto", display: "flex", alignItems: "center", gap: 3,
+                            background: "none", border: "none", cursor: "pointer", padding: 0,
+                            fontFamily: FL, fontSize: 11, fontWeight: 600, color: C.primary,
+                          }}>
+                            눌러서 자세히 보기
+                            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>chevron_right</span>
+                          </button>
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
             )}
 

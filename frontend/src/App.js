@@ -241,6 +241,48 @@ export default function App() {
     setViewingUserNickname(nickname);
   }, [pushNav]);
 
+  // 다른 사용자의 공간 지도 클릭 → 메인 지도에서 마커 켜기
+  const handleViewUserMap = useCallback((userId) => {
+    // 팔로잉 마커 활성화 (이미 활성이 아니면 추가)
+    setSelectedFollowingIds((prev) =>
+      prev.includes(userId) ? prev : [...prev, userId]
+    );
+
+    // 장소 데이터 로드 후 맵 bounds 조정
+    const fitBounds = (places) => {
+      if (!mapRef.current || !window.naver?.maps || !places.length) return;
+      if (places.length === 1) {
+        centerMapOnPlace(places[0].lat, places[0].lng);
+      } else {
+        const bounds = new window.naver.maps.LatLngBounds();
+        places.forEach((p) => bounds.extend(new window.naver.maps.LatLng(p.lat, p.lng)));
+        mapRef.current.fitBounds(bounds, { padding: 60 });
+      }
+    };
+
+    if (followingPlacesMap[userId]) {
+      setTimeout(() => fitBounds(followingPlacesMap[userId]), 100);
+    } else {
+      axios.get(`${API_BASE}/personal-places/?user_id=${userId}`)
+        .then((res) => {
+          const places = res.data.filter((p) => p.is_public !== false);
+          setFollowingPlacesMap((m) => ({ ...m, [userId]: places }));
+          setTimeout(() => fitBounds(places), 100);
+        })
+        .catch(() => setFollowingPlacesMap((m) => ({ ...m, [userId]: [] })));
+    }
+
+    // 프로필 닫고 지도로 이동
+    setViewingUserNickname(null);
+    setActiveTab("map");
+    setMapMode("personal");
+    // nav stack + 브라우저 히스토리 정리
+    const depth = navStackRef.current.length;
+    navStackRef.current = [];
+    setNavDepth(0);
+    if (depth > 0) window.history.go(-depth);
+  }, [followingPlacesMap, centerMapOnPlace]);
+
   const handleActivityPlaceClick = useCallback((activity) => {
     pushNav({ activeTab: activeTabRef.current, selectedRestaurant: null });
     // Own places pass _original with full data; following items have activity shape
@@ -395,24 +437,10 @@ export default function App() {
     </div>
   );
 
-  // 공개 라우트 — 비회원 접근 가능
+  // 공개 라우트 — 비회원 접근 가능 (모바일/데스크톱 모두 지도 기반 뷰)
   const profileMatch = window.location.pathname.match(/^\/@(.+)$/);
   if (profileMatch) {
     const pNick = decodeURIComponent(profileMatch[1]);
-    // 모바일: UserProfileView 재사용 (팔로우 가능, 미로그인 시 로그인 유도)
-    if (isMobile) {
-      return (
-        <>
-          <UserProfileView
-            nickname={pNick}
-            onClose={() => { window.location.href = "/"; }}
-          />
-          {!user && (
-            <LoginPrompt onClose={() => { window.location.href = "/"; }} />
-          )}
-        </>
-      );
-    }
     return <PublicProfile nickname={pNick} />;
   }
   const listMatch = window.location.pathname.match(/^\/list\/(\d+)$/);
@@ -894,6 +922,7 @@ export default function App() {
             nickname={viewingUserNickname}
             onClose={() => { if (!goBack()) setViewingUserNickname(null); }}
             canGoBack={navDepth > 0}
+            onViewMap={handleViewUserMap}
           />
         ) : (
           <div style={{
@@ -911,6 +940,7 @@ export default function App() {
               nickname={viewingUserNickname}
               onClose={() => { if (!goBack()) setViewingUserNickname(null); }}
               canGoBack={navDepth > 0}
+              onViewMap={handleViewUserMap}
               embedded
             />
           </div>

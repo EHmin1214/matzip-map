@@ -22,6 +22,7 @@ const C = {
 const isMobile = () => window.innerWidth <= 768;
 
 const SUGGESTIONS = ["에임즈커피로스터스", "신세계 양꼬치 첨단점", "하바티 홍대", "하나샤부정"];
+const PERSON_SUGGESTIONS = ["박태민"];
 
 export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUserProfile }) {
   const { user } = useUser();
@@ -184,30 +185,28 @@ export default function SearchTab({ onPlaceAdded, personalPlaces = [], onViewUse
             </div>
           </div>
 
-          {/* 추천 태그 (장소 모드만) */}
-          {searchMode === "place" && (
-            <div style={{ marginTop: 10, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
-              <span style={{ fontFamily: FL, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.15em", color: "#a8a29e", marginRight: 2 }}>
-                Suggested:
-              </span>
-              {SUGGESTIONS.map((s) => (
-                <button key={s} onClick={() => { setQuery(s); handleSearch(s); }}
-                  style={{
-                    padding: "4px 10px",
-                    borderRadius: 999, border: "none",
-                    background: C.containerLow,
-                    fontFamily: FL, fontSize: 9, fontWeight: 600,
-                    textTransform: "uppercase", letterSpacing: "0.1em",
-                    color: "#78716c", cursor: "pointer", transition: "all 0.15s",
-                  }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = C.primaryContainer; e.currentTarget.style.color = C.primary; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = C.containerLow; e.currentTarget.style.color = "#78716c"; }}
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-          )}
+          {/* 추천 태그 */}
+          <div style={{ marginTop: 10, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
+            <span style={{ fontFamily: FL, fontSize: 9, textTransform: "uppercase", letterSpacing: "0.15em", color: "#a8a29e", marginRight: 2 }}>
+              Suggested:
+            </span>
+            {(searchMode === "place" ? SUGGESTIONS : PERSON_SUGGESTIONS).map((s) => (
+              <button key={s} onClick={() => { setQuery(s); handleSearch(s); }}
+                style={{
+                  padding: "4px 10px",
+                  borderRadius: 999, border: "none",
+                  background: C.containerLow,
+                  fontFamily: FL, fontSize: 9, fontWeight: 600,
+                  textTransform: "uppercase", letterSpacing: "0.1em",
+                  color: "#78716c", cursor: "pointer", transition: "all 0.15s",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = C.primaryContainer; e.currentTarget.style.color = C.primary; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = C.containerLow; e.currentTarget.style.color = "#78716c"; }}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
         </section>
 
         {/* 저장 성공 메시지 */}

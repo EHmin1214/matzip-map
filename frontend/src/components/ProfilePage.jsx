@@ -810,17 +810,90 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
                   </a>
                 )}
                 {isPublic && (
-                  <button
-                    onClick={() => setShowShareMenu(!showShareMenu)}
-                    style={{
-                      flex: 1, background: C.surfaceLow, border: "none", padding: "6px 0", borderRadius: 6, cursor: "pointer",
-                      fontFamily: FL, fontSize: 10, fontWeight: 600, color: C.primary,
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: 3,
-                    }}
-                  >
-                    <span className="material-symbols-outlined" style={{ fontSize: 11 }}>share</span>
-                    공유
-                  </button>
+                  <div style={{ flex: 1, position: "relative" }}>
+                    <button
+                      onClick={() => setShowShareMenu(!showShareMenu)}
+                      style={{
+                        width: "100%", background: C.surfaceLow, border: "none", padding: "6px 0", borderRadius: 6, cursor: "pointer",
+                        fontFamily: FL, fontSize: 10, fontWeight: 600, color: C.primary,
+                        display: "flex", alignItems: "center", justifyContent: "center", gap: 3,
+                      }}
+                    >
+                      <span className="material-symbols-outlined" style={{ fontSize: 11 }}>share</span>
+                      공유
+                    </button>
+                    {showShareMenu && (
+                      <>
+                        <div onClick={() => setShowShareMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 49 }} />
+                        <div style={{
+                          position: "absolute", top: "100%", right: 0, marginTop: 4, width: 220, zIndex: 50,
+                          background: C.surfaceLowest, borderRadius: 12, overflow: "hidden",
+                          boxShadow: "0 4px 20px rgba(47,52,48,0.12)",
+                        }}>
+                          <button
+                            onClick={() => {
+                              const url = `${API_BASE}/og/@${user.nickname}`;
+                              navigator.clipboard.writeText(url).then(() => {
+                                setSuccessMsg("프로필 링크가 복사됐어요!");
+                                setTimeout(() => setSuccessMsg(""), 2500);
+                              });
+                              setShowShareMenu(false);
+                            }}
+                            style={{
+                              width: "100%", padding: "13px 16px", border: "none", background: "none",
+                              display: "flex", alignItems: "center", gap: 12, cursor: "pointer",
+                              fontFamily: FL, fontSize: 13, fontWeight: 600, color: C.onSurface,
+                              borderBottom: `1px solid ${C.container}`,
+                            }}
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: 18, color: C.primary }}>link</span>
+                            링크 복사
+                          </button>
+                          <button
+                            onClick={() => {
+                              shareKakao({
+                                title: `${user.nickname}의 공간`,
+                                description: `${user.nickname}님이 아끼는 공간을 구경해보세요!`,
+                                linkUrl: `${API_BASE}/og/@${user.nickname}`,
+                              });
+                              setShowShareMenu(false);
+                            }}
+                            style={{
+                              width: "100%", padding: "13px 16px", border: "none", background: "none",
+                              display: "flex", alignItems: "center", gap: 12, cursor: "pointer",
+                              fontFamily: FL, fontSize: 13, fontWeight: 600, color: C.onSurface,
+                              borderBottom: `1px solid ${C.container}`,
+                            }}
+                          >
+                            <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#191919" d="M9 1C4.58 1 1 3.79 1 7.21c0 2.17 1.45 4.08 3.64 5.18l-.93 3.44c-.08.3.26.54.52.37l4.12-2.74c.21.02.43.03.65.03 4.42 0 8-2.79 8-6.28S13.42 1 9 1z"/></svg>
+                            카카오톡
+                          </button>
+                          <button
+                            onClick={async () => {
+                              setShowShareMenu(false);
+                              try {
+                                await shareProfileCard(
+                                  { nickname: user.nickname, profile_photo_url: user.profile_photo_url },
+                                  personalPlaces,
+                                );
+                              } catch {
+                                setSuccessMsg("카드 생성에 실패했어요");
+                                setTimeout(() => setSuccessMsg(""), 2500);
+                              }
+                            }}
+                            style={{
+                              width: "100%", padding: "13px 16px", border: "none", background: "none",
+                              display: "flex", alignItems: "center", gap: 12, cursor: "pointer",
+                              fontFamily: FL, fontSize: 13, fontWeight: 600, color: C.onSurface,
+                            }}
+                          >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M7.5 2h9A5.5 5.5 0 0 1 22 7.5v9a5.5 5.5 0 0 1-5.5 5.5h-9A5.5 5.5 0 0 1 2 16.5v-9A5.5 5.5 0 0 1 7.5 2z" stroke="#E1306C" strokeWidth="2"/><circle cx="12" cy="12" r="4" stroke="#E1306C" strokeWidth="2"/><circle cx="17.5" cy="6.5" r="1" fill="#E1306C"/></svg>
+                            인스타그램
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -843,79 +916,6 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
             </div>
             <Toggle value={isPublic} onChange={handlePublicToggle} />
           </div>
-
-          {/* 공유 드롭다운 (공유 버튼 클릭 시) */}
-          {isPublic && showShareMenu && (
-            <div style={{ position: "relative", marginBottom: 16 }}>
-              <div onClick={() => setShowShareMenu(false)} style={{ position: "fixed", inset: 0, zIndex: 49 }} />
-              <div style={{
-                position: "absolute", top: -8, right: 0, width: 220, zIndex: 50,
-                background: C.surfaceLowest, borderRadius: 12, overflow: "hidden",
-                boxShadow: "0 4px 20px rgba(47,52,48,0.12)",
-              }}>
-                <button
-                  onClick={() => {
-                    const url = `${API_BASE}/og/@${user.nickname}`;
-                    navigator.clipboard.writeText(url).then(() => {
-                      setSuccessMsg("프로필 링크가 복사됐어요!");
-                      setTimeout(() => setSuccessMsg(""), 2500);
-                    });
-                    setShowShareMenu(false);
-                  }}
-                  style={{
-                    width: "100%", padding: "13px 16px", border: "none", background: "none",
-                    display: "flex", alignItems: "center", gap: 12, cursor: "pointer",
-                    fontFamily: FL, fontSize: 13, fontWeight: 600, color: C.onSurface,
-                    borderBottom: `1px solid ${C.container}`,
-                  }}
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: 18, color: C.primary }}>link</span>
-                  링크 복사
-                </button>
-                <button
-                  onClick={() => {
-                    shareKakao({
-                      title: `${user.nickname}의 공간`,
-                      description: `${user.nickname}님이 아끼는 공간을 구경해보세요!`,
-                      linkUrl: `${API_BASE}/og/@${user.nickname}`,
-                    });
-                    setShowShareMenu(false);
-                  }}
-                  style={{
-                    width: "100%", padding: "13px 16px", border: "none", background: "none",
-                    display: "flex", alignItems: "center", gap: 12, cursor: "pointer",
-                    fontFamily: FL, fontSize: 13, fontWeight: 600, color: C.onSurface,
-                    borderBottom: `1px solid ${C.container}`,
-                  }}
-                >
-                  <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#191919" d="M9 1C4.58 1 1 3.79 1 7.21c0 2.17 1.45 4.08 3.64 5.18l-.93 3.44c-.08.3.26.54.52.37l4.12-2.74c.21.02.43.03.65.03 4.42 0 8-2.79 8-6.28S13.42 1 9 1z"/></svg>
-                  카카오톡
-                </button>
-                <button
-                  onClick={async () => {
-                    setShowShareMenu(false);
-                    try {
-                      await shareProfileCard(
-                        { nickname: user.nickname, profile_photo_url: user.profile_photo_url },
-                        personalPlaces,
-                      );
-                    } catch {
-                      setSuccessMsg("카드 생성에 실패했어요");
-                      setTimeout(() => setSuccessMsg(""), 2500);
-                    }
-                  }}
-                  style={{
-                    width: "100%", padding: "13px 16px", border: "none", background: "none",
-                    display: "flex", alignItems: "center", gap: 12, cursor: "pointer",
-                    fontFamily: FL, fontSize: 13, fontWeight: 600, color: C.onSurface,
-                  }}
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M7.5 2h9A5.5 5.5 0 0 1 22 7.5v9a5.5 5.5 0 0 1-5.5 5.5h-9A5.5 5.5 0 0 1 2 16.5v-9A5.5 5.5 0 0 1 7.5 2z" stroke="#E1306C" strokeWidth="2"/><circle cx="12" cy="12" r="4" stroke="#E1306C" strokeWidth="2"/><circle cx="17.5" cy="6.5" r="1" fill="#E1306C"/></svg>
-                  인스타그램
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* 푸시 알림 설정 */}
           {pushSupported && (
@@ -1088,34 +1088,88 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
           </Card>
         )}
 
-        {/* ── 팔로우 관리 (접기/펼치기) ───────────────────── */}
-        <Card>
-          <SectionHeader
-            title={`팔로우 — ${followingList.length} 팔로잉 · ${followerList.length} 팔로워`}
-            open={openSections.follow}
-            onToggle={() => toggleSection("follow")}
-          />
-          {openSections.follow && (
-            <>
-              {/* 팔로잉 · 팔로워 좌우 한 줄씩 */}
-              {(followingList.length > 0 || followerList.length > 0) && (
-                <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
-                  {/* 팔로잉 */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ margin: "0 0 8px", fontFamily: FL, fontSize: 10, fontWeight: 600, color: C.onSurfaceVariant }}>
-                      팔로잉 {followingList.length}
-                    </p>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                      {followingList.map((u) => (
-                        <div key={u.id || u.user_id} style={{
-                          display: "flex", alignItems: "center", gap: 8,
-                          padding: "6px 8px", borderRadius: 8, background: C.surfaceLow,
-                        }}>
-                          <div
+        {/* ── 팔로우 관리 (접기/펼치기) — 데스크톱만, 모바일은 친구 탭 사용 ── */}
+        {!mobile && (
+          <Card>
+            <SectionHeader
+              title={`팔로우 — ${followingList.length} 팔로잉 · ${followerList.length} 팔로워`}
+              open={openSections.follow}
+              onToggle={() => toggleSection("follow")}
+            />
+            {openSections.follow && (
+              <>
+                {/* 팔로잉 · 팔로워 좌우 한 줄씩 */}
+                {(followingList.length > 0 || followerList.length > 0) && (
+                  <div style={{ display: "flex", gap: 12, marginBottom: 14 }}>
+                    {/* 팔로잉 */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: "0 0 8px", fontFamily: FL, fontSize: 10, fontWeight: 600, color: C.onSurfaceVariant }}>
+                        팔로잉 {followingList.length}
+                      </p>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                        {followingList.map((u) => (
+                          <div key={u.id || u.user_id} style={{
+                            display: "flex", alignItems: "center", gap: 8,
+                            padding: "6px 8px", borderRadius: 8, background: C.surfaceLow,
+                          }}>
+                            <div
+                              onClick={() => onViewUserProfile?.(u.nickname)}
+                              style={{
+                                display: "flex", alignItems: "center", gap: 8,
+                                flex: 1, minWidth: 0, cursor: "pointer",
+                              }}
+                            >
+                              <div style={{
+                                width: 26, height: 26, borderRadius: "50%", flexShrink: 0,
+                                background: u.profile_photo_url
+                                  ? `url(${u.profile_photo_url}) center/cover`
+                                  : `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`,
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                                fontFamily: FH, fontStyle: "italic", fontSize: 11, color: "#fff6ef", fontWeight: 700,
+                              }}>
+                                {!u.profile_photo_url && u.nickname?.[0]?.toUpperCase()}
+                              </div>
+                              <span style={{
+                                fontFamily: FL, fontSize: 12, fontWeight: 600, color: C.onSurface,
+                                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                              }}>
+                                {u.nickname}
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => handleUnfollow(u.id || u.user_id)}
+                              disabled={followActionLoading === (u.id || u.user_id)}
+                              style={{
+                                padding: "3px 8px", border: "1px solid rgba(158,66,44,0.15)",
+                                borderRadius: 5, background: "none",
+                                color: C.error, fontFamily: FL, fontSize: 10, fontWeight: 600,
+                                cursor: "pointer", flexShrink: 0,
+                                opacity: followActionLoading === (u.id || u.user_id) ? 0.5 : 1,
+                              }}
+                            >
+                              해제
+                            </button>
+                          </div>
+                        ))}
+                        {followingList.length === 0 && (
+                          <p style={{ fontFamily: FL, fontSize: 11, color: C.outlineVariant, fontStyle: "italic", margin: 0 }}>없음</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* 팔로워 */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ margin: "0 0 8px", fontFamily: FL, fontSize: 10, fontWeight: 600, color: C.onSurfaceVariant }}>
+                        팔로워 {followerList.length}
+                      </p>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                        {followerList.map((u) => (
+                          <div key={u.id || u.user_id}
                             onClick={() => onViewUserProfile?.(u.nickname)}
                             style={{
                               display: "flex", alignItems: "center", gap: 8,
-                              flex: 1, minWidth: 0, cursor: "pointer",
+                              padding: "6px 8px", borderRadius: 8, background: C.surfaceLow,
+                              cursor: "pointer",
                             }}
                           >
                             <div style={{
@@ -1135,98 +1189,46 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
                               {u.nickname}
                             </span>
                           </div>
-                          <button
-                            onClick={() => handleUnfollow(u.id || u.user_id)}
-                            disabled={followActionLoading === (u.id || u.user_id)}
-                            style={{
-                              padding: "3px 8px", border: "1px solid rgba(158,66,44,0.15)",
-                              borderRadius: 5, background: "none",
-                              color: C.error, fontFamily: FL, fontSize: 10, fontWeight: 600,
-                              cursor: "pointer", flexShrink: 0,
-                              opacity: followActionLoading === (u.id || u.user_id) ? 0.5 : 1,
-                            }}
-                          >
-                            해제
-                          </button>
-                        </div>
-                      ))}
-                      {followingList.length === 0 && (
-                        <p style={{ fontFamily: FL, fontSize: 11, color: C.outlineVariant, fontStyle: "italic", margin: 0 }}>없음</p>
-                      )}
+                        ))}
+                        {followerList.length === 0 && (
+                          <p style={{ fontFamily: FL, fontSize: 11, color: C.outlineVariant, fontStyle: "italic", margin: 0 }}>없음</p>
+                        )}
+                      </div>
                     </div>
                   </div>
+                )}
 
-                  {/* 팔로워 */}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ margin: "0 0 8px", fontFamily: FL, fontSize: 10, fontWeight: 600, color: C.onSurfaceVariant }}>
-                      팔로워 {followerList.length}
-                    </p>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                      {followerList.map((u) => (
-                        <div key={u.id || u.user_id}
-                          onClick={() => onViewUserProfile?.(u.nickname)}
-                          style={{
-                            display: "flex", alignItems: "center", gap: 8,
-                            padding: "6px 8px", borderRadius: 8, background: C.surfaceLow,
-                            cursor: "pointer",
-                          }}
-                        >
-                          <div style={{
-                            width: 26, height: 26, borderRadius: "50%", flexShrink: 0,
-                            background: u.profile_photo_url
-                              ? `url(${u.profile_photo_url}) center/cover`
-                              : `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`,
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                            fontFamily: FH, fontStyle: "italic", fontSize: 11, color: "#fff6ef", fontWeight: 700,
-                          }}>
-                            {!u.profile_photo_url && u.nickname?.[0]?.toUpperCase()}
-                          </div>
-                          <span style={{
-                            fontFamily: FL, fontSize: 12, fontWeight: 600, color: C.onSurface,
-                            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-                          }}>
-                            {u.nickname}
-                          </span>
-                        </div>
-                      ))}
-                      {followerList.length === 0 && (
-                        <p style={{ fontFamily: FL, fontSize: 11, color: C.outlineVariant, fontStyle: "italic", margin: 0 }}>없음</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
+                {followingList.length === 0 && followerList.length === 0 && (
+                  <p style={{
+                    fontFamily: FH, fontStyle: "italic", fontSize: 13,
+                    color: C.outlineVariant, margin: "0 0 14px", textAlign: "center",
+                  }}>
+                    검색 탭에서 사람을 찾아 팔로우해보세요
+                  </p>
+                )}
 
-              {followingList.length === 0 && followerList.length === 0 && (
-                <p style={{
-                  fontFamily: FH, fontStyle: "italic", fontSize: 13,
-                  color: C.outlineVariant, margin: "0 0 14px", textAlign: "center",
-                }}>
-                  검색 탭에서 사람을 찾아 팔로우해보세요
-                </p>
-              )}
-
-              {/* 카카오톡으로 초대 */}
-              <button
-                onClick={() => shareKakao({
-                  title: `${user.nickname}님이 초대합니다`,
-                  description: `${user.nickname}님이 아끼는 공간을 구경해보세요!`,
-                  linkUrl: `${API_BASE}/og/@${user.nickname}`,
-                })}
-                style={{
-                  width: "100%", padding: "10px 14px",
-                  background: "#FEE500", border: "none", borderRadius: 8,
-                  cursor: "pointer",
-                  display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-                  fontFamily: FL, fontSize: 11, fontWeight: 700, color: "#191919",
-                }}
-              >
-                <svg width="14" height="14" viewBox="0 0 18 18"><path fill="#191919" d="M9 1C4.58 1 1 3.79 1 7.21c0 2.17 1.45 4.08 3.64 5.18l-.93 3.44c-.08.3.26.54.52.37l4.12-2.74c.21.02.43.03.65.03 4.42 0 8-2.79 8-6.28S13.42 1 9 1z"/></svg>
-                카카오톡으로 친구 초대
-              </button>
-            </>
-          )}
-        </Card>
+                {/* 카카오톡으로 초대 */}
+                <button
+                  onClick={() => shareKakao({
+                    title: `${user.nickname}님이 초대합니다`,
+                    description: `${user.nickname}님이 아끼는 공간을 구경해보세요!`,
+                    linkUrl: `${API_BASE}/og/@${user.nickname}`,
+                  })}
+                  style={{
+                    width: "100%", padding: "10px 14px",
+                    background: "#FEE500", border: "none", borderRadius: 8,
+                    cursor: "pointer",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                    fontFamily: FL, fontSize: 11, fontWeight: 700, color: "#191919",
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 18 18"><path fill="#191919" d="M9 1C4.58 1 1 3.79 1 7.21c0 2.17 1.45 4.08 3.64 5.18l-.93 3.44c-.08.3.26.54.52.37l4.12-2.74c.21.02.43.03.65.03 4.42 0 8-2.79 8-6.28S13.42 1 9 1z"/></svg>
+                  카카오톡으로 친구 초대
+                </button>
+              </>
+            )}
+          </Card>
+        )}
 
         {/* ── 나의 기록 상세 오버레이 (인스타 그리드) — Portal로 body에 렌더 ── */}
         {showMyPlaces && createPortal((() => {
