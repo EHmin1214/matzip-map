@@ -410,6 +410,11 @@ export default function App() {
 
   const handleTabChange = (tab) => {
     if (requireAuth(tab)) return;
+    // 데스크톱: 같은 탭 다시 누르면 닫기 (홈으로), 홈 누르면 패널 닫기
+    if (!isMobile && (tab === activeTab || tab === "map")) {
+      setActiveTab("map");
+      return;
+    }
     setActiveTab(tab);
   };
 
