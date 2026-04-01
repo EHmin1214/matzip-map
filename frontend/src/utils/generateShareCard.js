@@ -224,25 +224,40 @@ export default async function generateShareCard(place) {
    ══════════════════════════════════════════════════════════ */
 
 const STATUS_DOT = { want_to_go: "#BA7517", visited: "#1D9E75", want_revisit: "#D4537E" };
-const MAP_H = 850;  // 4:5 ratio (INNER 680 * 5/4)
+const MAP_H = Math.round(INNER / 1.25);  // 5:4 ratio
 
-function drawDotMap(ctx, places, x, y, w, h, r) {
+/* 배경 이미지의 위경도 범위 (크롭된 korea-map-bg.png 기준) */
+const BG_MIN_LNG = 125.55, BG_MAX_LNG = 130.05;
+const BG_MIN_LAT = 33.85, BG_MAX_LAT = 38.05;
+
+function mapProject(lng, lat, x, y, w, h) {
+  const px = x + ((lng - BG_MIN_LNG) / (BG_MAX_LNG - BG_MIN_LNG)) * w;
+  const py = y + ((BG_MAX_LAT - lat) / (BG_MAX_LAT - BG_MIN_LAT)) * h;
+  return [px, py];
+}
+
+async function drawMapArea(ctx, places, x, y, w, h, r) {
   ctx.save();
   roundRect(ctx, x, y, w, h, r);
   ctx.clip();
 
-  /* 배경 — 지도 느낌의 그라디언트 */
-  const bgGrad = ctx.createLinearGradient(x, y, x + w, y + h);
-  bgGrad.addColorStop(0, "#eae7e0");
-  bgGrad.addColorStop(0.3, "#f0efec");
-  bgGrad.addColorStop(0.7, "#ece9e3");
-  bgGrad.addColorStop(1, "#f2f0ec");
-  ctx.fillStyle = bgGrad;
-  ctx.fillRect(x, y, w, h);
+  /* 배경 이미지 로드 */
+  try {
+    const bgImg = await loadImage("/korea-map-bg.png");
+    const ir = bgImg.width / bgImg.height, br = w / h;
+    let sx = 0, sy = 0, sw = bgImg.width, sh = bgImg.height;
+    if (ir > br) { sw = sh * br; sx = (bgImg.width - sw) / 2; }
+    else { sh = sw / br; sy = (bgImg.height - sh) / 2; }
+    ctx.drawImage(bgImg, sx, sy, sw, sh, x, y, w, h);
+  } catch {
+    /* 이미지 로드 실패 시 단색 배경 */
+    ctx.fillStyle = "#d4e2ed";
+    ctx.fillRect(x, y, w, h);
+  }
 
   if (places.length === 0) {
     ctx.font = `italic 400 16px 'Noto Serif', Georgia, serif`;
-    ctx.fillStyle = "#a8a29e";
+    ctx.fillStyle = "#fff";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText("아직 저장된 공간이 없어요", x + w / 2, y + h / 2);
@@ -252,81 +267,10 @@ function drawDotMap(ctx, places, x, y, w, h, r) {
     return;
   }
 
-  /* bounds */
-  let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
-  places.forEach((p) => {
-    minLat = Math.min(minLat, p.lat); maxLat = Math.max(maxLat, p.lat);
-    minLng = Math.min(minLng, p.lng); maxLng = Math.max(maxLng, p.lng);
-  });
-  const lp = Math.max((maxLat - minLat) * 0.18, 0.004);
-  const gp = Math.max((maxLng - minLng) * 0.18, 0.004);
-  minLat -= lp; maxLat += lp; minLng -= gp; maxLng += gp;
-  const latR = maxLat - minLat || 0.01;
-  const lngR = maxLng - minLng || 0.01;
-
-  /* 지도 배경 — 불규칙한 도로/블록 패턴 */
-  ctx.globalAlpha = 0.12;
-  ctx.strokeStyle = "#c5c0b8";
-  ctx.lineWidth = 1;
-  // 가로 도로
-  const seed = places.length * 7;
-  for (let i = 0; i < 8; i++) {
-    const ry = y + h * ((i * 0.13 + 0.04 + (((seed + i * 37) % 100) / 1000)));
-    const thick = (i % 3 === 0) ? 2.5 : 1;
-    ctx.lineWidth = thick;
-    ctx.beginPath();
-    ctx.moveTo(x, ry);
-    // 약간 구불구불한 선
-    for (let sx = 0; sx <= w; sx += w / 4) {
-      const offset = ((seed + i * 13 + sx) % 20) - 10;
-      ctx.lineTo(x + sx, ry + offset * 0.3);
-    }
-    ctx.stroke();
-  }
-  // 세로 도로
-  for (let i = 0; i < 6; i++) {
-    const rx = x + w * ((i * 0.17 + 0.06 + (((seed + i * 53) % 100) / 1000)));
-    const thick = (i % 2 === 0) ? 2.5 : 1;
-    ctx.lineWidth = thick;
-    ctx.beginPath();
-    ctx.moveTo(rx, y);
-    for (let sy = 0; sy <= h; sy += h / 4) {
-      const offset = ((seed + i * 17 + sy) % 20) - 10;
-      ctx.lineTo(rx + offset * 0.3, y + sy);
-    }
-    ctx.stroke();
-  }
-
-  /* 블록 채움 — 도시 느낌 */
-  ctx.globalAlpha = 0.04;
-  ctx.fillStyle = "#a09888";
-  for (let i = 0; i < 12; i++) {
-    const bx = x + ((seed * 3 + i * 67) % (w - 60 | 0));
-    const by = y + ((seed * 5 + i * 43) % (h - 40 | 0));
-    const bw = 30 + ((seed + i * 23) % 40);
-    const bh = 20 + ((seed + i * 31) % 30);
-    roundRect(ctx, bx, by, bw, bh, 3);
-    ctx.fill();
-  }
-
-  ctx.globalAlpha = 1;
-
-  /* grid lines (subtle) */
-  ctx.strokeStyle = "#ddd9d2";
-  ctx.lineWidth = 0.5;
-  for (let i = 1; i < 6; i++) {
-    const gy = y + (h / 6) * i;
-    ctx.beginPath(); ctx.moveTo(x, gy); ctx.lineTo(x + w, gy); ctx.stroke();
-    const gx = x + (w / 6) * i;
-    ctx.beginPath(); ctx.moveTo(gx, y); ctx.lineTo(gx, y + h); ctx.stroke();
-  }
-
-  /* dots */
+  /* 장소 dots */
   const dotR = places.length > 30 ? 5 : places.length > 15 ? 6 : 7;
-  const mp = 24;
   places.forEach((p) => {
-    const px = x + mp + ((p.lng - minLng) / lngR) * (w - mp * 2);
-    const py = y + mp + ((maxLat - p.lat) / latR) * (h - mp * 2);
+    const [px, py] = mapProject(p.lng, p.lat, x, y, w, h);
     const color = STATUS_DOT[p.status] || "#655d54";
     // glow
     ctx.beginPath(); ctx.arc(px, py, dotR + 6, 0, Math.PI * 2);
@@ -343,35 +287,8 @@ function drawDotMap(ctx, places, x, y, w, h, r) {
   ctx.restore();
 }
 
-function drawDotsOverlay(ctx, places, x, y, w, h) {
-  if (!places.length) return;
-  let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
-  places.forEach((p) => {
-    minLat = Math.min(minLat, p.lat); maxLat = Math.max(maxLat, p.lat);
-    minLng = Math.min(minLng, p.lng); maxLng = Math.max(maxLng, p.lng);
-  });
-  const lp = Math.max((maxLat - minLat) * 0.18, 0.004);
-  const gp = Math.max((maxLng - minLng) * 0.18, 0.004);
-  minLat -= lp; maxLat += lp; minLng -= gp; maxLng += gp;
-  const latR = maxLat - minLat || 0.01;
-  const lngR = maxLng - minLng || 0.01;
-  const dotR = places.length > 30 ? 5 : places.length > 15 ? 6 : 7;
-  const mp = 24;
-  places.forEach((p) => {
-    const px = x + mp + ((p.lng - minLng) / lngR) * (w - mp * 2);
-    const py = y + mp + ((maxLat - p.lat) / latR) * (h - mp * 2);
-    const color = STATUS_DOT[p.status] || "#655d54";
-    // shadow
-    ctx.beginPath(); ctx.arc(px, py, dotR + 4, 0, Math.PI * 2);
-    ctx.fillStyle = "rgba(0,0,0,0.12)"; ctx.fill();
-    // dot
-    ctx.beginPath(); ctx.arc(px, py, dotR, 0, Math.PI * 2);
-    ctx.fillStyle = color; ctx.fill();
-    ctx.strokeStyle = "#fff"; ctx.lineWidth = 2.5; ctx.stroke();
-  });
-}
 
-export async function generateProfileCard(user, places, mapImage) {
+export async function generateProfileCard(user, places) {
   await document.fonts.ready;
 
   const FH = "'Noto Serif', Georgia, serif";
@@ -409,24 +326,8 @@ export async function generateProfileCard(user, places, mapImage) {
   const L = EDGE + PAD;
   let y = EDGE + PAD;
 
-  /* map — static map image + dots overlay, or fallback dots */
-  ctx.save();
-  roundRect(ctx, L, y, INNER, MAP_H, PR);
-  ctx.clip();
-  if (mapImage) {
-    // 지도 이미지 그리기 (중앙 맞춤)
-    const ir = mapImage.width / mapImage.height;
-    const br = INNER / MAP_H;
-    let sx = 0, sy = 0, sw = mapImage.width, sh = mapImage.height;
-    if (ir > br) { sw = sh * br; sx = (mapImage.width - sw) / 2; }
-    else { sh = sw / br; sy = (mapImage.height - sh) / 2; }
-    ctx.drawImage(mapImage, sx, sy, sw, sh, L, y, INNER, MAP_H);
-    // 지도 위에 dot 마커 오버레이
-    drawDotsOverlay(ctx, places, L, y, INNER, MAP_H);
-  } else {
-    drawDotMap(ctx, places, L, y, INNER, MAP_H, PR);
-  }
-  ctx.restore();
+  /* map — 한국 지도 배경 이미지 + 장소 dots */
+  await drawMapArea(ctx, places, L, y, INNER, MAP_H, PR);
   y += MAP_H + 36;
 
   /* avatar + name row (2x) */
@@ -493,47 +394,9 @@ function drawAvatarFallback(ctx, x, y, size, nickname, fh) {
   ctx.textAlign = "left"; ctx.textBaseline = "top";
 }
 
-async function fetchStaticMapImage(places) {
-  if (!places.length) return null;
-  const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8000";
-
-  let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
-  places.forEach((p) => {
-    minLat = Math.min(minLat, p.lat); maxLat = Math.max(maxLat, p.lat);
-    minLng = Math.min(minLng, p.lng); maxLng = Math.max(maxLng, p.lng);
-  });
-  const centerLat = (minLat + maxLat) / 2;
-  const centerLng = (minLng + maxLng) / 2;
-
-  // zoom 레벨 계산 (범위 기반)
-  const latSpan = maxLat - minLat;
-  const lngSpan = maxLng - minLng;
-  const span = Math.max(latSpan, lngSpan);
-  let level = 13;
-  if (span > 5) level = 7;
-  else if (span > 3) level = 8;
-  else if (span > 1.5) level = 9;
-  else if (span > 0.8) level = 10;
-  else if (span > 0.4) level = 11;
-  else if (span > 0.15) level = 12;
-  else if (span > 0.05) level = 13;
-  else level = 14;
-
-  try {
-    const url = `${API_BASE}/static-map?center_lng=${centerLng}&center_lat=${centerLat}&level=${level}&w=600&h=750`;
-    const img = await loadImage(url);
-    return img;
-  } catch (e) {
-    console.warn("Static map fetch failed:", e);
-    return null;
-  }
-}
 
 export async function shareProfileCard(user, places, target = "instagram") {
-  /* Naver Static Map API로 실제 지도 이미지 가져오기 */
-  const mapImage = await fetchStaticMapImage(places);
-
-  const blob = await generateProfileCard(user, places, mapImage);
+  const blob = await generateProfileCard(user, places);
   const file = new File([blob], `${user.nickname}-myplace-profile.png`, { type: "image/png" });
 
   // 카카오톡: Web Share API로 이미지 파일 공유 (지원되면)
