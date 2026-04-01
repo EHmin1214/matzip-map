@@ -55,7 +55,12 @@ export default function AuthScreen({ embedded = false }) {
       if (mode === "login") await login(nickname.trim(), pin);
       else await register(nickname.trim(), pin);
     } catch (e) {
-      setError(e.response?.data?.detail || "다시 시도해주세요");
+      const detail = e.response?.data?.detail || "";
+      if (mode === "login" && e.response?.status === 401) {
+        setError("등록되지 않은 닉네임이거나 PIN이 틀렸어요. 회원가입을 먼저 해주세요!");
+      } else {
+        setError(detail || "다시 시도해주세요");
+      }
     } finally {
       setLoading(false);
     }
