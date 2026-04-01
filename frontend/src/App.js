@@ -155,9 +155,9 @@ export default function App() {
 
   useEffect(() => {
     if (!user) return;
-    const interval = setInterval(() => { loadUnread(); loadPersonalPlaces(); }, 30000);
+    const interval = setInterval(() => { loadUnread(); }, 30000);
     return () => clearInterval(interval);
-  }, [user, loadUnread, loadPersonalPlaces]);
+  }, [user, loadUnread]);
 
   const handleRefresh = useCallback(async () => {
     await Promise.all([

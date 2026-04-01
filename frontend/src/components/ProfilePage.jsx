@@ -108,8 +108,8 @@ function Card({ children, style = {}, onClick }) {
   return (
     <div onClick={onClick} style={{
       background: C.surfaceLowest,
-      borderRadius: 12, padding: "18px 20px",
-      marginBottom: 12,
+      borderRadius: 10, padding: "14px 16px",
+      marginBottom: 10,
       boxShadow: "0 1px 8px rgba(47,52,48,0.05)",
       ...style,
     }}>
@@ -119,6 +119,77 @@ function Card({ children, style = {}, onClick }) {
 }
 
 // ── 미니 맵 ─────────────────────────────────────────────────
+function MiniMapInline({ places, onViewMap }) {
+  const mapRef = useRef(null);
+  const mapInstance = useRef(null);
+
+  useEffect(() => {
+    if (!mapRef.current || places.length === 0) return;
+    const check = setInterval(() => {
+      if (window.naver?.maps) {
+        clearInterval(check);
+        const bounds = new window.naver.maps.LatLngBounds();
+        places.forEach((p) => bounds.extend(new window.naver.maps.LatLng(p.lat, p.lng)));
+        mapInstance.current = new window.naver.maps.Map(mapRef.current, {
+          center: bounds.getCenter(), zoom: 12,
+          mapTypeControl: false, scaleControl: false, logoControl: false,
+          mapDataControl: false, zoomControl: false, draggable: false,
+          scrollWheel: false, keyboardShortcuts: false,
+          disableDoubleTapZoom: true, disableDoubleClickZoom: true, disableTwoFingerTapZoom: true,
+        });
+        if (places.length > 1) mapInstance.current.fitBounds(bounds, { padding: 30 });
+        else mapInstance.current.setZoom(14);
+        const STATUS_DOT = { want_to_go: "#BA7517", visited: "#1D9E75", want_revisit: "#D4537E" };
+        places.forEach((p) => {
+          const color = STATUS_DOT[p.status] || "#655d54";
+          new window.naver.maps.Marker({
+            position: new window.naver.maps.LatLng(p.lat, p.lng),
+            map: mapInstance.current,
+            icon: {
+              content: `<div style="width:8px;height:8px;border-radius:50%;background:${color};border:1.5px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.2);"></div>`,
+              anchor: new window.naver.maps.Point(4, 4),
+            },
+          });
+        });
+      }
+    }, 100);
+    return () => { clearInterval(check); if (mapInstance.current) mapInstance.current.destroy(); };
+  }, [places]);
+
+  const STATUS_EMOJI = { want_to_go: "🔖", visited: "✅", want_revisit: "❤️" };
+  const counts = {};
+  places.forEach((p) => { counts[p.status] = (counts[p.status] || 0) + 1; });
+
+  if (places.length === 0) return null;
+
+  return (
+    <div style={{ marginTop: 12 }}>
+      <div ref={mapRef} style={{
+        width: "100%", aspectRatio: "4/3", borderRadius: 10,
+        overflow: "hidden", background: C.surfaceLow, marginBottom: 8,
+      }} />
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+        {Object.entries(counts).map(([status, count]) => (
+          <span key={status} style={{
+            fontFamily: FL, fontSize: 11, color: C.onSurfaceVariant,
+            display: "flex", alignItems: "center", gap: 4,
+          }}>
+            {STATUS_EMOJI[status] || "📍"} {count}
+          </span>
+        ))}
+        <button onClick={onViewMap} style={{
+          marginLeft: "auto", padding: "4px 10px",
+          border: "1px solid rgba(101,93,84,0.15)", borderRadius: 6,
+          background: "none", fontFamily: FL, fontSize: 10, fontWeight: 600,
+          color: C.primary, cursor: "pointer",
+        }}>
+          지도에서 보기
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function MiniMap({ places, onViewMap }) {
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
@@ -666,28 +737,27 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
       paddingBottom: mobile ? 80 : 48,
     }}>
       <div style={{
-        maxWidth: 520,
         margin: "0 auto",
-        padding: mobile ? "28px 16px" : "36px 28px",
+        padding: mobile ? "28px 16px" : "36px 18px",
       }}>
 
         {/* ── 프로필 카드 ─────────────────────────────────── */}
         <Card>
           {/* 아바타 + 이름 */}
-          <div style={{ marginBottom: 20 }}>
+          <div style={{ marginBottom: 16 }}>
             <input ref={photoInputRef} type="file" accept="image/*" style={{ display: "none" }}
               onChange={handlePhotoUpload} />
-            <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 11, marginBottom: 8 }}>
               <div
                 onClick={() => photoInputRef.current?.click()}
                 style={{
-                  width: 48, height: 48, borderRadius: "50%",
+                  width: 38, height: 38, borderRadius: "50%",
                   background: user.profile_photo_url
                     ? `url(${user.profile_photo_url}) center/cover`
                     : `linear-gradient(135deg, ${C.primaryDim}, ${C.primary})`,
                   display: "flex", alignItems: "center", justifyContent: "center",
                   fontFamily: FH, fontStyle: "italic",
-                  fontSize: 20, color: "#fff6ef", fontWeight: 700, flexShrink: 0,
+                  fontSize: 16, color: "#fff6ef", fontWeight: 700, flexShrink: 0,
                   cursor: "pointer", position: "relative",
                   opacity: uploadingPhoto ? 0.5 : 1, transition: "opacity 0.2s",
                 }}
@@ -695,15 +765,15 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
                 {!user.profile_photo_url && user.nickname?.[0]?.toUpperCase()}
                 <div style={{
                   position: "absolute", bottom: -2, right: -2,
-                  width: 18, height: 18, borderRadius: "50%",
-                  background: C.primaryContainer, border: `2px solid ${C.surfaceLowest}`,
+                  width: 14, height: 14, borderRadius: "50%",
+                  background: C.primaryContainer, border: `1.5px solid ${C.surfaceLowest}`,
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 10, color: C.primary }}>edit</span>
+                  <span className="material-symbols-outlined" style={{ fontSize: 8, color: C.primary }}>edit</span>
                 </div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <h2 style={{ margin: 0, fontFamily: FH, fontSize: 28, fontWeight: 700, color: C.onSurface }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <h2 style={{ margin: 0, fontFamily: FH, fontSize: 22, fontWeight: 700, color: C.onSurface }}>
                   {user.nickname}
                 </h2>
                 {!editing && (
@@ -715,27 +785,27 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
                       setEditing(true);
                     }}
                     style={{
-                      border: "none", background: "none", cursor: "pointer", padding: 4,
+                      border: "none", background: "none", cursor: "pointer", padding: 3,
                       display: "flex", alignItems: "center", justifyContent: "center",
                       color: C.outlineVariant, borderRadius: 6,
                     }}
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: 18 }}>edit</span>
+                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>edit</span>
                   </button>
                 )}
               </div>
             </div>
             <div>
-              <div style={{ display: "flex", gap: 6, marginTop: 6, position: "relative" }}>
+              <div style={{ display: "flex", gap: 5, marginTop: 5, position: "relative" }}>
                 {user.instagram_url && (
                   <a href={user.instagram_url} target="_blank" rel="noreferrer"
-                    style={{ flex: 1, fontFamily: FL, fontSize: 12, color: "#E1306C", textDecoration: "none", fontWeight: 600, padding: "8px 0", background: "#fce4ec", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                    style={{ flex: 1, fontFamily: FL, fontSize: 10, color: "#E1306C", textDecoration: "none", fontWeight: 600, padding: "6px 0", background: "#fce4ec", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", gap: 3 }}>
                     Instagram
                   </a>
                 )}
                 {user.blog_url && (
                   <a href={user.blog_url} target="_blank" rel="noreferrer"
-                    style={{ flex: 1, fontFamily: FL, fontSize: 12, color: "#03C75A", textDecoration: "none", fontWeight: 600, padding: "8px 0", background: "#e6f9ee", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
+                    style={{ flex: 1, fontFamily: FL, fontSize: 10, color: "#03C75A", textDecoration: "none", fontWeight: 600, padding: "6px 0", background: "#e6f9ee", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center", gap: 3 }}>
                     블로그
                   </a>
                 )}
@@ -743,12 +813,12 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
                   <button
                     onClick={() => setShowShareMenu(!showShareMenu)}
                     style={{
-                      flex: 1, background: C.surfaceLow, border: "none", padding: "8px 0", borderRadius: 8, cursor: "pointer",
-                      fontFamily: FL, fontSize: 12, fontWeight: 600, color: C.primary,
-                      display: "flex", alignItems: "center", justifyContent: "center", gap: 4,
+                      flex: 1, background: C.surfaceLow, border: "none", padding: "6px 0", borderRadius: 6, cursor: "pointer",
+                      fontFamily: FL, fontSize: 10, fontWeight: 600, color: C.primary,
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 3,
                     }}
                   >
-                    <span className="material-symbols-outlined" style={{ fontSize: 14 }}>share</span>
+                    <span className="material-symbols-outlined" style={{ fontSize: 11 }}>share</span>
                     공유
                   </button>
                 )}
@@ -760,14 +830,14 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
           <div style={{
             display: "flex", alignItems: "center", justifyContent: "space-between",
             background: C.surfaceLow,
-            borderRadius: 8, padding: "12px 14px",
-            marginBottom: 8,
+            borderRadius: 6, padding: "10px 12px",
+            marginBottom: 6,
           }}>
             <div>
-              <p style={{ margin: 0, fontFamily: FL, fontSize: 13, fontWeight: 600, color: C.onSurface }}>
+              <p style={{ margin: 0, fontFamily: FL, fontSize: 11, fontWeight: 600, color: C.onSurface }}>
                 내 지도 공개
               </p>
-              <p style={{ margin: "3px 0 0", fontFamily: FL, fontSize: 11, color: C.outlineVariant, fontStyle: "italic" }}>
+              <p style={{ margin: "2px 0 0", fontFamily: FL, fontSize: 9, color: C.outlineVariant, fontStyle: "italic" }}>
                 {isPublic ? "누구나 팔로우할 수 있어요" : "요청으로만 볼 수 있어요"}
               </p>
             </div>
@@ -852,14 +922,14 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
             <>
               <div style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
-                background: C.surfaceLow, borderRadius: 8, padding: "12px 14px",
-                marginBottom: pushError ? 4 : 16, opacity: pushLoading ? 0.6 : 1,
+                background: C.surfaceLow, borderRadius: 6, padding: "10px 12px",
+                marginBottom: pushError ? 4 : 14, opacity: pushLoading ? 0.6 : 1,
               }}>
                 <div>
-                  <p style={{ margin: 0, fontFamily: FL, fontSize: 13, fontWeight: 600, color: C.onSurface }}>
+                  <p style={{ margin: 0, fontFamily: FL, fontSize: 11, fontWeight: 600, color: C.onSurface }}>
                     푸시 알림
                   </p>
-                  <p style={{ margin: "3px 0 0", fontFamily: FL, fontSize: 11, color: C.outlineVariant, fontStyle: "italic" }}>
+                  <p style={{ margin: "2px 0 0", fontFamily: FL, fontSize: 9, color: C.outlineVariant, fontStyle: "italic" }}>
                     {pushEnabled ? "좋아요, 댓글, 팔로우 알림" : "알림 받기를 켜보세요"}
                   </p>
                 </div>
@@ -933,12 +1003,9 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
           )}
         </Card>
 
-        {/* ── 미니 맵 ──────────────────────────────────────── */}
-        <MiniMap places={personalPlaces} onViewMap={onViewMap} />
-
-        {/* ── 나의 기록 (요약 카드) — 공간지도 바로 밑 ────── */}
-        <Card style={{ cursor: "pointer" }} onClick={() => setShowMyPlaces(true)}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        {/* ── 나의 기록 (공간지도 포함) ─────────────────── */}
+        <Card>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }} onClick={() => setShowMyPlaces(true)}>
             <div>
               <p style={{
                 margin: "0 0 6px", fontFamily: FL, fontSize: 9, fontWeight: 700,
@@ -954,8 +1021,12 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
               chevron_right
             </span>
           </div>
+
+          {/* 미니 맵 */}
+          <MiniMapInline places={personalPlaces} onViewMap={onViewMap} />
+
           {personalPlaces.length > 0 && (
-            <div style={{ display: "flex", gap: 6, marginTop: 12, overflowX: "auto" }}>
+            <div style={{ display: "flex", gap: 6, marginTop: 12, overflowX: "auto", cursor: "pointer" }} onClick={() => setShowMyPlaces(true)}>
               {personalPlaces.slice(0, 5).map((p) => {
                 const thumb = p.photo_urls?.[0] || p.photo_url;
                 return (
@@ -1176,14 +1247,14 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
             }}>
               <div style={{
                 maxWidth: 520, margin: "0 auto",
-                padding: mobile ? "0 0 100px" : "0 28px 60px",
+                padding: mobile ? "0 0 100px" : "0 18px 60px",
               }}>
                 {/* 상단 헤더 */}
                 <div style={{
                   position: "sticky", top: 0, zIndex: 10,
                   background: "rgba(250,249,246,0.92)",
                   backdropFilter: "blur(16px)", WebkitBackdropFilter: "blur(16px)",
-                  padding: mobile ? "16px 18px" : "20px 28px",
+                  padding: mobile ? "16px 18px" : "20px 18px",
                   display: "flex", alignItems: "center", justifyContent: "space-between",
                 }}>
                   <button
