@@ -850,13 +850,28 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
                             링크 복사
                           </button>
                           <button
-                            onClick={() => {
-                              shareKakao({
-                                title: `${user.nickname}의 공간`,
-                                description: `${user.nickname}님이 아끼는 공간을 구경해보세요!`,
-                                linkUrl: `${API_BASE}/og/@${user.nickname}`,
-                              });
+                            onClick={async () => {
                               setShowShareMenu(false);
+                              try {
+                                const result = await shareProfileCard(
+                                  { nickname: user.nickname, profile_photo_url: user.profile_photo_url },
+                                  personalPlaces,
+                                  "kakao",
+                                );
+                                if (result === "kakao_fallback") {
+                                  shareKakao({
+                                    title: `${user.nickname}의 공간`,
+                                    description: `${user.nickname}님이 아끼는 공간을 구경해보세요!`,
+                                    linkUrl: `${API_BASE}/og/@${user.nickname}`,
+                                  });
+                                }
+                              } catch {
+                                shareKakao({
+                                  title: `${user.nickname}의 공간`,
+                                  description: `${user.nickname}님이 아끼는 공간을 구경해보세요!`,
+                                  linkUrl: `${API_BASE}/og/@${user.nickname}`,
+                                });
+                              }
                             }}
                             style={{
                               width: "100%", padding: "13px 16px", border: "none", background: "none",

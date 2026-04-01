@@ -17,9 +17,10 @@ FastAPI 진입점.
 
 import html as _html
 
+import httpx
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 
 from sqlalchemy import text
 from database import engine
@@ -94,11 +95,32 @@ app.include_router(shared_map.router)
 
 
 FRONTEND_URL = "https://myplace-map.vercel.app"
+NCP_KEY_ID = "y9dtrdc8fa"
 
 
 @app.get("/")
 def root():
     return {"status": "ok", "message": "맛집 지도 API v2"}
+
+
+@app.get("/static-map")
+async def static_map(center_lng: float, center_lat: float, level: int = 13, w: int = 600, h: int = 400, markers: str = ""):
+    """Naver Static Map API 프록시 — 프론트엔드에서 CORS 없이 지도 이미지 사용."""
+    w = min(w, 1024)
+    h = min(h, 1024)
+    level = max(1, min(level, 20))
+    url = (
+        f"https://naveropenapi.apigw.ntruss.com/map-static/v2/raster"
+        f"?w={w}&h={h}&center={center_lng},{center_lat}&level={level}"
+        f"&maptype=basic&scale=2"
+    )
+    if markers:
+        url += f"&markers={markers}"
+    async with httpx.AsyncClient(timeout=10) as client:
+        resp = await client.get(url, headers={"X-NCP-APIGW-API-KEY-ID": NCP_KEY_ID})
+    if resp.status_code != 200:
+        return Response(content=b"", status_code=resp.status_code)
+    return Response(content=resp.content, media_type=resp.headers.get("content-type", "image/png"))
 
 
 @app.get("/og/@{nickname}", response_class=HTMLResponse)

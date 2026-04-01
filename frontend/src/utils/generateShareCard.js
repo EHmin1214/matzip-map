@@ -1,7 +1,6 @@
 // src/utils/generateShareCard.js
 // Canvas API로 공유 카드 생성 (Apple Music 스타일 — 컴팩트 카드)
 
-import html2canvas from "html2canvas";
 import { SHARED_CAT_COLOR, BEST_CATEGORIES } from "../constants";
 
 const CARD_W = 760;
@@ -344,6 +343,34 @@ function drawDotMap(ctx, places, x, y, w, h, r) {
   ctx.restore();
 }
 
+function drawDotsOverlay(ctx, places, x, y, w, h) {
+  if (!places.length) return;
+  let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+  places.forEach((p) => {
+    minLat = Math.min(minLat, p.lat); maxLat = Math.max(maxLat, p.lat);
+    minLng = Math.min(minLng, p.lng); maxLng = Math.max(maxLng, p.lng);
+  });
+  const lp = Math.max((maxLat - minLat) * 0.18, 0.004);
+  const gp = Math.max((maxLng - minLng) * 0.18, 0.004);
+  minLat -= lp; maxLat += lp; minLng -= gp; maxLng += gp;
+  const latR = maxLat - minLat || 0.01;
+  const lngR = maxLng - minLng || 0.01;
+  const dotR = places.length > 30 ? 5 : places.length > 15 ? 6 : 7;
+  const mp = 24;
+  places.forEach((p) => {
+    const px = x + mp + ((p.lng - minLng) / lngR) * (w - mp * 2);
+    const py = y + mp + ((maxLat - p.lat) / latR) * (h - mp * 2);
+    const color = STATUS_DOT[p.status] || "#655d54";
+    // shadow
+    ctx.beginPath(); ctx.arc(px, py, dotR + 4, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(0,0,0,0.12)"; ctx.fill();
+    // dot
+    ctx.beginPath(); ctx.arc(px, py, dotR, 0, Math.PI * 2);
+    ctx.fillStyle = color; ctx.fill();
+    ctx.strokeStyle = "#fff"; ctx.lineWidth = 2.5; ctx.stroke();
+  });
+}
+
 export async function generateProfileCard(user, places, mapImage) {
   await document.fonts.ready;
 
@@ -382,17 +409,20 @@ export async function generateProfileCard(user, places, mapImage) {
   const L = EDGE + PAD;
   let y = EDGE + PAD;
 
-  /* map — screenshot or fallback dots */
+  /* map — static map image + dots overlay, or fallback dots */
   ctx.save();
   roundRect(ctx, L, y, INNER, MAP_H, PR);
   ctx.clip();
   if (mapImage) {
+    // 지도 이미지 그리기 (중앙 맞춤)
     const ir = mapImage.width / mapImage.height;
     const br = INNER / MAP_H;
     let sx = 0, sy = 0, sw = mapImage.width, sh = mapImage.height;
     if (ir > br) { sw = sh * br; sx = (mapImage.width - sw) / 2; }
     else { sh = sw / br; sy = (mapImage.height - sh) / 2; }
     ctx.drawImage(mapImage, sx, sy, sw, sh, L, y, INNER, MAP_H);
+    // 지도 위에 dot 마커 오버레이
+    drawDotsOverlay(ctx, places, L, y, INNER, MAP_H);
   } else {
     drawDotMap(ctx, places, L, y, INNER, MAP_H, PR);
   }
@@ -463,27 +493,72 @@ function drawAvatarFallback(ctx, x, y, size, nickname, fh) {
   ctx.textAlign = "left"; ctx.textBaseline = "top";
 }
 
-export async function shareProfileCard(user, places) {
-  /* capture the live Naver Map as an image */
-  let mapImage = null;
-  const mapEl = document.getElementById("profile-minimap");
-  if (mapEl) {
-    try {
-      const captured = await html2canvas(mapEl, {
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#f0efec",
-        scale: 2,
-      });
-      mapImage = captured;
-    } catch (e) {
-      console.warn("Map capture failed, using dot fallback", e);
-    }
+async function fetchStaticMapImage(places) {
+  if (!places.length) return null;
+  const API_BASE = process.env.REACT_APP_API_BASE || "http://localhost:8000";
+
+  let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+  places.forEach((p) => {
+    minLat = Math.min(minLat, p.lat); maxLat = Math.max(maxLat, p.lat);
+    minLng = Math.min(minLng, p.lng); maxLng = Math.max(maxLng, p.lng);
+  });
+  const centerLat = (minLat + maxLat) / 2;
+  const centerLng = (minLng + maxLng) / 2;
+
+  // zoom 레벨 계산 (범위 기반)
+  const latSpan = maxLat - minLat;
+  const lngSpan = maxLng - minLng;
+  const span = Math.max(latSpan, lngSpan);
+  let level = 13;
+  if (span > 5) level = 7;
+  else if (span > 3) level = 8;
+  else if (span > 1.5) level = 9;
+  else if (span > 0.8) level = 10;
+  else if (span > 0.4) level = 11;
+  else if (span > 0.15) level = 12;
+  else if (span > 0.05) level = 13;
+  else level = 14;
+
+  try {
+    const url = `${API_BASE}/static-map?center_lng=${centerLng}&center_lat=${centerLat}&level=${level}&w=600&h=750`;
+    const img = await loadImage(url);
+    return img;
+  } catch (e) {
+    console.warn("Static map fetch failed:", e);
+    return null;
   }
+}
+
+export async function shareProfileCard(user, places, target = "instagram") {
+  /* Naver Static Map API로 실제 지도 이미지 가져오기 */
+  const mapImage = await fetchStaticMapImage(places);
 
   const blob = await generateProfileCard(user, places, mapImage);
   const file = new File([blob], `${user.nickname}-myplace-profile.png`, { type: "image/png" });
 
+  // 카카오톡: Web Share API로 이미지 파일 공유 (지원되면)
+  if (target === "kakao") {
+    if (navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: `${user.nickname}의 공간` });
+        return "shared";
+      } catch {
+        return "cancelled";
+      }
+    }
+    // Web Share 미지원 → 다운로드 후 카카오 SDK fallback
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${user.nickname}-myplace-profile.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    return "kakao_fallback";
+  }
+
+  // 인스타그램 등: Web Share API 또는 다운로드
   if (navigator.canShare?.({ files: [file] })) {
     try {
       await navigator.share({ files: [file], title: `${user.nickname}의 공간` });
