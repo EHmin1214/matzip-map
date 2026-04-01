@@ -23,6 +23,7 @@ import Toast from "./components/Toast";
 import FeedbackButton from "./components/FeedbackButton";
 import NewsTab from "./components/NewsTab";
 import FriendsTab from "./components/FriendsTab";
+import SharedPlacesList from "./components/SharedPlacesList";
 import "./App.css";
 
 const FH = "'Noto Serif', Georgia, serif";
@@ -566,7 +567,7 @@ export default function App() {
             <div style={{
               position: "fixed", top: 10, left: 0, right: 0, zIndex: 26,
               pointerEvents: "none",
-              display: "flex", flexDirection: "column", gap: 6,
+              display: "flex", flexDirection: "column", gap: 3,
             }}>
               {/* 모드 토글 */}
               <div style={{ padding: "0 14px", pointerEvents: "auto" }}>
@@ -733,6 +734,18 @@ export default function App() {
               )}
               {renderPanel(activeTab)}
             </div>
+          )}
+
+          {/* 우리의 공간 — 모바일 인기 장소 리스트 */}
+          {showMap && mapMode === "shared" && !selectedRestaurant && (
+            <SharedPlacesList
+              sharedPlaces={sharedPlaces}
+              sharedCategory={sharedCategory}
+              onPlaceSelect={(place) => {
+                handleSharedMarkerClick(place);
+                centerMapOnPlace(place.lat, place.lng);
+              }}
+            />
           )}
 
           {/* 상세 패널 */}
