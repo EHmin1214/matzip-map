@@ -21,6 +21,8 @@ import OnboardingGuide from "./components/OnboardingGuide";
 import LoginPrompt from "./components/LoginPrompt";
 import Toast from "./components/Toast";
 import FeedbackButton from "./components/FeedbackButton";
+import NewsTab from "./components/NewsTab";
+import FriendsTab from "./components/FriendsTab";
 import "./App.css";
 
 const FH = "'Noto Serif', Georgia, serif";
@@ -56,6 +58,36 @@ export default function App() {
   const [viewingUserNickname, setViewingUserNickname] = useState(null);
   const [toast, setToast] = useState(null);
 
+  // ── 네비게이션 스택 (뒤로가기) ─────────────────────────────
+  const navStackRef = useRef([]);
+  const [navDepth, setNavDepth] = useState(0);
+  const pushNav = useCallback((snapshot) => {
+    navStackRef.current.push(snapshot);
+    setNavDepth(navStackRef.current.length);
+    window.history.pushState({ navDepth: navStackRef.current.length }, "");
+  }, []);
+  const goBack = useCallback(() => {
+    const stack = navStackRef.current;
+    if (stack.length === 0) return false;
+    const prev = stack.pop();
+    setNavDepth(stack.length);
+    if (prev.activeTab != null) setActiveTab(prev.activeTab);
+    if (prev.selectedRestaurant !== undefined) setSelectedRestaurant(prev.selectedRestaurant);
+    if (prev.viewingUserNickname !== undefined) setViewingUserNickname(prev.viewingUserNickname);
+    if (prev.extra) prev.extra();
+    return true;
+  }, []);
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (navStackRef.current.length > 0) {
+        goBack();
+      }
+    };
+    window.addEventListener("popstate", handler);
+    return () => window.removeEventListener("popstate", handler);
+  }, [goBack]);
+
   // ── 우리의 공간 ────────────────────────────────────────────
   const [mapMode, setMapMode] = useState("personal"); // "personal" | "shared"
   const [sharedCategory, setSharedCategory] = useState(null); // null = 전체
@@ -63,6 +95,8 @@ export default function App() {
   const [myBestPicks, setMyBestPicks] = useState({});
 
   const isMobile = window.innerWidth <= 768;
+  const activeTabRef = useRef(activeTab);
+  activeTabRef.current = activeTab;
   const showMap = activeTab === "map";
 
   // 지도 센터링 헬퍼 — UI 패널 오프셋 반영, setCenter 1회 (flicker 방지)
@@ -203,10 +237,12 @@ export default function App() {
   }, []);
 
   const handleViewUserProfile = useCallback((nickname) => {
+    pushNav({ viewingUserNickname: null });
     setViewingUserNickname(nickname);
-  }, []);
+  }, [pushNav]);
 
   const handleActivityPlaceClick = useCallback((activity) => {
+    pushNav({ activeTab: activeTabRef.current, selectedRestaurant: null });
     // Own places pass _original with full data; following items have activity shape
     if (activity._original) {
       setSelectedRestaurant({ ...activity._original, sources: [], isPersonal: true });
@@ -233,9 +269,10 @@ export default function App() {
     const lat = activity.lat || activity.place_lat;
     const lng = activity.lng || activity.place_lng;
     if (lat && lng) centerMapOnPlace(lat, lng);
-  }, [centerMapOnPlace]);
+  }, [centerMapOnPlace, pushNav]);
 
   const handleNotificationPlaceClick = useCallback((placeId) => {
+    pushNav({ activeTab: activeTabRef.current, selectedRestaurant: null });
     axios.get(`${API_BASE}/personal-places/${placeId}/detail`)
       .then((res) => {
         const p = res.data;
@@ -244,7 +281,7 @@ export default function App() {
         if (p.lat && p.lng) centerMapOnPlace(p.lat, p.lng);
       })
       .catch(() => {});
-  }, [centerMapOnPlace]);
+  }, [centerMapOnPlace, pushNav]);
 
   const hideRestaurant = useCallback((restaurantId, isPersonal = false) => {
     if (isPersonal) {
@@ -422,7 +459,10 @@ export default function App() {
     if (tab === "search")        return <SearchTab onPlaceAdded={addPlace} personalPlaces={personalPlaces} onViewUserProfile={handleViewUserProfile} />;
     if (tab === "feed")          return <FeedTab personalPlaces={personalPlaces} onPlaceClick={handleActivityPlaceClick} onDataChange={loadPersonalPlaces} onNavigate={setActiveTab} />;
     if (tab === "notifications") return <NotificationTab onUnreadChange={setUnreadCount} onPlaceClick={handleNotificationPlaceClick} />;
-    if (tab === "profile")       return <ProfilePage personalPlaces={personalPlaces} onViewMap={() => setActiveTab("map")} onViewUserProfile={handleViewUserProfile} myBestPicks={myBestPicks} onBestPickAdd={handleBestPickAdd} onBestPickReplace={handleBestPickReplace} onBestPickRemove={handleBestPickRemove} onRefresh={() => { loadPersonalPlaces(); loadFollowingList(); loadMyBestPicks(); loadFolders(); loadUnread(); }} onPlaceClick={(p) => {
+    if (tab === "news")          return <NewsTab personalPlaces={personalPlaces} onPlaceClick={handleActivityPlaceClick} onDataChange={loadPersonalPlaces} onNavigate={setActiveTab} onUnreadChange={setUnreadCount} onNotificationPlaceClick={handleNotificationPlaceClick} />;
+    if (tab === "friends")       return <FriendsTab onViewUserProfile={handleViewUserProfile} />;
+    if (tab === "profile")       return <ProfilePage personalPlaces={personalPlaces} onViewMap={() => setActiveTab("map")} onViewUserProfile={handleViewUserProfile} myBestPicks={myBestPicks} onBestPickAdd={handleBestPickAdd} onBestPickReplace={handleBestPickReplace} onBestPickRemove={handleBestPickRemove} onRefresh={() => { loadPersonalPlaces(); loadFollowingList(); loadMyBestPicks(); loadFolders(); loadUnread(); }} pushNav={pushNav} onPlaceClick={(p) => {
+      pushNav({ activeTab: "profile", selectedRestaurant: null });
       setSelectedRestaurant({ id: p.id, name: p.name, lat: p.lat, lng: p.lng, status: p.status, user_id: p.user_id, isPersonal: true, sources: [] });
       setActiveTab("map");
       centerMapOnPlace(p.lat, p.lng);
@@ -671,7 +711,9 @@ export default function App() {
           {selectedRestaurant && showMap && (
             <RestaurantPanel
               restaurant={selectedRestaurant}
-              onClose={() => setSelectedRestaurant(null)} onHide={hideRestaurant}
+              onClose={() => { if (!goBack()) setSelectedRestaurant(null); }}
+              canGoBack={navDepth > 0}
+              onHide={hideRestaurant}
               sidebarWidth={0}
               onPlaceUpdated={handlePlaceUpdated} mapInstance={mapRef.current}
               onDataChange={loadPersonalPlaces}
@@ -829,7 +871,9 @@ export default function App() {
           {selectedRestaurant && showMap && (
             <RestaurantPanel
               restaurant={selectedRestaurant}
-              onClose={() => setSelectedRestaurant(null)} onHide={hideRestaurant}
+              onClose={() => { if (!goBack()) setSelectedRestaurant(null); }}
+              canGoBack={navDepth > 0}
+              onHide={hideRestaurant}
               sidebarWidth={SIDEBAR_W}
               onPlaceUpdated={handlePlaceUpdated} mapInstance={mapRef.current}
               onDataChange={loadPersonalPlaces}
@@ -848,7 +892,8 @@ export default function App() {
         isMobile ? (
           <UserProfileView
             nickname={viewingUserNickname}
-            onClose={() => setViewingUserNickname(null)}
+            onClose={() => { if (!goBack()) setViewingUserNickname(null); }}
+            canGoBack={navDepth > 0}
           />
         ) : (
           <div style={{
@@ -864,7 +909,8 @@ export default function App() {
           }}>
             <UserProfileView
               nickname={viewingUserNickname}
-              onClose={() => setViewingUserNickname(null)}
+              onClose={() => { if (!goBack()) setViewingUserNickname(null); }}
+              canGoBack={navDepth > 0}
               embedded
             />
           </div>

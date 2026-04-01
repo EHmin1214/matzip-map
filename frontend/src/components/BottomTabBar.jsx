@@ -5,12 +5,15 @@ const FL = "'Manrope', -apple-system, sans-serif";
 const TABS = [
   { id: "map",     icon: "map",           label: "홈" },
   { id: "search",  icon: "search",        label: "검색" },
-  { id: "feed",          icon: "auto_stories",  label: "피드" },
-  { id: "notifications", icon: "notifications", label: "알림" },
+  { id: "news",    icon: "auto_stories",  label: "소식" },
+  { id: "friends", icon: "group",         label: "친구" },
   { id: "profile", icon: null,            label: "프로필" },
 ];
 
 export default function BottomTabBar({ activeTab, onTabChange, unreadCount = 0, userNickname }) {
+  // 소식 탭에서 피드/알림 모두 포함하므로 news 활성 시 뱃지 표시
+  const newsActive = activeTab === "news";
+
   return (
     <nav style={{
       position: "fixed", bottom: 0, left: 0, right: 0,
@@ -26,7 +29,7 @@ export default function BottomTabBar({ activeTab, onTabChange, unreadCount = 0, 
     }}>
       {TABS.map((tab) => {
         const isActive = activeTab === tab.id;
-        const hasUnread = tab.id === "notifications" && unreadCount > 0;
+        const hasUnread = tab.id === "news" && unreadCount > 0 && !newsActive;
         const isProfile = tab.id === "profile";
         return (
           <button

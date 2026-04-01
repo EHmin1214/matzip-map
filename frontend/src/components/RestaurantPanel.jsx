@@ -32,7 +32,7 @@ export default function RestaurantPanel({
   restaurant, onClose, onHide, sidebarWidth = 240,
   onPlaceUpdated, mapInstance, onDataChange,
   myBestPicks = {}, onBestPickAdd, onBestPickReplace, onBestPickRemove,
-  onViewUserProfile,
+  onViewUserProfile, canGoBack = false,
 }) {
   const { user } = useUser();
   const mobile = isMobile();
@@ -801,7 +801,7 @@ export default function RestaurantPanel({
                 {isPersonalMine && (
                   <IconBtn icon="edit" onClick={() => setEditModalOpen(true)} title="수정" size={32} />
                 )}
-                <IconBtn icon="close" onClick={onClose} title="닫기" size={32} />
+                <IconBtn icon={canGoBack ? "arrow_back" : "close"} onClick={onClose} title={canGoBack ? "뒤로" : "닫기"} size={32} />
               </div>
             </div>
 
@@ -896,7 +896,7 @@ export default function RestaurantPanel({
             {isPersonalMine && (
               <IconBtn icon="edit" onClick={() => setEditModalOpen(true)} title="수정" size={28} />
             )}
-            <IconBtn icon="close" onClick={onClose} title="닫기" size={28} />
+            <IconBtn icon={canGoBack ? "arrow_back" : "close"} onClick={onClose} title={canGoBack ? "뒤로" : "닫기"} size={28} />
           </div>
         </div>
 

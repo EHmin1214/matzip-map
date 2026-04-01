@@ -543,7 +543,7 @@ function SectionHeader({ title, open, onToggle }) {
   );
 }
 
-export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceClick, onViewUserProfile, myBestPicks = {}, onBestPickAdd, onBestPickReplace, onBestPickRemove, onRefresh }) {
+export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceClick, onViewUserProfile, myBestPicks = {}, onBestPickAdd, onBestPickReplace, onBestPickRemove, onRefresh, pushNav }) {
   const { user, updateUser, logout } = useUser();
   const mobile = isMobile();
   const [showMyPlaces, setShowMyPlaces] = useState(false);
@@ -1005,7 +1005,7 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
 
         {/* ── 나의 기록 (공간지도 포함) ─────────────────── */}
         <Card>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }} onClick={() => setShowMyPlaces(true)}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer" }} onClick={() => { if (pushNav) pushNav({ extra: () => setShowMyPlaces(false) }); setShowMyPlaces(true); }}>
             <div>
               <p style={{
                 margin: "0 0 6px", fontFamily: FL, fontSize: 9, fontWeight: 700,
@@ -1026,7 +1026,7 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
           <MiniMapInline places={personalPlaces} onViewMap={onViewMap} />
 
           {personalPlaces.length > 0 && (
-            <div style={{ display: "flex", gap: 6, marginTop: 12, overflowX: "auto", cursor: "pointer" }} onClick={() => setShowMyPlaces(true)}>
+            <div style={{ display: "flex", gap: 6, marginTop: 12, overflowX: "auto", cursor: "pointer" }} onClick={() => { if (pushNav) pushNav({ extra: () => setShowMyPlaces(false) }); setShowMyPlaces(true); }}>
               {personalPlaces.slice(0, 5).map((p) => {
                 const thumb = p.photo_urls?.[0] || p.photo_url;
                 return (
@@ -1258,7 +1258,7 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
                   display: "flex", alignItems: "center", justifyContent: "space-between",
                 }}>
                   <button
-                    onClick={() => setShowMyPlaces(false)}
+                    onClick={() => { window.history.back(); }}
                     style={{
                       display: "flex", alignItems: "center", gap: 4,
                       border: "none", background: "none", cursor: "pointer",
