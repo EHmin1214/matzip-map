@@ -832,7 +832,7 @@ export default function ProfilePage({ personalPlaces = [], onViewMap, onPlaceCli
                         }}>
                           <button
                             onClick={() => {
-                              const url = `${API_BASE}/og/@${user.nickname}`;
+                              const url = `${FRONTEND_URL}/@${user.nickname}`;
                               navigator.clipboard.writeText(url).then(() => {
                                 setSuccessMsg("프로필 링크가 복사됐어요!");
                                 setTimeout(() => setSuccessMsg(""), 2500);

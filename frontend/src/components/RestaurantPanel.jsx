@@ -217,7 +217,7 @@ export default function RestaurantPanel({
   };
 
   const handleShare = () => {
-    const url = `${API_BASE}/og/place/${r.id}`;
+    const url = `${FRONTEND_URL}/?place=${r.id}`;
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true); setTimeout(() => setCopied(false), 2000);
     }).catch(() => {});

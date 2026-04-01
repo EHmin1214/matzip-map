@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { useUser, API_BASE } from "../context/UserContext";
-import { STATUS_EMOJI } from "../constants";
+import { STATUS_EMOJI, FRONTEND_URL } from "../constants";
 
 const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
@@ -57,7 +57,7 @@ export default function CuratedLists({ personalPlaces = [] }) {
   };
 
   const handleShare = (listId) => {
-    const url = `${API_BASE}/og/list/${listId}`;
+    const url = `${FRONTEND_URL}/list/${listId}`;
     navigator.clipboard.writeText(url).then(() => {
       setCopiedId(listId);
       setTimeout(() => setCopiedId(null), 2000);

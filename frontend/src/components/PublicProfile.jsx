@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { API_BASE } from "../context/UserContext";
-import { STATUS_LABEL, STATUS_EMOJI, STATUS_COLOR } from "../constants";
+import { STATUS_LABEL, STATUS_EMOJI, STATUS_COLOR, FRONTEND_URL } from "../constants";
 
 const FH = "'Noto Serif', Georgia, serif";
 const FL = "'Manrope', -apple-system, sans-serif";
@@ -104,7 +104,7 @@ export default function PublicProfile({ nickname }) {
   }, [places, filter]);
 
   const shareProfile = () => {
-    const url = `${API_BASE}/og/@${nickname}`;
+    const url = `${FRONTEND_URL}/@${nickname}`;
     navigator.clipboard?.writeText(url).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
