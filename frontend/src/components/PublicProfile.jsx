@@ -161,32 +161,33 @@ export default function PublicProfile({ nickname }) {
             </p>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 8, flexShrink: 0 }}>
           {/* 공유 */}
           <button onClick={shareProfile} style={{
             fontFamily: FL, fontSize: 10, fontWeight: 600,
             color: C.primary, background: C.container, border: "none",
-            padding: "6px 12px", borderRadius: 6, cursor: "pointer",
-            display: "flex", alignItems: "center", gap: 4,
+            padding: "6px 10px", borderRadius: 6, cursor: "pointer",
+            display: "flex", alignItems: "center", gap: 3,
           }}>
             <span className="material-symbols-outlined" style={{ fontSize: 14 }}>share</span>
             {copied ? "복사됨!" : "공유"}
           </button>
-          {profile.instagram_url && (
+          {!isMobile && profile.instagram_url && (
             <a href={profile.instagram_url} target="_blank" rel="noreferrer" style={{
               fontFamily: FL, fontSize: 10, color: "#E1306C", textDecoration: "none",
               padding: "6px 12px", background: "#fce4ec", borderRadius: 6, fontWeight: 600,
             }}>Instagram</a>
           )}
-          {profile.blog_url && (
+          {!isMobile && profile.blog_url && (
             <a href={profile.blog_url} target="_blank" rel="noreferrer" style={{
               fontFamily: FL, fontSize: 10, color: "#03C75A", textDecoration: "none",
               padding: "6px 12px", background: "#e6f9ee", borderRadius: 6, fontWeight: 600,
             }}>블로그</a>
           )}
           <a href="/" style={{
-            fontFamily: FL, fontSize: 11, fontWeight: 700, color: "#fff6ef",
-            padding: "8px 18px", background: C.primary, borderRadius: 8, textDecoration: "none",
+            fontFamily: FL, fontSize: isMobile ? 10 : 11, fontWeight: 700, color: "#fff6ef",
+            padding: isMobile ? "6px 12px" : "8px 18px", background: C.primary, borderRadius: 8, textDecoration: "none",
+            whiteSpace: "nowrap",
           }}>
             나도 시작하기
           </a>
