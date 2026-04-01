@@ -26,10 +26,10 @@ const myMarker = ({ name, status, shared = false, folderColor }) => {
       display:inline-flex;align-items:center;
       background:${bg};
       color:#fff6ef;
-      padding:6px 13px;
-      border-radius:8px;
+      padding:4px 9px;
+      border-radius:6px;
       font-family:'Manrope',-apple-system,sans-serif;
-      font-size:14px;font-weight:600;
+      font-size:11px;font-weight:600;
       white-space:nowrap;
       box-shadow:0 2px 10px rgba(0,0,0,0.18);
       cursor:pointer;
@@ -44,25 +44,25 @@ const myMarker = ({ name, status, shared = false, folderColor }) => {
 // 팔로잉 마커 — 프로필 아바타 + 이름
 const followingMarker = ({ name, color, nickname }) => `
   <div class="map-pill" style="
-    display:inline-flex;align-items:center;gap:6px;
+    display:inline-flex;align-items:center;gap:5px;
     background:rgba(255,255,255,0.92);
     color:${color};
-    padding:6px 13px 6px 6px;
-    border-radius:8px;
+    padding:4px 9px 4px 4px;
+    border-radius:6px;
     border:1.5px solid ${color};
     font-family:'Manrope',-apple-system,sans-serif;
-    font-size:14px;font-weight:600;
+    font-size:11px;font-weight:600;
     white-space:nowrap;
     box-shadow:0 2px 8px rgba(0,0,0,0.08);
     cursor:pointer;
     letter-spacing:0.01em;
   ">
     <span style="
-      width:24px;height:24px;border-radius:50%;
+      width:18px;height:18px;border-radius:50%;
       background:${color};
       display:inline-flex;align-items:center;justify-content:center;
       font-family:'Noto Serif',Georgia,serif;font-style:italic;
-      font-size:12px;color:white;font-weight:700;flex-shrink:0;
+      font-size:9px;color:white;font-weight:700;flex-shrink:0;
     ">${nickname?.[0]?.toUpperCase() || '?'}</span>
     <span>${name}</span>
   </div>
@@ -74,10 +74,10 @@ const blogMarker = ({ name, color }) => `
     display:inline-flex;align-items:center;
     background:${color};
     color:white;
-    padding:6px 13px;
-    border-radius:8px;
+    padding:4px 9px;
+    border-radius:6px;
     font-family:'Manrope',-apple-system,sans-serif;
-    font-size:14px;font-weight:600;
+    font-size:11px;font-weight:600;
     white-space:nowrap;
     box-shadow:0 2px 10px rgba(0,0,0,0.15);
     cursor:pointer;
@@ -90,13 +90,13 @@ const sharedMarker = ({ name, count, category }) => {
   const color = SHARED_CAT_COLOR[category] || "#655d54";
   return `
   <div class="map-pill" style="
-    display:inline-flex;align-items:center;gap:5px;
+    display:inline-flex;align-items:center;gap:4px;
     background:${color};
     color:#fff6ef;
-    padding:6px 13px;
-    border-radius:8px;
+    padding:4px 9px;
+    border-radius:6px;
     font-family:'Manrope',-apple-system,sans-serif;
-    font-size:14px;
+    font-size:11px;
     white-space:nowrap;
     box-shadow:0 2px 10px rgba(0,0,0,0.18);
     cursor:pointer;
