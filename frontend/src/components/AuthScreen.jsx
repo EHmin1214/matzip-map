@@ -237,8 +237,8 @@ export default function AuthScreen({ embedded = false }) {
             {loading ? "처리 중..." : mode === "login" ? "시작하기" : "계정 만들기"}
           </button>
 
-          {/* 카카오 로그인 — 현재 비활성, KAKAO_KEY 설정 시 자동 노출 */}
-          {KAKAO_KEY && (
+          {/* 카카오 로그인 — 임시 숨김 */}
+          {false && KAKAO_KEY && (
             <>
               <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "24px 0" }}>
                 <div style={{ flex: 1, height: 1, background: `${C.outline}33` }} />
