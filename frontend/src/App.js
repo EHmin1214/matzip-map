@@ -89,7 +89,7 @@ export default function App() {
   }, [goBack]);
 
   // ── 우리의 공간 ────────────────────────────────────────────
-  const [mapMode, setMapMode] = useState("personal"); // "personal" | "shared"
+  const [mapMode, setMapMode] = useState(() => localStorage.getItem("mapMode") || "personal"); // "personal" | "shared"
   const [sharedCategory, setSharedCategory] = useState(null); // null = 전체
   const [sharedPlaces, setSharedPlaces] = useState([]);
   const [myBestPicks, setMyBestPicks] = useState({});
@@ -116,8 +116,8 @@ export default function App() {
     return axios.get(`${API_BASE}/personal-places/?user_id=${user.user_id}`)
       .then((res) => {
         setPersonalPlaces(res.data);
-        // 첫 사용자 온보딩: 장소 0개 + 이전에 안 봤으면
-        if (res.data.length === 0 && !localStorage.getItem("matzip_onboarded")) {
+        // 온보딩: "다시 보지 않기" 체크 안 했으면 매 로그인마다 표시
+        if (!localStorage.getItem("onboarding_dismissed")) {
           setShowOnboarding(true);
         }
       }).catch(() => {});
@@ -400,9 +400,10 @@ export default function App() {
     modeTarget.current = mode;
     setModeTransition("in");
     setSelectedRestaurant(null);
-    if (mode === "shared") setShowPersonal(false);
+    if (mode === "shared") { setShowPersonal(false); setSelectedFollowingIds([]); }
     setTimeout(() => {
       setMapMode(mode);
+      localStorage.setItem("mapMode", mode);
       setModeTransition("out");
       setTimeout(() => setModeTransition(null), 1200);
     }, 900);
@@ -500,7 +501,6 @@ export default function App() {
 
   const dismissOnboarding = () => {
     setShowOnboarding(false);
-    localStorage.setItem("matzip_onboarded", "1");
   };
 
   return (
